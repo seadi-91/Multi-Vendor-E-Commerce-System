@@ -1,0 +1,34 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  FARMER
+}
+
+model User {
+  id                   Int       @id @default(autoincrement())
+  name                 String
+  email                String    @unique
+  password             String
+  role                 Role      @default(CUSTOMER)
+  address              String?   // ለገበሬዎች አድራሻ ማስቀመጫ
+  resetPasswordToken   String?   // ለፓስወርድ መቀየሪያ ቶክን
+  resetPasswordExpires DateTime? // ለፓስወርድ መቀየሪያ ጊዜ ማለፊያ
+  createdAt            DateTime  @default(now())
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Float
+  description String?
+  createdAt   DateTime @default(now())
+}

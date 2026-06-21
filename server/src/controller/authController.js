@@ -1,9 +1,11 @@
-const User = require('../model/User');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
+// 1. REGISTER
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role, address } = req.body;
@@ -13,66 +15,95 @@ exports.register = async (req, res) => {
     if (role === 'farmer' && !address) {
       return res.status(400).json({ message: 'Address is required for farmers' });
     }
-    const existingUser = await User.findOne({ email });
+
+    // Prisma findUnique ተጠቀምን
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword, role, address: role === 'farmer' ? address : undefined });
-    await user.save();
+
+    // Prisma create ተጠቀምን
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        address: role === 'farmer' ? address : undefined
+      }
+    });
+
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// 2. LOGIN
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    
+    // Prisma findUnique ተጠቀምን
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
     console.log('Login attempt:', { email, password });
     console.log('User found:', user);
+
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+
     const isMatch = await bcrypt.compare(password, user.password);
     console.log('Password match:', isMatch);
+    
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+
+    // በ Prisma መታወቂያው id ስለሆነ user.id ተጠቀምን (user._id አይደለም)
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    
+    res.json({ 
+      token, 
+      user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Forgot Password
+// 3. FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour (Prisma DateTime ይጠብቃል)
 
-    // Save token to user
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = resetPasswordExpires;
-    await user.save();
+    // Prisma update ተጠቀምን
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetPasswordExpires
+      }
+    });
 
-    // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    // Send email
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -100,35 +131,42 @@ exports.forgotPassword = async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-
     res.json({ message: 'Password reset email sent successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Reset Password
+// 4. RESET PASSWORD
 exports.resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+    // Prisma findFirst ተጠቀምን
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: {
+          gt: new Date()
+        }
+      }
     });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Update user
-    user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
+    // Prisma update ተጠቀምን
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      }
+    });
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
