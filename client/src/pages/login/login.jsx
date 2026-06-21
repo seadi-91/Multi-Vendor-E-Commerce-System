@@ -40,8 +40,22 @@ const Login = () => {
       toast.success(`Welcome back, ${result.user.name || result.user.role}!`);
       // Reset password field after successful login
       setFormData(prev => ({ ...prev, password: '' }));
-      // Redirect based on role
-      const redirectPath = ROUTES_BY_ROLE[result.user.role] || '/';
+      
+      // --- የዳይሬክሽን ሎጂክ ማስተካከያ (UPPERCASE & FALLBACK FIX) ---
+      const userRole = result.user.role ? result.user.role.toUpperCase() : '';
+      let redirectPath = '/';
+
+      if (userRole === 'ADMIN') {
+        redirectPath = '/admin/dashboard';
+      } else if (userRole === 'FARMER') {
+        redirectPath = '/farmer/dashboard';
+      } else if (userRole === 'CUSTOMER') {
+        redirectPath = '/customer/dashboard';
+      } else {
+        // የ roles.js ፋይል በትክክል ከሰራ እሱን ይጠቀማል
+        redirectPath = ROUTES_BY_ROLE[result.user.role] || ROUTES_BY_ROLE[userRole] || '/';
+      }
+
       setTimeout(() => navigate(redirectPath), 800);
     } catch (err) {
       toast.dismiss();
