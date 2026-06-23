@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+      },
       animation: {
         'blob': 'blob 7s infinite',
         'fade-in-down': 'fadeInDown 0.5s ease-out',
