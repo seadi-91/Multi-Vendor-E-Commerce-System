@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { toast } from 'react-hot-toast';
 import {
   ChevronLeft, ChevronRight, Search, Heart, Star,
@@ -118,11 +119,27 @@ const Home = () => {
   const [currentPromotion, setCurrentPromotion] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
-  const [cartCount, setCartCount] = useState(0);
-  const [cartTotal, setCartTotal] = useState(0);
   const [activeCategory, setActiveCategory] = useState('All');
   const { user } = useAuth();
+  const { addToCart, cart } = useCart();
   const navigate = useNavigate();
+
+  // Calculate cart total from CartContext
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Load favorites from localStorage on mount
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('favorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+  }, []);
+
+  // Save favorites to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  }, [favorites]);
 
   const products = [
     { id: 1, name: 'Organic Tomatoes', description: 'Fresh organic tomatoes from local farms', price: 4.99, rating: 4.5, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80', reviewsCount: 382, discountPercent: 20, unit: 'kg', freeShipping: true, badge: 'Top Pick', category: 'Vegetables' },
@@ -153,9 +170,8 @@ const Home = () => {
     toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
   };
 
-  const addToCart = (product) => {
-    setCartCount(p => p + 1);
-    setCartTotal(p => +(p + product.price).toFixed(2));
+  const handleAddToCart = (product) => {
+    addToCart({ ...product, _id: product.id });
     toast.success(`${product.name} added to cart!`);
   };
 
@@ -219,7 +235,7 @@ const Home = () => {
 
             {/* Wishlist / Favorites */}
             <Link
-              to="/customer/dashboard"
+              to="/favorites"
               className="flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition-colors relative"
             >
               <div className="relative">
@@ -242,7 +258,7 @@ const Home = () => {
                 )}
               </div>
               <span className="text-sm font-medium hidden sm:inline">
-                Cart{cartTotal > 0 ? ` · $${cartTotal}` : ''}
+                Cart
               </span>
             </Link>
           </div>
@@ -371,7 +387,7 @@ const Home = () => {
               product={p}
               isFavorite={favorites.includes(p.id)}
               onToggleFavorite={toggleFavorite}
-              onAddToCart={addToCart}
+              onAddToCart={handleAddToCart}
             />
           ))}
         </div>

@@ -15,6 +15,7 @@ import Orders from './pages/orders/Orders';
 import Home from './pages/home/Home';
 import About from './pages/about/About';
 import Contact from './pages/contact/Contact';
+import Favorites from './pages/favorites/Favorites';
 
 function App() {
   const Settings = React.lazy(() => import('./pages/dashbord/customer/settings'));
@@ -27,6 +28,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -70,7 +72,14 @@ function App() {
             }
           />
           <Route path="/customer/cart" element={<Cart />} />
-          <Route path="/customer/checkout" element={<Checkout />} />
+          <Route
+            path="/customer/checkout"
+            element={
+              <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Farmer Routes - Updated to UPPERCASE */}
           <Route
