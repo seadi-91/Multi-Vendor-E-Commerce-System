@@ -7,17 +7,40 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to load user from localStorage or API
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    // Hydrate auth state from localStorage on mount
+    const hydrateAuthState = () => {
       try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        setUser(null);
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        
+        // Only restore user state if both user and token exist
+        if (storedUser && storedToken) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          console.log('Auth state hydrated:', { user: parsedUser, hasToken: !!storedToken });
+        } else if (storedUser && !storedToken) {
+          // Clear invalid state (user exists but no token)
+          console.warn('Invalid auth state: user exists but token is missing. Clearing...');
+          localStorage.removeItem('user');
+          setUser(null);
+        } else if (!storedUser && storedToken) {
+          // Clear invalid state (token exists but no user)
+          console.warn('Invalid auth state: token exists but user is missing. Clearing...');
+          localStorage.removeItem('token');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error hydrating auth state:', error);
+        // Clear corrupted data
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    hydrateAuthState();
   }, []);
 
   // Use VITE_API_BASE_URL from .env
@@ -35,9 +58,17 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.message || 'Login failed');
     }
     const data = await res.json();
+    
+    // Ensure user object has a role
+    if (!data.user || !data.user.role) {
+      console.error('Login response missing user role:', data);
+      throw new Error('Invalid user data received from server');
+    }
+    
     setUser(data.user);
     localStorage.setItem('user', JSON.stringify(data.user));
     localStorage.setItem('token', data.token);
+    console.log('Login successful:', { user: data.user, role: data.user.role });
     return data;
   };
 
@@ -53,13 +84,22 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.message || 'Registration failed');
     }
     const data = await res.json();
+    
+    // Ensure user object has a role
+    if (!data.user || !data.user.role) {
+      console.error('Register response missing user role:', data);
+      throw new Error('Invalid user data received from server');
+    }
+    
     setUser(data.user);
     localStorage.setItem('user', JSON.stringify(data.user));
     localStorage.setItem('token', data.token);
+    console.log('Registration successful:', { user: data.user, role: data.user.role });
     return data;
   };
 
   const logout = () => {
+    console.log('Logging out user');
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');

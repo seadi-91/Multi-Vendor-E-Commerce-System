@@ -40,7 +40,10 @@ const Login = () => {
       toast.success(`Welcome back, ${result.user.name || result.user.role}!`);
       setFormData(prev => ({ ...prev, password: '' }));
       
-      const redirectPath = ROUTES_BY_ROLE[result.user.role] || '/';
+      // Normalize role to lowercase for route lookup
+      const userRole = result.user.role?.toLowerCase();
+      const redirectPath = ROUTES_BY_ROLE[userRole] || '/';
+      console.log('Login redirect:', { userRole, redirectPath });
       setTimeout(() => navigate(redirectPath), 800);
     } catch (err) {
       toast.dismiss();
