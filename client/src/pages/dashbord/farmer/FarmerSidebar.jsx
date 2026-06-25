@@ -28,25 +28,10 @@ const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [productsOpen, setProductsOpen] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
 
   const navigationItems = [
-    {
-      title: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/farmer/dashboard',
-    },
-    {
-      title: 'My Products',
-      icon: Package,
-      path: '/farmer/products',
-      hasSubmenu: true,
-      onAddProduct,
-    },
-    {
-      title: 'Orders',
-      icon: ShoppingBag,
-      path: '/farmer/orders',
-    },
     {
       title: 'Earnings',
       icon: TrendingUp,
@@ -133,10 +118,103 @@ const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto bg-white px-4 py-4">
         <div className="space-y-1">
+          {/* Dashboard */}
+          <button
+            onClick={() => handleNavigation('/farmer/dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              isActive('/farmer/dashboard')
+                ? 'bg-forest-600 text-white shadow-md'
+                : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
+            }`}
+            title={isCollapsed ? 'Dashboard' : undefined}
+          >
+            <LayoutDashboard className="h-5 w-5 shrink-0" />
+            {!isCollapsed && <span className="flex-1 text-left">Dashboard</span>}
+          </button>
+
+          {/* My Products Collapsible */}
+          {!isCollapsed ? (
+            <Collapsible open={productsOpen} onOpenChange={setProductsOpen} className="w-full">
+              <CollapsibleTrigger className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900">
+                <Package className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-left">My Products</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 pt-1 space-y-1">
+                <button
+                  onClick={() => handleNavigation('/farmer/products')}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
+                >
+                  <span className="flex-1 text-left">All Products</span>
+                </button>
+                <button
+                  onClick={onAddProduct}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-mint-600 hover:bg-mint-50 hover:text-mint-700"
+                >
+                  <span className="flex-1 text-left">+ Add Product</span>
+                </button>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <button
+              onClick={onAddProduct}
+              className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                isActive('/farmer/products')
+                  ? 'bg-forest-600 text-white shadow-md'
+                  : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
+              }`}
+              title="My Products"
+            >
+              <Package className="h-5 w-5 shrink-0" />
+            </button>
+          )}
+
+          {/* Orders Collapsible */}
+          {!isCollapsed ? (
+            <Collapsible open={ordersOpen} onOpenChange={setOrdersOpen} className="w-full">
+              <CollapsibleTrigger className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900">
+                <ShoppingBag className="h-5 w-5 shrink-0" />
+                <span className="flex-1 text-left">Orders</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 pt-1 space-y-1">
+                <button
+                  onClick={() => handleNavigation('/farmer/orders')}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
+                >
+                  <span className="flex-1 text-left">All Orders</span>
+                </button>
+                <button
+                  onClick={() => handleNavigation('/farmer/orders/pending')}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
+                >
+                  <span className="flex-1 text-left">Pending Orders</span>
+                </button>
+                <button
+                  onClick={() => handleNavigation('/farmer/orders/completed')}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
+                >
+                  <span className="flex-1 text-left">Completed Orders</span>
+                </button>
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <button
+              onClick={() => handleNavigation('/farmer/orders')}
+              className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                isActive('/farmer/orders')
+                  ? 'bg-forest-600 text-white shadow-md'
+                  : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
+              }`}
+              title="Orders"
+            >
+              <ShoppingBag className="h-5 w-5 shrink-0" />
+            </button>
+          )}
+
+          {/* Other Navigation Items */}
           {navigationItems.map((item) => (
             <button
               key={item.title}
-              onClick={() => item.hasSubmenu ? item.onAddProduct() : handleNavigation(item.path)}
+              onClick={() => handleNavigation(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 isActive(item.path)
                   ? 'bg-forest-600 text-white shadow-md'

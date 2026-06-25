@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { Routes, Route } from 'react-router-dom';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import DashboardHeader from './DashboardHeader';
 import FarmerHome from './home/Home';
-import FarmerFooter from './footer/Footer';
 import AddProduct from './product/AddProduct';
 import FarmerSidebar from './FarmerSidebar';
 import AddProductDialog from './components/AddProductDialog';
+import Profile from './profile/Profile';
+import Settings from './settings/Settings';
 
 const FarmerDashboard = () => {
   const { user, logout } = useAuth();
@@ -28,10 +29,11 @@ const FarmerDashboard = () => {
             <Routes>
               <Route path="/dashboard" element={<FarmerHome />} />
               <Route path="/products/add" element={<AddProduct />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
               {/* Add more farmer routes here */}
             </Routes>
           </main>
-          <FarmerFooter />
         </SidebarInset>
       </div>
       
