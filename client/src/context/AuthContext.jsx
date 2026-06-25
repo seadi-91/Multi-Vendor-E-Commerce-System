@@ -43,8 +43,8 @@ export const AuthProvider = ({ children }) => {
     hydrateAuthState();
   }, []);
 
-  // Use VITE_API_BASE_URL from .env
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  // Use VITE_API_BASE_URL from .env with fallback
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   // Real login implementation
   const login = async (email, password) => {
@@ -74,28 +74,56 @@ export const AuthProvider = ({ children }) => {
 
   // Real register implementation
   const register = async (registrationData) => {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registrationData)
-    });
-    if (!res.ok) {
+    console.log('Register data being sent:', registrationData);
+    console.log('API_BASE_URL:', API_BASE_URL);
+    
+    // Filter out any non-serializable data (like File objects)
+    const serializableData = {};
+    for (const key in registrationData) {
+      const value = registrationData[key];
+      if (value instanceof File) {
+        console.log(`Skipping file field: ${key}`);
+        continue;
+      }
+      serializableData[key] = value;
+    }
+    
+    console.log('Filtered data for API:', serializableData);
+    console.log('Full URL:', `${API_BASE_URL}/auth/register`);
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(serializableData)
+      });
+      
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
+      
+      if (!res.ok) {
+        const data = await res.json();
+        console.error('Error response:', data);
+        throw new Error(data.message || 'Registration failed');
+      }
       const data = await res.json();
-      throw new Error(data.message || 'Registration failed');
+      console.log('Success response:', data);
+      
+      // Ensure user object has a role
+      if (!data.user || !data.user.role) {
+        console.error('Register response missing user role:', data);
+        throw new Error('Invalid user data received from server');
+      }
+      
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
+      console.log('Registration successful:', { user: data.user, role: data.user.role });
+      return data;
+    } catch (error) {
+      console.error('Register fetch error:', error);
+      throw error;
     }
-    const data = await res.json();
-    
-    // Ensure user object has a role
-    if (!data.user || !data.user.role) {
-      console.error('Register response missing user role:', data);
-      throw new Error('Invalid user data received from server');
-    }
-    
-    setUser(data.user);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('token', data.token);
-    console.log('Registration successful:', { user: data.user, role: data.user.role });
-    return data;
   };
 
   const logout = () => {

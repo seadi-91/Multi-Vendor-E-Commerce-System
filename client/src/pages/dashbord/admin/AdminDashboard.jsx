@@ -461,7 +461,7 @@ const AdminDashboard = () => {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebarCollapse}
       />
-      <SidebarInset className="flex-1 h-full overflow-y-auto p-6 md:pl-[calc(var(--sidebar-width)+1.5rem)]">
+      <SidebarInset className="flex-1 h-full overflow-y-auto p-6">
         <header className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>

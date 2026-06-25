@@ -58,22 +58,16 @@ const Register = () => {
 
     // Farmer-specific validation
     if (formData.role === ROLES.FARMER) {
-      if (!formData.profileImage) {
-        toast.error('Profile image is required for farmers');
+      if (!formData.address) {
+        toast.error('Address is required for farmers');
         return;
       }
-      if (!formData.nationalId) {
-        toast.error('National ID is required for farmers');
-        return;
-      }
-      if (!formData.tinNumber && !formData.landMapFile) {
-        toast.error('Either TIN number or Land Map file is required for farmers');
-        return;
-      }
+      // Skip file validation for now - file upload not implemented yet
     }
 
     try {
-      const { confirmPassword, ...registrationData } = formData;
+      // Only send text fields, skip file objects for now
+      const { confirmPassword, profileImage, nationalId, landMapFile, ...registrationData } = formData;
       await register(registrationData);
       toast.success('Registration successful! Welcome to FarmConnect!');
 

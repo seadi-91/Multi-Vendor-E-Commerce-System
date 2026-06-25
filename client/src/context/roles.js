@@ -1,7 +1,7 @@
 export const ROLES = {
-  ADMIN: 'admin',
-  CUSTOMER: 'customer',
-  FARMER: 'farmer',
+  ADMIN: 'ADMIN',
+  CUSTOMER: 'CUSTOMER',
+  FARMER: 'FARMER',
 };
 
 export const ROUTES_BY_ROLE = {

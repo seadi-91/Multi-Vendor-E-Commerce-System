@@ -19,9 +19,14 @@ model User {
   email                String    @unique
   password             String
   role                 Role      @default(CUSTOMER)
-  address              String?   // ለገበሬዎች አድራሻ ማስቀመጫ
-  resetPasswordToken   String?   // ለፓስወርድ መቀየሪያ ቶክን
-  resetPasswordExpires DateTime? // ለፓስወርድ መቀየሪያ ጊዜ ማለፊያ
+  phone                String?
+  address              String?   
+  profileImage         String?   
+  nationalId           String?  
+  tinNumber            String?   
+  landMapFile          String?   
+  resetPasswordToken   String?   
+  resetPasswordExpires DateTime? 
   createdAt            DateTime  @default(now())
 }
 
