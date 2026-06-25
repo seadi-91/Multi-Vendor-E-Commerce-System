@@ -20,8 +20,13 @@ app.use(express.json());
 
 const authRouter = require('./router/authRouter');
 const projectRouter = require('./router/projectRouter');
+const adminRouter = require('./router/adminRouter');
+const farmerRouter = require('./router/farmerRouter');
+
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/farmer', farmerRouter);
 
 // Health check
 app.get('/', (req, res) => {

@@ -5,26 +5,12 @@ import { useCart } from '../../context/CartContext';
 import { toast } from 'react-hot-toast';
 import {
   ChevronLeft, ChevronRight, Search, Heart, Star,
-  ShoppingCart, Bell, ChevronDown, BadgeCheck,
-  Package
+  ShoppingCart, MapPin, Sprout, Users, Truck,
+  Shield, Leaf, Package, Menu, X, ChevronDown
 } from 'lucide-react';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
-
-// ─── Vendor Badge ─────────────────────────────────────────────────────────────
-const VendorBadge = ({ name, verified }) => (
-  <div className="flex items-center gap-1.5">
-    <div
-      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-      style={{ background: `hsl(${(name.charCodeAt(0) * 37) % 360}, 55%, 45%)` }}
-    >
-      {name[0]}
-    </div>
-    <span className="text-[10px] font-semibold text-neutral-500 truncate">{name}</span>
-    {verified && <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" />}
-  </div>
-);
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, className = '' }) => {
@@ -35,9 +21,9 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   } = product;
 
   return (
-    <div className={`group bg-white rounded-2xl border border-neutral-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
+    <div className={`group bg-white rounded-2xl border border-slate-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
       {/* Image */}
-      <div className="relative w-full overflow-hidden bg-neutral-100" style={{ height: '200px' }}>
+      <div className="relative w-full overflow-hidden bg-slate-100" style={{ height: '220px' }}>
         <img
           src={image}
           alt={name}
@@ -49,14 +35,14 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
         />
 
         {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {discountPercent > 0 && (
-            <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-md">
               {discountPercent}% OFF
             </span>
           )}
           {badge && (
-            <span className="bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded shadow">
+            <span className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-lg shadow-md">
               {badge}
             </span>
           )}
@@ -65,48 +51,46 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
         {/* Favorite */}
         <button
           onClick={(e) => { e.preventDefault(); onToggleFavorite(id); }}
-          className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:scale-110 active:scale-95 transition-all"
+          className="absolute top-3 right-3 w-9 h-9 bg-white/95 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
         >
-          <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
+          <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
         </button>
       </div>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-4">
-        <VendorBadge name={vendor} verified={vendorVerified} />
-
-        <h3 className="text-sm font-bold text-neutral-800 group-hover:text-emerald-700 mt-1.5 leading-snug">
+      <div className="flex-1 flex flex-col p-5">
+        <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-700 mt-1 leading-snug">
           {name}
         </h3>
 
         {description && (
-          <p className="text-[11px] text-neutral-500 mt-0.5 line-clamp-1">{description}</p>
+          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{description}</p>
         )}
 
         {/* Rating */}
-        <div className="flex items-center mt-2 gap-1">
+        <div className="flex items-center mt-3 gap-1.5">
           <div className="flex">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`w-3 h-3 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-neutral-200'}`} />
+              <Star key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
             ))}
           </div>
-          <span className="text-[11px] text-neutral-400">({reviewsCount.toLocaleString()})</span>
+          <span className="text-xs text-slate-400">({reviewsCount.toLocaleString()})</span>
         </div>
 
         {/* Price */}
-        <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-base font-extrabold text-emerald-700">${fmt(price)}</span>
+        <div className="mt-4 flex items-baseline gap-2">
+          <span className="text-lg font-extrabold text-emerald-700">{fmt(price)} ETB</span>
           {discountPercent > 0 && (
-            <span className="text-xs text-neutral-400 line-through">${calcOriginal(price, discountPercent)}</span>
+            <span className="text-sm text-slate-400 line-through">{calcOriginal(price, discountPercent)} ETB</span>
           )}
-          <span className="text-[10px] text-neutral-400">/ {unit}</span>
+          <span className="text-xs text-slate-400">/ {unit}</span>
         </div>
 
         <button
           onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-          className="w-full mt-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+          className="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
         >
-          <ShoppingCart className="w-3.5 h-3.5" />
+          <ShoppingCart className="w-4 h-4" />
           Add to Cart
         </button>
       </div>
@@ -116,19 +100,49 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Home = () => {
-  const [currentPromotion, setCurrentPromotion] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState('Addis Ababa');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { addToCart, cart } = useCart();
   const navigate = useNavigate();
 
-  // Calculate cart total from CartContext
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Load favorites from localStorage on mount
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/projects');
+        const data = await response.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+
+    // Listen for product addition events
+    const handleProductUpdate = () => {
+      fetchProducts();
+    };
+
+    window.addEventListener('product-added', handleProductUpdate);
+
+    return () => {
+      window.removeEventListener('product-added', handleProductUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favorites');
     if (savedFavorites) {
@@ -136,33 +150,161 @@ const Home = () => {
     }
   }, []);
 
-  // Save favorites to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  const products = [
-    { id: 1, name: 'Organic Tomatoes', description: 'Fresh organic tomatoes from local farms', price: 4.99, rating: 4.5, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80', reviewsCount: 382, discountPercent: 20, unit: 'kg', freeShipping: true, badge: 'Top Pick', category: 'Vegetables' },
-    { id: 2, name: 'Fresh Potatoes', description: 'Premium quality potatoes, perfect for cooking', price: 3.49, rating: 4.8, vendor: 'Valley Harvest', vendorVerified: true, image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=600&q=80', reviewsCount: 145, discountPercent: 18, unit: 'kg', category: 'Vegetables' },
-    { id: 3, name: 'Fresh Bell Peppers', description: 'Spicy and fresh peppers for your dishes', price: 5.99, rating: 4.0, vendor: 'Mountain Orchard', vendorVerified: true, image: 'https://images.unsplash.com/photo-1563565080-749774653557?w=600&q=80', reviewsCount: 612, discountPercent: 20, unit: 'kg', freeShipping: true, badge: 'Best Seller', category: 'Vegetables' },
-    { id: 4, name: 'Fresh Spinach', description: 'Crisp and nutritious leafy greens', price: 2.99, rating: 4.7, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&q=80', reviewsCount: 98, discountPercent: 20, unit: 'bunch', category: 'Vegetables' },
-    { id: 5, name: 'Organic Broccoli', description: 'Garden-fresh broccoli heads', price: 3.99, rating: 4.5, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=600&q=80', reviewsCount: 220, discountPercent: 12, unit: 'bunch', category: 'Vegetables' },
-    { id: 6, name: 'Fresh Strawberries', description: 'Sun-ripened sweet strawberries', price: 6.49, rating: 4.8, vendor: 'Berryland Farms', vendorVerified: false, image: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&q=80', reviewsCount: 450, discountPercent: 18, unit: 'pack', freeShipping: true, category: 'Fruits' },
-    { id: 7, name: 'Organic Avocados', description: 'Creamy ripe avocados from sunny farms', price: 7.99, rating: 4.7, vendor: 'Sunny Valley', vendorVerified: true, image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600&q=80', reviewsCount: 180, discountPercent: 15, unit: 'pack', badge: 'New', category: 'Fruits' },
-    { id: 8, name: 'Organic Apples', description: 'Crisp and sweet apples from mountain orchards', price: 5.49, rating: 4.9, vendor: 'Mountain Orchard', vendorVerified: true, image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&q=80', reviewsCount: 612, discountPercent: 25, unit: 'kg', freeShipping: true, category: 'Fruits' },
+  const locations = [
+    { name: 'Addis Ababa', code: 'AA' },
+    { name: 'Gondar', code: 'GD' },
+    { name: 'Hawassa', code: 'HS' },
+    { name: 'Mekelle', code: 'MK' },
+    { name: 'Bahir Dar', code: 'BD' },
+    { name: 'Dire Dawa', code: 'DD' },
   ];
 
-  // Carousel data containing exactly 4 agricultural promo slides (Free delivery removed)
-  const promotions = [
-    { id: 1, title: 'Fresh Organic Vegetables', description: 'Get 20% off on all organic vegetables this week!', image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1400&q=80', cta: 'Shop Now', tag: 'Limited Time' },
-    { id: 2, title: 'Farm Fresh Fruits', description: 'Direct from farm to your doorstep. No middlemen!', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1400&q=80', cta: 'Explore Fruits', tag: 'Farm to Table' },
-    { id: 3, title: 'Freshly Harvested Grains', description: 'Premium source grains and hand-selected staples for your kitchen.', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&q=80', cta: 'Browse Grains', tag: 'Pure Quality' },
-    { id: 4, title: 'Aromatic Premium Coffee', description: 'Savor the depth of micro-lot single-origin beans straight from the source.', image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1400&q=80', cta: 'View Coffee', tag: 'New Arrival' }
+  const categories = [
+    { 
+      name: 'Legumes & Pulses', 
+      count: 48, 
+      icon: '🫘', 
+      image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
+        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
+        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
+        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Vegetables', 
+      count: 110, 
+      icon: '🥦', 
+      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80',
+        'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300&q=80',
+        'https://images.unsplash.com/photo-1563565080-749774653557?w=300&q=80',
+        'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Fruits', 
+      count: 85, 
+      icon: '🍎', 
+      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&q=80',
+        'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=300&q=80',
+        'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&q=80',
+        'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Coffee', 
+      count: 15, 
+      icon: '☕', 
+      image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
+        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
+        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
+        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Grains & Cereals', 
+      count: 62, 
+      icon: '🌾', 
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Nuts & Seeds', 
+      count: 34, 
+      icon: '🌰', 
+      image: 'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
+        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
+        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
+        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Herbs & Spices', 
+      count: 28, 
+      icon: '🌿', 
+      image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
+        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
+        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
+        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80'
+      ]
+    },
+    { 
+      name: 'Dairy Products', 
+      count: 22, 
+      icon: '🥛', 
+      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=80',
+      mosaicImages: [
+        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
+        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
+        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
+        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80'
+      ]
+    },
   ];
 
-  const filteredProducts = activeCategory === 'All'
-    ? products
-    : products.filter(p => p.category === activeCategory);
+  // Group products by category and calculate counts
+  const categoryData = categories.map(cat => {
+    const categoryProducts = products.filter(p => 
+      p.category && p.category.toLowerCase() === cat.name.toLowerCase()
+    );
+    const mosaicImages = categoryProducts.slice(0, 4).map(p => p.image || cat.mosaicImages[0]);
+    
+    return {
+      ...cat,
+      count: categoryProducts.length || cat.count,
+      mosaicImages: mosaicImages.length >= 4 ? mosaicImages : cat.mosaicImages
+    };
+  });
+
+  const slides = [
+    { 
+      id: 1, 
+      title: 'Premium Organic Produce', 
+      subtitle: 'Certified organic vegetables and fruits grown with care by local farmers. Connecting local growers directly to your table.',
+      ctaPrimary: 'Shop Organic',
+      ctaSecondary: 'Learn More',
+      tag: '100% ORGANIC',
+      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1400&q=80'
+    },
+    { 
+      id: 2, 
+      title: 'Farm Fresh Fruits & Vegetables', 
+      subtitle: 'Direct from local farms to your doorstep. Guaranteed freshness with 100% middleman-free trade.',
+      ctaPrimary: 'Shop Fresh Harvest',
+      ctaSecondary: 'Explore Organic Farms',
+      tag: 'FARM TO TABLE',
+      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1400&q=80'
+    },
+    { 
+      id: 3, 
+      title: 'Freshly Harvested Grains', 
+      subtitle: 'Premium quality grains and cereals sourced directly from Ethiopian farmers.',
+      ctaPrimary: 'Browse Grains',
+      ctaSecondary: 'View All',
+      tag: 'PURE QUALITY',
+      image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&q=80'
+    },
+  ];
 
   const toggleFavorite = (id) => {
     const isFav = favorites.includes(id);
@@ -181,276 +323,351 @@ const Home = () => {
   };
 
   useEffect(() => {
-    const t = setInterval(() => setCurrentPromotion(p => (p + 1) % promotions.length), 5000);
+    const t = setInterval(() => setCurrentSlide(s => (s + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, [promotions.length]);
+  }, [slides.length]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
 
-      {/* ── Header ── */}
-      <header className="bg-white text-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
+      {/* ── Top Notification Bar ── */}
+      <div className="bg-amber-400 text-amber-900 text-center py-2 text-sm font-semibold">
+        ⚡ Free shipping on orders over 1000 ETB!
+      </div>
 
-          {/* Logo — left */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-extrabold text-emerald-600 tracking-tight">FarmConnect</span>
-          </Link>
+      {/* ── Main Navigation Bar ── */}
+      <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-6">
+            
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
+                <Leaf className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-xl font-extrabold text-emerald-700 tracking-tight">FarmConnect</span>
+            </Link>
 
-          {/* Search bar — small, centered */}
-          <div className="flex-1 flex justify-center px-4">
-            <div className="flex w-full max-w-md rounded-lg overflow-hidden border border-gray-300 focus-within:border-emerald-500 transition-colors shadow-sm">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-2 text-sm text-gray-900 focus:outline-none bg-white"
-              />
-              <button className="px-4 bg-emerald-600 hover:bg-emerald-700 transition-colors">
-                <Search className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </div>
-
-          {/* Right actions — pushed to far right */}
-          <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
-            {/* Account */}
-            {user ? (
-              <button onClick={handleDashboardRedirect} className="flex flex-col items-start text-gray-700 hover:text-emerald-600 transition-colors">
-                <span className="text-[10px] text-gray-400">Hello, {user.name || 'User'}</span>
-                <span className="text-xs font-semibold flex items-center gap-0.5">Account <ChevronDown className="w-3 h-3" /></span>
-              </button>
-            ) : (
+            {/* Location Selector */}
+            <div className="hidden lg:block relative">
               <button
-                onClick={() => navigate('/login')}
-                className="text-sm font-semibold text-gray-700 hover:text-emerald-600 transition-colors border border-gray-300 hover:border-emerald-500 px-3 py-1.5 rounded-lg"
+                onClick={() => setLocationOpen(!locationOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
               >
-                Sign In
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <div className="text-left">
+                  <p className="text-[10px] text-slate-500">Deliver to</p>
+                  <p className="text-sm font-semibold text-slate-800">{selectedLocation}</p>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${locationOpen ? 'rotate-180' : ''}`} />
               </button>
-            )}
+              {locationOpen && (
+                <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 w-64 py-2">
+                  {locations.map((loc) => (
+                    <button
+                      key={loc.code}
+                      onClick={() => { setSelectedLocation(loc.name); setLocationOpen(false); }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="font-medium text-slate-800">{loc.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {/* Wishlist / Favorites */}
-            <Link
-              to="/favorites"
-              className="flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition-colors relative"
-            >
-              <div className="relative">
-                <Heart className="w-5 h-5" />
-                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
-                  </span>
-                )}
+            {/* Advanced Search Bar */}
+            <div className="flex-1 hidden md:block">
+              <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-emerald-500 transition-colors shadow-sm">
+                <select className="px-4 py-2.5 bg-slate-50 border-r border-slate-200 text-sm text-slate-700 focus:outline-none">
+                  <option>All Categories</option>
+                  <option>Vegetables</option>
+                  <option>Fruits</option>
+                  <option>Grains</option>
+                  <option>Coffee</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Search fresh vegetables, organic fruits, cereals..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
+                />
+                <button className="px-6 bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                  <Search className="w-5 h-5 text-white" />
+                </button>
               </div>
-              <span className="text-sm font-medium hidden sm:inline">Favorites</span>
-            </Link>
+            </div>
 
-            {/* Cart */}
-            <Link to="/customer/cart" className="flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition-colors relative">
-              <div className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
-                )}
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">
-                Cart
-              </span>
-            </Link>
+            {/* Action Controls */}
+            <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+              {/* Account */}
+              {user ? (
+                <button onClick={handleDashboardRedirect} className="hidden sm:flex flex-col items-start text-slate-700 hover:text-emerald-600 transition-colors">
+                  <span className="text-[10px] text-slate-400">Hello, {user.name || 'User'}</span>
+                  <span className="text-xs font-semibold flex items-center gap-0.5">Account <ChevronDown className="w-3 h-3" /></span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/login')}
+                  className="hidden sm:block text-sm font-semibold text-slate-700 hover:text-emerald-600 transition-colors border border-slate-300 hover:border-emerald-500 px-4 py-2 rounded-xl"
+                >
+                  Sign In
+                </button>
+              )}
+
+              {/* Favorites */}
+              <Link
+                to="/favorites"
+                className="flex items-center gap-1.5 text-slate-700 hover:text-emerald-600 transition-colors relative"
+              >
+                <div className="relative">
+                  <Heart className="w-5 h-5" />
+                  {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {favorites.filter(f => !String(f).startsWith('cat-')).length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium hidden sm:inline">Favorites</span>
+              </Link>
+
+              {/* Cart */}
+              <Link to="/customer/cart" className="flex items-center gap-1.5 text-slate-700 hover:text-emerald-600 transition-colors relative">
+                <div className="relative">
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+                  )}
+                </div>
+                <span className="text-sm font-medium hidden sm:inline">Cart</span>
+              </Link>
+
+              {/* Mobile Menu Toggle */}
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden">
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 px-4 py-4 bg-white">
+            <div className="flex flex-col gap-4">
+              <div className="flex rounded-xl overflow-hidden border border-slate-200">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
+                />
+                <button className="px-4 bg-emerald-600">
+                  <Search className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              <button
+                onClick={() => setLocationOpen(!locationOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200"
+              >
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-slate-800">{selectedLocation}</span>
+              </button>
+              {user ? (
+                <button onClick={handleDashboardRedirect} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
+                  Dashboard
+                </button>
+              ) : (
+                <button onClick={() => navigate('/login')} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
+                  Sign In
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* ── Hero Carousel ── */}
-      <section className="relative bg-black">
-        <div className="relative h-[280px] md:h-[380px] overflow-hidden">
-          {promotions.map((promo, i) => (
-            <div
-              key={promo.id}
-              className={`absolute inset-0 transition-opacity duration-700 ${i === currentPromotion ? 'opacity-100' : 'opacity-0'}`}
-              style={{ backgroundImage: `url(${promo.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-              <div className="absolute inset-0 flex flex-col justify-center pl-8 md:pl-16 max-w-xl">
-                <span className="inline-block bg-amber-400 text-amber-900 text-[10px] font-extrabold px-3 py-1 rounded-full mb-3 w-max uppercase tracking-wider">
-                  {promo.tag}
-                </span>
-                <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-2">{promo.title}</h2>
-                <p className="text-sm text-white/80 mb-5">{promo.description}</p>
-                <div className="flex gap-3">
-                  <button className="px-6 py-2.5 bg-amber-400 text-gray-900 font-bold rounded-lg hover:bg-amber-300 transition-colors text-sm shadow-lg">
-                    {promo.cta}
-                  </button>
-                  <button className="px-6 py-2.5 bg-white/10 border border-white/30 text-white font-semibold rounded-lg hover:bg-white/20 transition-colors text-sm backdrop-blur-sm">
-                    Learn More
-                  </button>
+      {/* ── Container-Bounded Hero Banner (Centered & Clean with Auto-play) ── */}
+      <section className="bg-slate-50 py-8 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative w-full min-h-[440px] md:min-h-[480px] rounded-3xl overflow-hidden flex items-center justify-center text-center p-8 md:p-16">
+            
+            {slides.map((slide, i) => (
+              <div
+                key={slide.id}
+                className={`absolute inset-0 transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+              >
+                {/* Background Image */}
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/50" />
+                
+                {/* Centered Content */}
+                <div className="relative z-10 max-w-2xl mx-auto space-y-6 flex flex-col items-center justify-center h-full">
+                  <span className="inline-block bg-amber-400 text-emerald-900 text-xs font-extrabold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                    {slide.tag}
+                  </span>
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-lg">
+                    {slide.title}
+                  </h2>
+                  <p className="text-white/95 text-sm md:text-base max-w-lg mx-auto leading-relaxed drop-shadow-md">
+                    {slide.subtitle}
+                  </p>
+                  <div className="flex gap-4 flex-wrap justify-center">
+                    <button className="px-8 py-3.5 bg-amber-400 text-emerald-900 font-bold rounded-xl hover:bg-amber-300 transition-colors text-sm md:text-base shadow-lg">
+                      Shop Fresh Harvest
+                    </button>
+                    <button className="px-8 py-3.5 bg-white/10 border-2 border-white/30 text-white font-semibold rounded-xl hover:bg-white/20 transition-colors text-sm md:text-base backdrop-blur-sm shadow-lg">
+                      Explore Organic Farms
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-
-          {/* Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {promotions.map((_, i) => (
-              <button key={i} onClick={() => setCurrentPromotion(i)} className={`h-2 rounded-full transition-all ${i === currentPromotion ? 'bg-white w-6' : 'bg-white/50 w-2'}`} />
             ))}
-          </div>
 
-          <button onClick={() => setCurrentPromotion(p => (p - 1 + promotions.length) % promotions.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all">
-            <ChevronLeft className="w-5 h-5 text-gray-800" />
-          </button>
-          <button onClick={() => setCurrentPromotion(p => (p + 1) % promotions.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all">
-            <ChevronRight className="w-5 h-5 text-gray-800" />
-          </button>
+            {/* Navigation Arrows */}
+            <button onClick={() => setCurrentSlide(s => (s - 1 + slides.length) % slides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
+              <ChevronLeft className="w-6 h-6 text-slate-800" />
+            </button>
+            <button onClick={() => setCurrentSlide(s => (s + 1) % slides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
+              <ChevronRight className="w-6 h-6 text-slate-800" />
+            </button>
+
+            {/* Dots */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+              {slides.map((_, i) => (
+                <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2 rounded-full transition-all ${i === currentSlide ? 'bg-white w-8' : 'bg-white/50 w-2'}`} />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ── Shop by Category ── */}
-      <section className="max-w-7xl mx-auto px-6 pt-10 pb-2">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-extrabold text-neutral-800 tracking-tight">Shop by Category</h2>
-          <p className="text-sm text-neutral-500 mt-1">Browse fresh produce by category</p>
-        </div>
+      {/* ── Premium Category Showcase ── */}
+      <section className="bg-slate-50 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-extrabold text-slate-800">Shop by Category</h2>
+            <p className="text-slate-500 mt-2">Browse fresh produce curated directly from certified local farmlands.</p>
+          </div>
 
-        <div className="flex justify-center">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 w-full max-w-5xl">
-            {[
-              { name: 'Legumes & Pulses', sub: 'Chickpeas',    emoji: '🫘', image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=500&q=80',  link: '/market?cat=legumes' },
-              { name: 'Vegetables',       sub: 'Tomato, Onion', emoji: '🥦', image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500&q=80', link: '/market?cat=vegetables' },
-              { name: 'Fruits',           sub: 'Mango, Banana', emoji: '🍎', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&q=80', link: '/market?cat=fruits' },
-              { name: 'Coffee',           sub: 'Coffee Beans',  emoji: '☕', image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=500&q=80',  link: '/market?cat=coffee' },
-              { name: 'Grains & Cereals', sub: 'Wheat, Teff',   emoji: '🌾', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=500&q=80',  link: '/market?cat=grains' },
-              { name: 'Nuts & Seeds',     sub: 'Sesame, Almonds',emoji: '🌰', image: 'https://images.unsplash.com/photo-1608797178974-15b35a61d121?w=500&q=80',  link: '/market?cat=nuts' },
-              { name: 'Herbs & Spices',   sub: 'Rosemary',      emoji: '🌿', image: 'https://images.unsplash.com/photo-1466637574441-749b8f19452f?w=500&q=80',  link: '/market?cat=herbs' },
-              { name: 'Livestock',        sub: 'Cattle',        emoji: '🐄', image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=500&q=80',  link: '/market?cat=livestock' },
-            ].map((cat) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categoryData.map((cat, i) => (
               <Link
-                to={cat.link}
-                key={cat.name}
-                className="group flex flex-col items-center text-center cursor-pointer font-sans"
+                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
+                key={i}
+                className="group relative rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white"
               >
-                <div className="relative w-full rounded-2xl h-48 overflow-hidden mb-3 shadow-md border-2 border-neutral-100 group-hover:border-emerald-400 transition-all duration-300">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentNode.style.background = '#f0fdf4';
-                      e.target.parentNode.innerHTML = `<span style="font-size:2.5rem;display:flex;align-items:center;justify-content:center;height:100%">${cat.emoji}</span>`;
-                    }}
-                  />
+                {/* 2x2 Mosaic Image Grid */}
+                <div className="grid grid-cols-2 grid-rows-2 h-56">
+                  {cat.mosaicImages.map((img, idx) => (
+                    <div key={idx} className="relative overflow-hidden">
+                      <img
+                        src={img}
+                        alt={`${cat.name} ${idx + 1}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                  ))}
                 </div>
-                <h3 className="text-sm font-bold text-neutral-800 group-hover:text-emerald-600 transition-colors leading-tight">
-                  {cat.name}
-                </h3>
-                <p className="text-[11px] text-neutral-400 mt-0.5">{cat.sub}</p>
+                
+                {/* Card Footer */}
+                <div className="p-5 flex items-center justify-between border-t border-slate-100">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 leading-tight">{cat.name}</h3>
+                    <p className="text-sm text-slate-500 mt-1">{cat.count} Items</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm group-hover:text-emerald-700 transition-colors">
+                    View All
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Popular / Featured Products ── */}
-      <section className="max-w-7xl mx-auto px-6 pb-12">
-        <div className="text-center mb-4">
-          <h2 className="text-2xl font-extrabold text-neutral-800">Popular Products</h2>
-          <p className="text-sm text-neutral-500 mt-1">Fresh agricultural products from trusted farmers.</p>
-        </div>
+      {/* ── Flash Deals & Fresh Harvest ── */}
+      <section className="bg-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-extrabold text-slate-800">Flash Deals & Fresh Harvest</h2>
+              <p className="text-slate-500 mt-2">Limited-time offers on freshly harvested produce.</p>
+            </div>
+            <Link to="/market" className="hidden sm:flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700">
+              View All <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
 
-        {/* Filter tabs */}
-        <div className="flex justify-center gap-2 flex-wrap mb-8">
-          {['All', 'Vegetables', 'Fruits', 'Grains'].map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-5 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                activeCategory === cat
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-emerald-400'
-              }`}
+          {/* Product grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.slice(0, 8).map(p => (
+              <ProductCard
+                key={p._id || p.id}
+                product={{...p, id: p._id || p.id}}
+                isFavorite={favorites.includes(p._id || p.id)}
+                onToggleFavorite={toggleFavorite}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+
+          <div className="mt-10 text-center sm:hidden">
+            <Link
+              to="/market"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
             >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Product grid — 3 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map(p => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              isFavorite={favorites.includes(p.id)}
-              onToggleFavorite={toggleFavorite}
-              onAddToCart={handleAddToCart}
-            />
-          ))}
-        </div>
-
-        <div className="mt-10 text-center">
-          <Link
-            to="/market"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
-          >
-            Browse All Products <ChevronRight className="w-4 h-4" />
-          </Link>
+              View All Products <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-gray-800 text-white mt-4">
-        <div
-          className="bg-gray-700 py-3 text-center cursor-pointer hover:bg-gray-600 text-sm"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        >
-          Back to top ↑
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
+      <footer className="bg-slate-900 text-white mt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <Leaf className="w-5 h-5 text-white" />
               </div>
               <span className="text-lg font-extrabold">FarmConnect</span>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">The largest multi-vendor marketplace for farm-fresh produce.</p>
-            <div className="flex gap-3 mt-4">
-              {['𝕏', 'f', 'in', '▶'].map(icon => (
-                <button key={icon} className="w-8 h-8 bg-gray-600 hover:bg-emerald-600 rounded-full text-xs font-bold transition-colors flex items-center justify-center">{icon}</button>
-              ))}
-            </div>
+            <p className="text-sm text-slate-400 leading-relaxed">The largest multi-vendor marketplace for farm-fresh produce in Ethiopia.</p>
           </div>
 
           {[
             { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
             { title: 'For Vendors',  links: ['Start Selling', 'Vendor Dashboard', 'Pricing', 'Analytics'] },
-            { title: 'Company',      links: ['About Us', 'Careers', 'Blog', 'Investor Relations'] },
-            { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'Contact Us'] },
+            { title: 'Company',      links: ['About Us', 'Careers', 'Blog', 'Contact'] },
+            { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'FAQ'] },
           ].map(col => (
             <div key={col.title}>
               <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
               <ul className="space-y-2">
                 {col.links.map(link => (
-                  <li key={link}><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{link}</a></li>
+                  <li key={link}><a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">{link}</a></li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="border-t border-gray-700 py-6">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">&copy; 2026 FarmConnect, Inc. All rights reserved.</p>
-            <div className="flex gap-6 text-sm text-gray-400">
+        <div className="border-t border-slate-800 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-slate-400">&copy; 2026 FarmConnect, Inc. All rights reserved.</p>
+            <div className="flex gap-6 text-sm text-slate-400">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Use</a>
-              <a href="#" className="hover:text-white transition-colors">Cookie Settings</a>
             </div>
           </div>
         </div>

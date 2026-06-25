@@ -8,9 +8,12 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Shield,
   BarChart3,
   DollarSign,
+  UserCheck,
+  Store,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -62,7 +65,7 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
             className="p-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <ChevronRight size={20} /> : <ChevronRight size={20} className="rotate-180" />}
+            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
           </button>
         </div>
       </SidebarHeader>
@@ -90,22 +93,98 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => handleNav('users')}
-                  isActive={activeTab === 'users'}
-                >
-                  <Users size={18} />
-                  {!isCollapsed && <span>Users</span>}
-                </SidebarMenuButton>
+                {!isCollapsed ? (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={activeTab === 'users'}>
+                        <Users size={18} />
+                        <span>Users</span>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('all-users')}
+                            isActive={activeTab === 'all-users'}
+                          >
+                            <span>All Users</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('active-users')}
+                            isActive={activeTab === 'active-users'}
+                          >
+                            <span>Active Users</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('suspended-users')}
+                            isActive={activeTab === 'suspended-users'}
+                          >
+                            <span>Suspended Users</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuButton
+                    onClick={() => handleNav('users')}
+                    isActive={activeTab === 'users'}
+                  >
+                    <Users size={18} />
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => handleNav('farmers')}
-                  isActive={activeTab === 'farmers'}
-                >
-                  <UserCog size={18} />
-                  {!isCollapsed && <span>Farmers</span>}
-                </SidebarMenuButton>
+                {!isCollapsed ? (
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton isActive={activeTab === 'farmers'}>
+                        <UserCog size={18} />
+                        <span>Farmers</span>
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('all-farmers')}
+                            isActive={activeTab === 'all-farmers'}
+                          >
+                            <span>All Farmers</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('pending-farmers')}
+                            isActive={activeTab === 'pending-farmers'}
+                          >
+                            <span>Pending Approval</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => handleNav('verified-farmers')}
+                            isActive={activeTab === 'verified-farmers'}
+                          >
+                            <span>Verified Farmers</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuButton
+                    onClick={() => handleNav('farmers')}
+                    isActive={activeTab === 'farmers'}
+                  >
+                    <UserCog size={18} />
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
               <SidebarMenuItem>
                 {!isCollapsed ? (

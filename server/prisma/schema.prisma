@@ -20,20 +20,70 @@ model User {
   password             String
   role                 Role      @default(CUSTOMER)
   phone                String?
-  address              String?   
-  profileImage         String?   
-  nationalId           String?  
-  tinNumber            String?   
-  landMapFile          String?   
-  resetPasswordToken   String?   
-  resetPasswordExpires DateTime? 
+  address              String?
+  location             String?
+  profileImage         String?
+  nationalId           String?
+  tinNumber            String?
+  landMapFile          String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
   createdAt            DateTime  @default(now())
+  
+  // Farmer-specific fields
+  farmName             String?
+  farmSize             String?
+  bio                  String?
+  isVerified           Boolean   @default(false)
+  certifications       String[]
+  languages            String[]
+  
+  // Settings fields
+  language             String    @default("English")
+  timezone             String    @default("Africa/Addis_Ababa")
+  
+  // Payment settings
+  bankName             String?
+  accountNumber        String?
+  paymentMethod        String?
+  autoWithdrawal       Boolean   @default(false)
+  withdrawalThreshold  Float?
+  
+  // Security settings
+  twoFactor            Boolean   @default(false)
+  loginAlerts          Boolean   @default(true)
+  sessionTimeout       Int       @default(30)
+  
+  // Professional settings
+  businessLicense      String?
+  taxId                String?
+  vatRegistered        Boolean   @default(false)
+  vatNumber            String?
+  insuranceProvider    String?
+  insurancePolicy      String?
+  insuranceExpiry      DateTime?
+  farmRegistration     String?
+  membershipAssociations String[]
+  
+  // Account status
+  isActive             Boolean   @default(true)
+  
+  // Relations
+  products             Product[]
 }
 
 model Product {
   id          Int      @id @default(autoincrement())
   name        String
-  price       Float
   description String?
+  price       Float
+  stock       Int      @default(0)
+  category    String?
+  image       String?
+  badges      String[]
+  status      String   @default("pending")
+  farmerId    Int
+  farmer      User     @relation(fields: [farmerId], references: [id])
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
