@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import {
-  Heart, Star, ShoppingCart, Package, ChevronLeft,
-  BadgeCheck
-} from 'lucide-react';
+import { Heart, Star, ShoppingCart, Package, ChevronLeft, BadgeCheck } from 'lucide-react';
+import CustomerHeader from '../dashbord/customer/header/Header';
+import CustomerFooter from '../dashbord/customer/footer/Footer';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
@@ -97,7 +97,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
           {discountPercent > 0 && (
             <span className="text-xs text-neutral-400 line-through">${calcOriginal(price, discountPercent)}</span>
           )}
-          <span className="text-[10px] text-neutral-400">/ {unit}</span>
+          <span className="text-[10px] text-neutral-400">/{unit}</span>
         </div>
 
         <button
@@ -112,10 +112,67 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   );
 };
 
+// ─── Public Header ────────────────────────────────────────────────────────────
+const PublicHeader = ({ cartCount }) => {
+  const navigate = useNavigate();
+  return (
+    <header className="bg-white text-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
+        {/* Logo — left */}
+        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+            <span className="text-white font-extrabold text-sm">FC</span>
+          </div>
+          <span className="text-lg font-extrabold text-emerald-600 tracking-tight">FarmConnect</span>
+        </Link>
+
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+
+        {/* Right actions */}
+        <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+          {/* Favorites */}
+          <Link
+            to="/favorites"
+            className="flex items-center gap-1.5 text-gray-600 hover:text-emerald-600 transition-colors relative"
+          >
+            <div className="relative">
+              <Heart className="w-5 h-5" />
+            </div>
+            <span className="text-sm font-medium hidden sm:inline">Favorites</span>
+          </Link>
+
+          {/* Cart */}
+          <Link
+            to="/customer/cart"
+            className="flex items-center gap-1.5 text-gray-600 hover:text-emerald-600 transition-colors relative"
+          >
+            <div className="relative">
+              <ShoppingCart className="w-5 h-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+              )}
+            </div>
+            <span className="text-sm font-medium hidden sm:inline">Cart</span>
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
   const { addToCart, cart } = useCart();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Calculate cart total from CartContext
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -138,16 +195,26 @@ const Favorites = () => {
     if (savedFavorites) {
       setFavorites(JSON.parse(savedFavorites));
     }
+    const updateFavorites = () => {
+      const saved = localStorage.getItem('favorites');
+      if (saved) {
+        setFavorites(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', updateFavorites);
+    window.addEventListener('favoritesUpdated', updateFavorites);
+    return () => {
+      window.removeEventListener('storage', updateFavorites);
+      window.removeEventListener('favoritesUpdated', updateFavorites);
+    };
   }, []);
-
-  // Save favorites to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-  }, [favorites]);
 
   const toggleFavorite = (id) => {
     const isFav = favorites.includes(id);
-    setFavorites(prev => isFav ? prev.filter(f => f !== id) : [...prev, id]);
+    const newFavorites = isFav ? favorites.filter(f => f !== id) : [...favorites, id];
+    setFavorites(newFavorites);
+    localStorage.setItem('favorites', JSON.stringify(newFavorites));
+    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
     toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
   };
 
@@ -160,51 +227,13 @@ const Favorites = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ── Header ── */}
-      <header className="bg-white text-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-          {/* Logo — left */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-extrabold text-emerald-600 tracking-tight">FarmConnect</span>
-          </Link>
+      {user ? (
+        <CustomerHeader user={user} onLogout={logout} cartCount={cartCount} />
+      ) : (
+        <PublicHeader cartCount={cartCount} />
+      )}
 
-          {/* Back button */}
-          <Link to="/" className="flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition-colors ml-4">
-            <ChevronLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Home</span>
-          </Link>
-
-          {/* Right actions */}
-          <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
-            {/* Favorites */}
-            <div className="flex items-center gap-1.5 text-rose-500">
-              <Heart className="w-5 h-5 fill-rose-500" />
-              <span className="text-sm font-medium">My Favorites</span>
-              <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                {favorites.length}
-              </span>
-            </div>
-
-            {/* Cart */}
-            <Link to="/customer/cart" className="flex items-center gap-1.5 text-gray-700 hover:text-emerald-600 transition-colors relative">
-              <div className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
-                )}
-              </div>
-              <span className="text-sm font-medium hidden sm:inline">
-                Cart{cartTotal > 0 ? ` · $${cartTotal}` : ''}
-              </span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Main Content ── */}
+      {/* ─── Main Content ─── */}
       <section className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-neutral-800 mb-2">My Favorites</h1>
@@ -242,54 +271,56 @@ const Favorites = () => {
         )}
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="bg-gray-800 text-white mt-4">
-        <div
-          className="bg-gray-700 py-3 text-center cursor-pointer hover:bg-gray-600 text-sm"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        >
-          Back to top ↑
-        </div>
+      {user ? (
+        <CustomerFooter />
+      ) : (
+        <footer className="bg-gray-800 text-white mt-4">
+          <div
+            className="bg-gray-700 py-3 text-center cursor-pointer hover:bg-gray-600 text-sm"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            Back to top ↑
+          </div>
 
-        <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
+          <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-extrabold text-xs">FC</span>
+                </div>
+                <span className="text-lg font-extrabold">FarmConnect</span>
               </div>
-              <span className="text-lg font-extrabold">FarmConnect</span>
+              <p className="text-sm text-gray-400 leading-relaxed">The largest multi-vendor marketplace for farm-fresh produce.</p>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">The largest multi-vendor marketplace for farm-fresh produce.</p>
+
+            {[
+              { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
+              { title: 'Company', links: ['About Us', 'Careers', 'Blog', 'Investor Relations'] },
+              { title: 'Support', links: ['Help Center', 'Track Order', 'Returns', 'Contact Us'] },
+            ].map(col => (
+              <div key={col.title}>
+                <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
+                <ul className="space-y-2">
+                  {col.links.map(link => (
+                    <li key={link}><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{link}</a></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
-          {[
-            { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
-            { title: 'For Vendors',  links: ['Start Selling', 'Vendor Dashboard', 'Pricing', 'Analytics'] },
-            { title: 'Company',      links: ['About Us', 'Careers', 'Blog', 'Investor Relations'] },
-            { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'Contact Us'] },
-          ].map(col => (
-            <div key={col.title}>
-              <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
-              <ul className="space-y-2">
-                {col.links.map(link => (
-                  <li key={link}><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{link}</a></li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        <div className="border-t border-gray-700 py-6">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">&copy; 2026 FarmConnect, Inc. All rights reserved.</p>
-            <div className="flex gap-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Use</a>
-              <a href="#" className="hover:text-white transition-colors">Cookie Settings</a>
+          <div className="border-t border-gray-700 py-6">
+            <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-400">&copy; 2026 FarmConnect, Inc. All rights reserved.</p>
+              <div className="flex gap-6 text-sm text-gray-400">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Use</a>
+                <a href="#" className="hover:text-white transition-colors">Cookie Settings</a>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };

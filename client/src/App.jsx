@@ -17,11 +17,12 @@ import Home from './pages/home/Home';
 import About from './pages/about/About';
 import Contact from './pages/contact/Contact';
 import Favorites from './pages/favorites/Favorites';
+import Product from './pages/dashbord/customer/product/Product';
 import { ROLES } from './context/roles';
 
 function App() {
   const Settings = React.lazy(() => import('./pages/dashbord/customer/settings'));
-  
+
   return (
     <>
       <Router>
@@ -31,7 +32,8 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/favorites" element={<Favorites />} />
-          
+          <Route path="/products" element={<Product />} />
+
           {/* Guest Routes - Only accessible when not authenticated */}
           <Route
             path="/login"
@@ -76,12 +78,20 @@ function App() {
             }
           />
 
-          {/* Customer Routes */}
+          {/* Customer Routes (Changed path to support nested routes) */}
           <Route
-            path="/customer/dashboard"
+            path="/customer/dashboard/*"
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
                 <CustomerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/products"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+                <Navigate to="/customer/dashboard/products" replace />
               </ProtectedRoute>
             }
           />
@@ -104,6 +114,7 @@ function App() {
             }
           />
           <Route path="/customer/cart" element={<Cart />} />
+          <Route path="/customer/wishlist" element={<Navigate to="/favorites" replace />} />
           <Route
             path="/customer/checkout"
             element={

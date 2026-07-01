@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import api from '../../../../api';
-import './Product.scss';
 
 const CATEGORY_CONFIG = {
+  all: { name: 'All', icon: '🛒' },
+  legumes: { name: 'Legumes', icon: '🫘' },
   vegetable: { name: 'Vegetables', icon: '🥦' },
   fruit: { name: 'Fruits', icon: '🍎' },
-  milk: { name: 'Dairy', icon: '🥛' },
+  livestock: { name: 'Livestock', icon: '🐄' },
+  coffee: { name: 'Coffee', icon: '☕' },
+  nuts: { name: 'Nuts', icon: '🌰' },
+  herbs: { name: 'Herbs', icon: '🌿' },
   grains: { name: 'Grains', icon: '🌾' },
-  eggs: { name: 'Eggs', icon: '🥚' },
-  meat: { name: 'Meat', icon: '🥩' },
-  honey: { name: 'Honey', icon: '🍯' },
-  other: { name: 'Others', icon: '📦' }
+  other: { name: 'Other', icon: '📦' }
 };
 
 // Helper to get backend category name from id
@@ -57,53 +59,83 @@ const Product = () => {
   };
 
   return (
-    <div className="customer-product-page">
-      <div className="category-bar">
-        <button
-          className={activeCategory === 'all' ? 'active' : ''}
-          onClick={() => setActiveCategory('all')}
-        >
-          All
-        </button>
-        {Object.entries(CATEGORY_CONFIG).map(([key, cat]) => (
-          <button
-            key={key}
-            className={activeCategory === key ? 'active' : ''}
-            onClick={() => setActiveCategory(key)}
+    <div className="w-full">
+      {/* Header with back button */}
+      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
           >
-            <span className="cat-icon">{cat.icon}</span> {cat.name}
-          </button>
-        ))}
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back to Home</span>
+          </Link>
+        </div>
       </div>
-      <div className="product-list">
+
+      <div className="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="mb-6 flex flex-wrap gap-3">
+          {Object.entries(CATEGORY_CONFIG).map(([key, cat]) => (
+            <button
+              key={key}
+              type="button"
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${activeCategory === key ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50'}`}
+              onClick={() => setActiveCategory(key)}
+            >
+              <span className="mr-2 text-base">{cat.icon}</span>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {loading ? (
-          <div className="loading">Loading...</div>
+          <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
+            Loading...
+          </div>
         ) : products.length === 0 ? (
-          <div className="empty">No products found.</div>
+          <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
+            No products found.
+          </div>
         ) : (
           products.map(product => (
-            <div className="product-card" key={product._id}>
-              <div className="product-image">
+            <div
+              key={product._id}
+              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex h-44 items-center justify-center bg-slate-50 p-4">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} />
+                  <img src={product.image} alt={product.name} className="h-full w-full max-w-full object-cover" />
                 ) : (
-                  <div className="image-placeholder">{CATEGORY_CONFIG[product.category]?.icon || '📦'}</div>
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-3xl">
+                    {CATEGORY_CONFIG[product.category]?.icon || '📦'}
+                  </div>
                 )}
               </div>
-              <div className="product-info">
-                <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <div className="product-meta">
-                  <span>ETB {product.price}</span>
-                  <span>{product.stock} {product.unit}</span>
+
+              <div className="space-y-4 p-5">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{product.description}</p>
                 </div>
-                <button className="add-to-cart-btn" onClick={() => alert(`Added ${product.name} to cart!`)}>
-                  Add to Cart
-                </button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-emerald-700">
+                    <span>ETB {product.price}</span>
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-800">{product.stock} {product.unit}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    onClick={() => alert(`Added ${product.name} to cart!`)}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
               </div>
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   );

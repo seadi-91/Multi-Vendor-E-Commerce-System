@@ -10,7 +10,6 @@ const Cart = () => {
   const navigate = useNavigate();
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
   const handleCheckout = () => {
     if (!user) {
       navigate('/login');
@@ -72,7 +71,6 @@ const Cart = () => {
                           {item.category}
                         </span>
                       </div>
-
                       <p className="text-slate-500 mb-4 leading-relaxed text-sm">
                         {item.description || 'Delicious item waiting for you!'}
                       </p>
@@ -97,7 +95,6 @@ const Cart = () => {
                             +
                           </button>
                         </div>
-
                         <div className="flex flex-col items-center md:items-end">
                           <span className="text-sm text-slate-500">{item.price} ETB</span>
                           <span className="text-xl font-extrabold text-black">{item.price * item.quantity} ETB</span>
@@ -134,7 +131,6 @@ const Cart = () => {
                     <span className="text-slate-500">Tax</span>
                     <span className="font-semibold text-black">{(total * 0.15).toFixed(2)} ETB</span>
                   </div>
-
                   <div className="h-px bg-slate-200 my-5"></div>
 
                   <div className="flex justify-between items-center my-6">
@@ -143,7 +139,6 @@ const Cart = () => {
                       {(total * 1.15).toFixed(2)} ETB
                     </span>
                   </div>
-
                   <button
                     className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none py-4 rounded-xl text-lg font-bold cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-all duration-300 mb-4 shadow-indigo-500/40"
                     onClick={handleCheckout}
@@ -157,8 +152,6 @@ const Cart = () => {
                   >
                     Clear Cart
                   </button>
-
-
                 </div>
               </div>
             </div>
@@ -168,5 +161,4 @@ const Cart = () => {
     </>
   );
 };
-
 export default Cart;

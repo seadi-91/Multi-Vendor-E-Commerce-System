@@ -1,13 +1,8 @@
-// Helper to get backend category name from id
-const getBackendCategoryName = (categoryId) => {
-  const cat = CATEGORIES.find(c => c.id === categoryId);
-  return cat ? cat.name : categoryId;
-};
 import React, { useState, useEffect, useCallback } from 'react';
 import { useCart } from '../../../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Star, Clock, Truck, Shield, Filter, 
+import {
+  Star, Clock, Truck, Shield, Filter,
   Grid, List, ChevronRight, Search, TrendingUp,
   ShoppingCart, Heart, Loader, AlertCircle, CheckCircle
 } from 'lucide-react';
@@ -135,7 +130,7 @@ const Home = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -208,9 +203,9 @@ const Home = () => {
   // Filter products based on search
   const filteredProducts = useCallback(() => {
     if (!searchQuery.trim()) return products;
-    
+
     const query = searchQuery.toLowerCase();
-    return products.filter(product => 
+    return products.filter(product =>
       product.name.toLowerCase().includes(query) ||
       product.description?.toLowerCase().includes(query) ||
       product.category?.toLowerCase().includes(query)
@@ -221,10 +216,10 @@ const Home = () => {
   const handleCategorySelect = (categoryId) => {
     setSelectedCategory(categoryId);
     setSearchQuery('');
-    
+
     if (isMobile) {
       setTimeout(() => {
-        document.getElementById('products-section')?.scrollIntoView({ 
+        document.getElementById('products-section')?.scrollIntoView({
           behavior: 'smooth',
           block: 'start'
         });
@@ -283,20 +278,21 @@ const Home = () => {
   return (
     <div className="w-full min-h-screen bg-slate-50 text-slate-800 font-sans">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-50 to-green-100 py-8 md:py-16 relative overflow-hidden">
+      <section className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-12 md:py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMxMGI5ODEiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0di0yaC0ydjJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2LTJoLTJ2LTJoLTJ2MmgydjJoLTJ2MmgydjJoLTJ2aW1lZGlhdGVseTwvZz48L2c+PC9zdmc+')]"></div>
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 lg:items-center">
             <div className="flex-1 z-10">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-800 leading-tight mb-4">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-800 leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-600">
                 Fresh from Farm to
-                <span className="text-emerald-600 block"> Your Table</span>
+                <span className="block"> Your Table</span>
               </h1>
-              
-              <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-6">
-                Discover the freshest farm produce delivered directly from local farmers. 
+
+              <p className="text-lg md:text-xl text-slate-600 leading-relaxed mb-8 max-w-xl">
+                Discover the freshest farm produce delivered directly from local farmers.
                 Supporting agriculture while ensuring premium quality for your family.
               </p>
-              
+
               {/* Quick Stats */}
               <div className="flex gap-4 sm:gap-6 justify-between sm:justify-start mb-8">
                 {QUICK_STATS.map((stat, index) => (
@@ -323,7 +319,7 @@ const Home = () => {
                     aria-label="Search products"
                   />
                   {searchQuery && (
-                    <button 
+                    <button
                       type="button"
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                       onClick={() => setSearchQuery('')}
@@ -352,7 +348,7 @@ const Home = () => {
                       className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs text-slate-500 hover:bg-emerald-50 hover:border-emerald-500 hover:text-emerald-600 transition-all duration-200"
                       onClick={() => {
                         setSearchQuery(tag);
-                        handleSearchSubmit({ preventDefault: () => {} });
+                        handleSearchSubmit({ preventDefault: () => { } });
                       }}
                     >
                       {tag}
@@ -440,65 +436,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800">Shop by Category</h2>
-            <Link to="/customer/products" className="flex items-center gap-1 hover:gap-2 text-emerald-600 font-semibold text-[15px] transition-all duration-200">
-              View All Categories <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {CATEGORIES.map(category => {
-              const isActive = selectedCategory === category.id;
-              const isHovered = hoveredCategory === category.id;
-              return (
-                <button
-                  key={category.id}
-                  className={`border-2 rounded-xl p-5 bg-white cursor-pointer transition-all duration-300 text-left relative overflow-hidden hover:-translate-y-1 ${
-                    isActive ? '' : 'border-slate-200'
-                  }`}
-                  onClick={() => handleCategorySelect(category.id)}
-                  style={{
-                    borderColor: isActive ? category.color : (isHovered ? category.color : undefined),
-                    backgroundColor: isActive ? category.bgColor : undefined,
-                    boxShadow: isActive 
-                      ? `0 10px 20px -5px ${category.color}40` 
-                      : (isHovered ? '0 10px 20px -5px rgba(0,0,0,0.1)' : undefined)
-                  }}
-                  onMouseEnter={() => setHoveredCategory(category.id)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                  aria-label={`Browse ${category.name}`}
-                >
-                  <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 relative shadow-sm" style={{ transform: isActive ? 'scale(1.1)' : undefined }}>
-                    <span className="text-3xl">{category.icon}</span>
-                    {isActive && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white" style={{ backgroundColor: category.color }}></div>
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-[17px] font-semibold text-slate-800 mb-2">{category.name}</h3>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {category.popularItems.slice(0, 2).map((item, idx) => (
-                        <span key={idx} className="text-[11px] text-slate-500 px-2 py-0.5 bg-slate-50 rounded-full border border-slate-100">{item}</span>
-                      ))}
-                      {category.popularItems.length > 2 && (
-                        <span className="text-[10px] text-slate-400 font-medium self-center ml-0.5">+{category.popularItems.length - 2}</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Sold in: <span className="font-semibold" style={{ color: category.color }}>{category.unit}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* Featured Products Section */}
       <section className="py-12 bg-slate-50" id="products-section">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
@@ -511,17 +448,17 @@ const Home = () => {
                 {`Best ${getCategoryInfo(selectedCategory).name.toLowerCase()} from local farms`}
               </p>
             </div>
-            
+
             <div className="flex gap-2">
               <div className="flex border border-slate-200 bg-white rounded-lg p-0.5">
-                <button 
+                <button
                   className={`w-10 h-10 rounded-md cursor-pointer flex items-center justify-center transition-all duration-200 ${viewMode === 'grid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
                   onClick={() => setViewMode('grid')}
                   aria-label="Grid view"
                 >
                   <Grid size={20} />
                 </button>
-                <button 
+                <button
                   className={`w-10 h-10 rounded-md cursor-pointer flex items-center justify-center transition-all duration-200 ${viewMode === 'list' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
                   onClick={() => setViewMode('list')}
                   aria-label="List view"
@@ -541,7 +478,7 @@ const Home = () => {
                     key={category.id}
                     className={`px-4 py-2 border rounded-full text-[14px] cursor-pointer transition-all duration-200 whitespace-nowrap flex items-center gap-1.5 ${selectedCategory === category.id ? 'font-semibold bg-emerald-50' : 'bg-white'}`}
                     onClick={() => handleCategorySelect(category.id)}
-                    style={{ 
+                    style={{
                       color: selectedCategory === category.id ? category.color : '#64748b',
                       borderColor: selectedCategory === category.id ? category.color : '#e2e8f0'
                     }}
@@ -576,11 +513,11 @@ const Home = () => {
                     <div className="text-6xl mb-4">📦</div>
                     <h3 className="text-xl font-bold text-slate-800 mb-2">No products found</h3>
                     <p className="text-slate-500 mb-6">
-                      {searchQuery 
-                        ? `No results for "${searchQuery}"` 
+                      {searchQuery
+                        ? `No results for "${searchQuery}"`
                         : `No ${getCategoryInfo(selectedCategory).name.toLowerCase()} products available`}
                     </p>
-                    <button 
+                    <button
                       className="px-6 py-2.5 bg-white border border-slate-300 hover:border-slate-400 rounded-lg font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition-all"
                       onClick={() => {
                         setSelectedCategory('vegetable');
@@ -596,27 +533,30 @@ const Home = () => {
                       Showing {filteredProducts().length} of {products.length} products
                       {searchQuery && ` for "${searchQuery}"`}
                     </div>
-                    
+
                     {filteredProducts().map(product => {
                       const categoryInfo = getCategoryInfo(product.category);
                       const isAddingToCart = addingToCart[product._id];
-                      
+
                       return (
-                        <div 
-                          key={product._id} 
-                          className={`bg-white rounded-xl shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-slate-100 flex ${
-                            viewMode === 'list' ? 'flex-row p-4 items-center gap-4' : 'flex-col overflow-hidden'
-                          }`}
+                        <div
+                          key={product._id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => navigate(`/customer/products?category=${product.category}`)}
+                          onKeyDown={(e) => e.key === 'Enter' && navigate(`/customer/products?category=${product.category}`)}
+                          className={`bg-white rounded-xl shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md border border-slate-100 flex cursor-pointer ${viewMode === 'list' ? 'flex-row p-4 items-center gap-4' : 'flex-col overflow-hidden'
+                            }`}
                         >
                           {/* Product Image Section */}
                           <div className={`relative ${viewMode === 'list' ? 'w-32 h-24 flex-shrink-0' : 'w-full'}`}>
-                            <div 
+                            <div
                               className={`w-full flex items-center justify-center overflow-hidden bg-slate-50 ${viewMode === 'list' ? 'h-full rounded-lg' : 'h-48'}`}
                               style={{ backgroundColor: categoryInfo.bgColor }}
                             >
                               {product.image ? (
-                                <img 
-                                  src={product.image} 
+                                <img
+                                  src={product.image}
                                   alt={product.name}
                                   loading="lazy"
                                   className="w-full h-full object-cover"
@@ -626,7 +566,7 @@ const Home = () => {
                                   {categoryInfo.icon}
                                 </div>
                               )}
-                              
+
                               {/* Product Badges */}
                               <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
                                 {product.isOrganic && (
@@ -639,10 +579,10 @@ const Home = () => {
                                   <span className="px-2 py-0.5 bg-amber-500 text-white rounded text-[10px] font-bold shadow-sm whitespace-nowrap">Low Stock</span>
                                 )}
                               </div>
-                              
+
                               {/* Quick Actions */}
                               <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 z-10">
-                                <button 
+                                <button
                                   className="w-8 h-8 rounded-full border-0 bg-white hover:bg-red-50 text-slate-500 hover:text-red-500 cursor-pointer flex items-center justify-center transition-colors duration-200 shadow-sm"
                                   onClick={() => handleAddToWishlist(product._id)}
                                   aria-label="Add to wishlist"
@@ -704,8 +644,8 @@ const Home = () => {
                                   </div>
                                 )}
                               </div>
-                              
-                              <button 
+
+                              <button
                                 className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg font-bold text-xs cursor-pointer transition-colors duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed`}
                                 onClick={() => handleAddToCart(product)}
                                 disabled={isAddingToCart || product.stock === 0}
@@ -737,7 +677,7 @@ const Home = () => {
               {/* View All Button */}
               {filteredProducts().length > 0 && (
                 <div className="text-center mt-12">
-                  <Link 
+                  <Link
                     to={`/customer/products?category=${selectedCategory}`}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-emerald-500 hover:bg-emerald-500 rounded-xl text-emerald-600 hover:text-white font-bold text-sm shadow-sm hover:shadow-md transition-all duration-300"
                   >
@@ -769,45 +709,12 @@ const Home = () => {
             <ul className="flex flex-wrap justify-center gap-3">
               {users.map(user => (
                 <li key={user._id} className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors shadow-sm text-sm">
-                  <span className="font-semibold text-slate-800" style={{color: '#000'}}>{user.name}</span>
+                  <span className="font-semibold text-slate-800" style={{ color: '#000' }}>{user.name}</span>
                   <span className="text-xs text-slate-400">({user.role})</span>
                 </li>
               ))}
             </ul>
           )}
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="py-16 bg-slate-50 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Why Choose FarmFresh?</h2>
-            <p className="text-slate-500 text-base">Quality you can trust, service you'll love</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center p-8 rounded-2xl bg-white border border-slate-100 hover:border-emerald-100 shadow-sm hover:shadow-md hover:-translate-y-1.5 transition-all duration-300">
-              <div className="text-4xl mb-4">🚜</div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Direct from Farms</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Eliminate middlemen, get farm-fresh products at best prices</p>
-            </div>
-            <div className="text-center p-8 rounded-2xl bg-white border border-slate-100 hover:border-emerald-100 shadow-sm hover:shadow-md hover:-translate-y-1.5 transition-all duration-300">
-              <div className="text-4xl mb-4">⚡</div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Super Fast Delivery</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Fresh products delivered within 2-3 hours in metro cities</p>
-            </div>
-            <div className="text-center p-8 rounded-2xl bg-white border border-slate-100 hover:border-emerald-100 shadow-sm hover:shadow-md hover:-translate-y-1.5 transition-all duration-300">
-              <div className="text-4xl mb-4">🌱</div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">100% Organic</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Certified organic products from trusted local farms</p>
-            </div>
-            <div className="text-center p-8 rounded-2xl bg-white border border-slate-100 hover:border-emerald-100 shadow-sm hover:shadow-md hover:-translate-y-1.5 transition-all duration-300">
-              <div className="text-4xl mb-4">💰</div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Best Prices</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">Direct sourcing ensures lowest prices without compromising quality</p>
-            </div>
-          </div>
         </div>
       </section>
     </div>

@@ -136,21 +136,9 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
               <div className="search-section desktop-search" ref={searchRef}>
                 <form onSubmit={handleSearch} className="search-form">
                   <div className="search-wrapper">
-                    <button 
-                      type="button"
-                      className="category-toggle"
-                      onClick={() => setShowCategories(!showCategories)}
-                    >
-                      <span className="toggle-text">
-                        {selectedCategory === 'all' ? 'All' : 
-                         categories.find(c => c.id === selectedCategory)?.label}
-                      </span>
-                      <ChevronDown size={16} />
-                    </button>
-                    
                     <input
                       type="search"
-                      placeholder="Search vegetables, fruits, dairy..."
+                      placeholder="Search products..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="search-input"
@@ -162,34 +150,6 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                     </button>
                   </div>
                 </form>
-
-                {/* Categories Dropdown */}
-                {showCategories && (
-                  <div className="categories-dropdown" ref={categoriesRef}>
-                    <div className="dropdown-header">
-                      <h4>Categories</h4>
-                      <button 
-                        className="close-dropdown"
-                        onClick={() => setShowCategories(false)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="categories-grid">
-                      {categories.map(category => (
-                        <button
-                          key={category.id}
-                          className={`category-item ${selectedCategory === category.id ? 'selected' : ''}`}
-                          onClick={() => handleCategorySelect(category.id)}
-                          style={{ '--category-color': category.color }}
-                        >
-                          <span className="category-icon">{category.icon}</span>
-                          <span className="category-name">{category.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* User Actions */}
@@ -223,7 +183,7 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                 <div className="cart-wrapper" ref={cartRef}>
                   <button 
                     className="action-btn cart-btn"
-                    onClick={() => setShowCartPreview(!showCartPreview)}
+                    onClick={() => navigate('/customer/cart')}
                     aria-label={`Cart (${cartCount} items)`}
                   >
                     <ShoppingCart size={22} />
@@ -374,20 +334,6 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                     <button type="submit" className="search-btn">
                       <Search size={20} />
                     </button>
-                  </div>
-                  <div className="search-categories">
-                    {categories.slice(0, 4).map(category => (
-                      <button
-                        key={category.id}
-                        className="quick-category"
-                        onClick={() => {
-                          handleCategorySelect(category.id);
-                          setIsSearchExpanded(false);
-                        }}
-                      >
-                        {category.icon} {category.label}
-                      </button>
-                    ))}
                   </div>
                 </form>
               </div>

@@ -72,73 +72,9 @@ const Login = () => {
         <span className="text-sm font-semibold">Back</span>
       </Link>
 
-      <div className="w-full max-w-5xl flex rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-xl relative z-10">
-        {/* Left Side - Branding */}
-        <div className="hidden lg:flex lg:w-2/5 bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 p-12 text-white relative overflow-hidden">
-          {/* Animated Background Pattern */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full transform translate-x-1/2 -translate-y-1/2 animate-float"></div>
-            <div className="absolute bottom-0 left-0 w-72 h-72 bg-white rounded-full transform -translate-x-1/3 translate-y-1/3 animate-float animation-delay-3000"></div>
-            <div className="absolute top-1/2 left-1/2 w-48 h-48 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
-          </div>
-
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-4 mb-8 animate-fade-in-down">
-                <div className="text-6xl drop-shadow-lg">🌱</div>
-                <div>
-                  <h2 className="text-4xl font-bold tracking-tight">FarmConnect</h2>
-                  <p className="text-emerald-100 text-lg font-medium">Direct Farm to Table</p>
-                </div>
-              </div>
-
-              <div className="space-y-8">
-                <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                  <h3 className="text-3xl font-bold mb-4 leading-tight">Welcome Back!</h3>
-                  <p className="text-emerald-100 leading-relaxed text-lg">
-                    Continue your journey in connecting with local farmers and fresh produce. Your community is waiting for you.
-                  </p>
-                </div>
-
-                <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                  <div className="flex items-center gap-3 group cursor-default">
-                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 transform group-hover:scale-110">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </div>
-                    <span className="font-medium">Access your dashboard</span>
-                  </div>
-                  <div className="flex items-center gap-3 group cursor-default">
-                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 transform group-hover:scale-110">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </div>
-                    <span className="font-medium">Manage your orders</span>
-                  </div>
-                  <div className="flex items-center gap-3 group cursor-default">
-                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 transform group-hover:scale-110">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                    </div>
-                    <span className="font-medium">Connect with community</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-white/20 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-              <p className="text-xs text-emerald-200">
-                🌍 Join 10,000+ farmers and customers
-              </p>
-            </div>
-          </div>
-        </div>
-
+      <div className="w-full max-w-lg flex rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-xl relative z-10">
         {/* Right Side - Login Form */}
-        <div className="w-full lg:w-3/5 p-8 lg:p-12 bg-white/50 backdrop-blur-sm">
+        <div className="w-full p-8 lg:p-12 bg-white/50 backdrop-blur-sm">
           <div className="max-w-md mx-auto">
             {/* Mobile Logo */}
             <div className="lg:hidden flex items-center justify-center gap-3 mb-8 animate-fade-in-down">

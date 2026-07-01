@@ -148,6 +148,18 @@ const Home = () => {
     if (savedFavorites) {
       setFavorites(JSON.parse(savedFavorites));
     }
+    const updateFavorites = () => {
+      const saved = localStorage.getItem('favorites');
+      if (saved) {
+        setFavorites(JSON.parse(saved));
+      }
+    };
+    window.addEventListener('storage', updateFavorites);
+    window.addEventListener('favoritesUpdated', updateFavorites);
+    return () => {
+      window.removeEventListener('storage', updateFavorites);
+      window.removeEventListener('favoritesUpdated', updateFavorites);
+    };
   }, []);
 
   useEffect(() => {
@@ -308,7 +320,10 @@ const Home = () => {
 
   const toggleFavorite = (id) => {
     const isFav = favorites.includes(id);
-    setFavorites(prev => isFav ? prev.filter(f => f !== id) : [...prev, id]);
+    const newFavorites = isFav ? favorites.filter(f => f !== id) : [...favorites, id];
+    setFavorites(newFavorites);
+    localStorage.setItem('favorites', JSON.stringify(newFavorites));
+    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
     toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
   };
 

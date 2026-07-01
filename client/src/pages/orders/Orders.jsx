@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import CustomerHeader from '../dashbord/customer/header/Header';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  FiPackage, 
-  FiClock, 
-  FiCheckCircle, 
-  FiTruck, 
-  FiMapPin, 
+import api from '../../api';
+import {
+  FiPackage,
+  FiClock,
+  FiCheckCircle,
+  FiTruck,
+  FiMapPin,
   FiPhone,
   FiMail,
   FiCreditCard,
@@ -44,26 +45,45 @@ const Orders = () => {
     fetchOrders();
   }, []);
 
-  const fetchOrders = () => {
+  const fetchOrders = async () => {
     setLoading(true);
-    // Load orders from localStorage
-    const savedOrders = localStorage.getItem('orders');
-    if (savedOrders) {
-      const parsedOrders = JSON.parse(savedOrders);
-      // Add mock data if no orders exist (for demo)
-      if (parsedOrders.length === 0) {
+    try {
+      const response = await api.get('/orders');
+      const serverOrders = response.data || [];
+      const normalizedOrders = serverOrders.map(order => {
+        const orderDate = new Date(order.createdAt || order.updatedAt || Date.now());
+        return {
+          ...order,
+          orderNumber: order.orderCode || `ORD-${String(order.id).padStart(5, '0')}`,
+          date: orderDate.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          timestamp: orderDate.toISOString(),
+          status: order.status || 'processing',
+          paymentStatus: order.paymentStatus || (order.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
+          items: order.items || [],
+          vendor: order.vendor || 'Fresh Farm',
+          fullName: order.fullName || user?.name || 'Customer'
+        };
+      });
+      setOrders(normalizedOrders);
+      localStorage.setItem('orders', JSON.stringify(normalizedOrders));
+    } catch (error) {
+      console.warn('Unable to load orders from server, falling back to localStorage', error);
+      const savedOrders = localStorage.getItem('orders');
+      if (savedOrders) {
+        setOrders(JSON.parse(savedOrders));
+      } else {
         const mockOrders = generateMockOrders();
         setOrders(mockOrders);
         localStorage.setItem('orders', JSON.stringify(mockOrders));
-      } else {
-        setOrders(parsedOrders);
       }
-    } else {
-      const mockOrders = generateMockOrders();
-      setOrders(mockOrders);
-      localStorage.setItem('orders', JSON.stringify(mockOrders));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const generateMockOrders = () => {
@@ -169,8 +189,8 @@ const Orders = () => {
     ];
   };
 
-  const filteredOrders = filter === 'all' 
-    ? orders 
+  const filteredOrders = filter === 'all'
+    ? orders
     : orders.filter(order => order.status.toLowerCase() === filter.toLowerCase());
 
   const toggleOrderExpansion = (orderId) => {
@@ -178,7 +198,7 @@ const Orders = () => {
   };
 
   const getStatusBadgeClass = (status) => {
-    switch(status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'delivered': return 'status-delivered';
       case 'processing': return 'status-processing';
       case 'on the way': return 'status-ontheway';
@@ -201,8 +221,8 @@ const Orders = () => {
   return (
     <>
       <CustomerHeader user={user} onLogout={logout} />
-      <div className="orders-page" style={{background:'#fff',minHeight:'100vh',padding:'2.5rem 0'}}>
-        <div className="orders-container" style={{maxWidth:900,margin:'0 auto',background:'#fff',borderRadius:18,boxShadow:'0 4px 24px rgba(16,185,129,0.07)',padding:'2.5rem 2rem'}}>
+      <div className="orders-page" style={{ background: '#fff', minHeight: '100vh', padding: '2.5rem 0' }}>
+        <div className="orders-container" style={{ maxWidth: 900, margin: '0 auto', background: '#fff', borderRadius: 18, boxShadow: '0 4px 24px rgba(16,185,129,0.07)', padding: '2.5rem 2rem' }}>
           <div className="orders-header">
             <div className="header-content">
               <h1 className="page-title">
@@ -210,7 +230,7 @@ const Orders = () => {
               </h1>
               <p className="page-subtitle">Track and manage your food orders</p>
             </div>
-            
+
             <div className="header-actions">
               <button className="refresh-btn" onClick={fetchOrders}>
                 <FiRefreshCw /> Refresh
@@ -227,32 +247,32 @@ const Orders = () => {
             <>
               <div className="orders-filters">
                 <div className="filter-tabs">
-                  <button 
+                  <button
                     className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
                     onClick={() => setFilter('all')}
                   >
                     All Orders ({orders.length})
                   </button>
-                  <button 
+                  <button
                     className={`filter-tab ${filter === 'delivered' ? 'active' : ''}`}
                     onClick={() => setFilter('delivered')}
                   >
                     <FiCheckCircle /> Delivered
                   </button>
-                  <button 
+                  <button
                     className={`filter-tab ${filter === 'on the way' ? 'active' : ''}`}
                     onClick={() => setFilter('on the way')}
                   >
                     <FiTruck /> On the Way
                   </button>
-                  <button 
+                  <button
                     className={`filter-tab ${filter === 'processing' ? 'active' : ''}`}
                     onClick={() => setFilter('processing')}
                   >
                     <FiPackage /> Processing
                   </button>
                 </div>
-                
+
                 <div className="filter-select">
                   <FiFilter />
                   <select value={filter} onChange={(e) => setFilter(e.target.value)}>
@@ -294,7 +314,7 @@ const Orders = () => {
                               <span>{order.restaurant}</span>
                             </div>
                           </div>
-                          
+
                           <div className="order-status-section">
                             <div className={`status-badge ${getStatusBadgeClass(order.status)}`}>
                               {statusIcons[order.status.toLowerCase()] || <FiClock />}
@@ -306,17 +326,17 @@ const Orders = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="order-preview">
                           <div className="order-items-preview">
                             {order.items.slice(0, 2).map((item, idx) => (
                               <div className="preview-item" key={idx}>
                                 {typeof item.image === 'string' && item.image.startsWith('http') ? (
-                                  <img 
-                                    src={item.image} 
-                                    alt={item.name} 
-                                    className="item-img-thumb order-img-success" 
-                                    style={{width:48,height:48,borderRadius:10,objectFit:'cover',marginRight:10,border:'2.5px solid #10b981',boxShadow:'0 0 0 3px #d1fae5'}} 
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="item-img-thumb order-img-success"
+                                    style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', marginRight: 10, border: '2.5px solid #10b981', boxShadow: '0 0 0 3px #d1fae5' }}
                                   />
                                 ) : (
                                   <span className="item-emoji">{item.image || '🛒'}</span>
@@ -334,7 +354,7 @@ const Orders = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       {expandedOrder === order.id && (
                         <div className="order-details-expanded">
                           <div className="details-grid">
@@ -347,11 +367,11 @@ const Orders = () => {
                                   <div className="order-item-full" key={idx}>
                                     <div className="item-left">
                                       {typeof item.image === 'string' && item.image.startsWith('http') ? (
-                                        <img 
-                                          src={item.image} 
-                                          alt={item.name} 
-                                          className="item-img-large order-img-success" 
-                                          style={{width:100,height:100,borderRadius:14,objectFit:'cover',marginRight:16,border:'3px solid #10b981',boxShadow:'0 0 0 4px #d1fae5'}} 
+                                        <img
+                                          src={item.image}
+                                          alt={item.name}
+                                          className="item-img-large order-img-success"
+                                          style={{ width: 100, height: 100, borderRadius: 14, objectFit: 'cover', marginRight: 16, border: '3px solid #10b981', boxShadow: '0 0 0 4px #d1fae5' }}
                                         />
                                       ) : (
                                         <span className="item-emoji-large">{item.image || '🛒'}</span>
@@ -368,7 +388,7 @@ const Orders = () => {
                                   </div>
                                 ))}
                               </div>
-                              
+
                               <div className="order-breakdown">
                                 <div className="breakdown-row">
                                   <span>Subtotal</span>
@@ -390,7 +410,7 @@ const Orders = () => {
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div className="details-section">
                               <h4 className="section-title">
                                 <FiMapPin /> Delivery Information
@@ -422,22 +442,22 @@ const Orders = () => {
                                   <FiCreditCard />
                                   <div>
                                     <strong>Payment Method:</strong>
-                                    <p className={`payment-method ${order.paymentMethod}`} style={{color:'#2563eb',fontWeight:600}}>
-                                      {order.paymentMethod === 'cash' ? 'Cash on Delivery' : 
-                                       order.paymentMethod === 'card' ? 'Credit/Debit Card' : 
-                                       'Mobile Payment'}
+                                    <p className={`payment-method ${order.paymentMethod}`} style={{ color: '#2563eb', fontWeight: 600 }}>
+                                      {order.paymentMethod === 'cash' ? 'Cash on Delivery' :
+                                        order.paymentMethod === 'card' ? 'Credit/Debit Card' :
+                                          'Mobile Payment'}
                                     </p>
                                   </div>
                                 </div>
                               </div>
-                              
+
                               {order.specialInstructions && (
                                 <div className="special-instructions">
                                   <h5>Special Instructions</h5>
                                   <p>{order.specialInstructions}</p>
                                 </div>
                               )}
-                              
+
                               <div className="delivery-estimate">
                                 <FiClock />
                                 <div>
@@ -447,7 +467,7 @@ const Orders = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="order-actions">
                             <button className="action-btn reorder-btn" onClick={() => reorderItem(order)}>
                               <MdLocalOffer /> Reorder
@@ -462,7 +482,7 @@ const Orders = () => {
                   ))}
                 </div>
               )}
-              
+
               <div className="orders-stats">
                 <div className="stat-card">
                   <h4>Total Orders</h4>

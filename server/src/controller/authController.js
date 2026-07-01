@@ -5,24 +5,56 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// 1. REGISTER
+function buildCustomerRegistrationData({
+  name,
+  email,
+  password,
+  role,
+  address,
+  phone,
+  profileImage,
+  nationalId,
+  tinNumber,
+  landMapFile
+}) {
+  const normalizedRole = String(role || 'customer').toLowerCase();
+  const userData = {
+    name,
+    email,
+    password,
+    role: normalizedRole === 'farmer' ? 'farmer' : 'customer',
+    address: normalizedRole === 'farmer' ? (address || null) : null
+  };
+
+  if (phone && typeof phone === 'string' && phone.trim()) userData.phone = phone.trim();
+  if (tinNumber && typeof tinNumber === 'string' && tinNumber.trim()) userData.tinNumber = tinNumber.trim();
+  if (profileImage && typeof profileImage === 'string' && profileImage.trim()) userData.profileImage = profileImage.trim();
+  if (nationalId && typeof nationalId === 'string' && nationalId.trim()) userData.nationalId = nationalId.trim();
+  if (landMapFile && typeof landMapFile === 'string' && landMapFile.trim()) userData.landMapFile = landMapFile.trim();
+
+  return userData;
+}
+
+exports.buildCustomerRegistrationData = buildCustomerRegistrationData;
+
 exports.register = async (req, res) => {
   try {
     console.log('Register request body:', req.body);
-    
+
     // Extract all fields that exist in Prisma schema
     const { name, email, password, role, address, phone, profileImage, nationalId, tinNumber, landMapFile } = req.body;
-    
-    if (!name || !email || !password || !role) {
+    const normalizedRole = String(role || 'customer').toLowerCase();
+
+    if (!name || !email || !password) {
       console.log('Missing required fields');
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'Name, email, and password are required' });
     }
-    if (role === 'farmer' && !address) {
+    if (normalizedRole === 'farmer' && !address) {
       console.log('Missing address for farmer');
       return res.status(400).json({ message: 'Address is required for farmers' });
     }
 
-    console.log('Register attempt:', { name, email, role });
+    console.log('Register attempt:', { name, email, role: normalizedRole });
 
     // Check if JWT_SECRET is set
     if (!process.env.JWT_SECRET) {
@@ -30,51 +62,54 @@ exports.register = async (req, res) => {
       return res.status(500).json({ message: 'Server configuration error' });
     }
 
-    // Prisma findUnique
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.customer.findUnique({
       where: { email }
     });
-    
+
     if (existingUser) {
       console.log('User already exists:', email);
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists with this email' });
+    }
+
+    // Check if phone number already exists
+    if (phone) {
+      const existingPhone = await prisma.customer.findUnique({
+        where: { phone }
+      });
+
+      if (existingPhone) {
+        console.log('Phone number already exists:', phone);
+        return res.status(400).json({ message: 'Phone number already registered' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Build user data object with only fields that exist in schema
-    const userData = {
+    const userData = buildCustomerRegistrationData({
       name,
       email,
       password: hashedPassword,
-      role: role.toUpperCase(), // Convert to uppercase to match Prisma enum
-    };
-    
-    console.log('Role before conversion:', role);
-    console.log('Role after conversion:', role.toUpperCase());
-    
-    // Add optional text fields if provided (skip file objects for now)
-    if (phone && typeof phone === 'string') userData.phone = phone;
-    if (role === 'farmer' && address && typeof address === 'string') userData.address = address;
-    if (tinNumber && typeof tinNumber === 'string') userData.tinNumber = tinNumber;
-    
-    // Skip file fields for now - they need proper file upload middleware
-    // if (profileImage) userData.profileImage = profileImage;
-    // if (nationalId) userData.nationalId = nationalId;
-    // if (landMapFile) userData.landMapFile = landMapFile;
+      role: normalizedRole,
+      address,
+      phone,
+      profileImage,
+      nationalId,
+      tinNumber,
+      landMapFile
+    });
 
     console.log('Creating user with data:', userData);
 
-    const user = await prisma.user.create({
+    const user = await prisma.customer.create({
       data: userData
     });
 
     console.log('User created successfully:', user.id);
-    
+
     // Generate token for auto-login after registration
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: 'User registered successfully',
       token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role }
@@ -82,7 +117,19 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Register error details:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ message: error.message });
+
+    // Handle Prisma unique constraint errors
+    if (error.code === 'P2002') {
+      const target = error.meta?.target;
+      if (target && target.includes('email')) {
+        return res.status(400).json({ message: 'Email already registered' });
+      } else if (target && target.includes('phone')) {
+        return res.status(400).json({ message: 'Phone number already registered' });
+      }
+      return res.status(400).json({ message: 'A user with this information already exists' });
+    }
+
+    res.status(500).json({ message: 'Registration failed. Please try again.' });
   }
 };
 
@@ -90,9 +137,9 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Prisma findUnique ተጠቀምን
-    const user = await prisma.user.findUnique({
+    const user = await prisma.customer.findUnique({
       where: { email }
     });
 
@@ -105,17 +152,17 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     console.log('Password match:', isMatch);
-    
+
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // በ Prisma መታወቂያው id ስለሆነ user.id ተጠቀምን (user._id አይደለም)
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    
-    res.json({ 
-      token, 
-      user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -126,7 +173,7 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.customer.findUnique({ where: { email } });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -136,7 +183,7 @@ exports.forgotPassword = async (req, res) => {
     const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour (Prisma DateTime ይጠብቃል)
 
     // Prisma update ተጠቀምን
-    await prisma.user.update({
+    await prisma.customer.update({
       where: { email },
       data: {
         resetPasswordToken: resetToken,
@@ -185,7 +232,7 @@ exports.resetPassword = async (req, res) => {
     const { token, password } = req.body;
 
     // Prisma findFirst ተጠቀምን
-    const user = await prisma.user.findFirst({
+    const user = await prisma.customer.findFirst({
       where: {
         resetPasswordToken: token,
         resetPasswordExpires: {
@@ -201,7 +248,7 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Prisma update ተጠቀምን
-    await prisma.user.update({
+    await prisma.customer.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,

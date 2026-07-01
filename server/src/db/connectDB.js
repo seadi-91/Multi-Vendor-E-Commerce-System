@@ -9,4 +9,4 @@ const connectDB = async (prisma) => {
   }
 };
 
-module.exports = connectDB;
+module.exports = connectDB;     

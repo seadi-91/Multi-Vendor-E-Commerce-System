@@ -1,27 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-enum Role {
-  ADMIN
-  CUSTOMER
-  FARMER
-}
-
-model User {
+model Customer {
   id                   Int       @id @default(autoincrement())
   name                 String
   email                String    @unique
+  phone                String?   @unique
   password             String
+<<<<<<< HEAD
   role                 Role      @default(CUSTOMER)
   phone                String?
   address              String?
   location             String?
+=======
+  role                 String    @default("customer")
+  address              String?
+>>>>>>> e9589db (customer page)
   profileImage         String?
   nationalId           String?
   tinNumber            String?
@@ -29,6 +29,7 @@ model User {
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
   createdAt            DateTime  @default(now())
+<<<<<<< HEAD
   
   // Farmer-specific fields
   farmName             String?
@@ -87,3 +88,10 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+=======
+  updatedAt            DateTime  @updatedAt
+
+  @@map("customer")
+}
+
+>>>>>>> e9589db (customer page)

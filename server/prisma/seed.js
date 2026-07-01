@@ -4,9 +4,9 @@ const bcrypt = require('bcrypt');
 
 async function main() {
   const adminEmail = 'admin@farmconnect.com';
-  
+
   // 1. መጀመሪያ ይህ ኢሜይል ዳታቤዙ ውስጥ መኖሩን ማረጋገጥ
-  const existingAdmin = await prisma.user.findUnique({
+  const existingAdmin = await prisma.customer.findUnique({
     where: { email: adminEmail }
   });
 
@@ -14,12 +14,12 @@ async function main() {
     const hashedPassword = await bcrypt.hash('admin123', 10); // ፓስወርድ admin123
 
     // 2. ከሌለ አዲስ Admin መፍጠር
-    const admin = await prisma.user.create({
+    const admin = await prisma.customer.create({
       data: {
         name: 'Main Admin',
         email: adminEmail,
         password: hashedPassword,
-        role: 'ADMIN', // በካፒታል ሌተር ከ Enum ጋር እንዲገጥም
+        role: 'ADMIN',
       },
     });
     console.log('Default Admin created successfully:', admin);
