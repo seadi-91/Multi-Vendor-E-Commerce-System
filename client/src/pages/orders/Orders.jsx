@@ -221,8 +221,8 @@ const Orders = () => {
   return (
     <>
       <CustomerHeader user={user} onLogout={logout} />
-      <div className="orders-page" style={{ background: '#fff', minHeight: '100vh', padding: '2.5rem 0' }}>
-        <div className="orders-container" style={{ maxWidth: 900, margin: '0 auto', background: '#fff', borderRadius: 18, boxShadow: '0 4px 24px rgba(16,185,129,0.07)', padding: '2.5rem 2rem' }}>
+      <div className="orders-page" style={{ background: '#fff', minHeight: '100vh', padding: '1rem 0' }}>
+        <div className="orders-container" style={{ maxWidth: 900, margin: '0 auto', background: '#fff', borderRadius: 18, boxShadow: '0 4px 24px rgba(16,185,129,0.07)', padding: '1.5rem 1rem' }}>
           <div className="orders-header">
             <div className="header-content">
               <h1 className="page-title">

@@ -32,10 +32,12 @@ const CustomerFooter = () => {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {/* Info Block */}
           <div className="md:col-span-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🌾</span>
-              <h2 className="text-white text-lg font-bold">FarmFresh</h2>
-            </div>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white text-2xl">🌾</span>
+              </div>
+              <h2 className="text-white text-lg font-extrabold">FarmConnect</h2>
+            </Link>
             <p className="text-gray-400 text-xs leading-relaxed max-w-sm">
               Connecting you directly with local agricultural producers to ensure peak freshness, seasonal nutrient metrics, and premium quality standards.
             </p>
@@ -80,7 +82,7 @@ const CustomerFooter = () => {
       {/* Base Copyright Block */}
       <div className="border-t border-gray-800 bg-gray-950/40">
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4 text-[11px] text-gray-500">
-          <p>© {new Date().getFullYear()} FarmFresh. Direct Local Sourcing Platform.</p>
+          <p>© {new Date().getFullYear()} FarmConnect. The largest multi-vendor marketplace for farm-fresh produce in Ethiopia.</p>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">Made with <Heart size={10} className="text-red-500 fill-red-500" /> in India</span>
             <button 

@@ -1,14 +1,196 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, Package, ChevronLeft, BadgeCheck } from 'lucide-react';
-import CustomerHeader from '../dashbord/customer/header/Header';
 import CustomerFooter from '../dashbord/customer/footer/Footer';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
+
+// ─── Sidebar ─────────────────────────────────────────────────────────────────
+const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
+  const baseMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl text-gray-600 font-medium transition-all hover:bg-gray-50 hover:text-green-600 group";
+  const activeMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all bg-green-50 text-green-600";
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div>
+          {/* Brand Logo */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center shadow-md">
+                  <span className="text-white text-xl">🌾</span>
+                </div>
+                <h1 className="text-lg font-extrabold flex items-center">
+                  <span className="text-green-600">Farm</span>
+                  <span className="text-gray-800">Connect</span>
+                </h1>
+              </Link>
+            </div>
+            <button 
+              onClick={onClose}
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 font-medium mb-8 pl-1">Fresh from Farm to You</p>
+
+          {/* Core Shopping Sidebar Links */}
+          <nav className="space-y-1">
+            <NavLink to="/customer/dashboard" end className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🏠</span> <span>Dashboard</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🥗</span> <span>Products</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/customer/dashboard/orders" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🛍️</span> <span>My Orders</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/favorites" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🤍</span> <span>Wishlist</span>
+              </div>
+              {favoritesCount > 0 && (
+                <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
+              )}
+            </NavLink>
+
+            <NavLink to="/customer/cart" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🛒</span> <span>Cart</span>
+              </div>
+              <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 0}</span>
+            </NavLink>
+          </nav>
+        </div>
+
+        {/* Sidebar Promo Card */}
+        <div className="bg-green-50 rounded-2xl p-4 mt-6 relative overflow-hidden group">
+          <div className="relative z-10">
+            <h3 className="text-green-800 font-bold text-base mb-1">Fresh Deals!</h3>
+            <p className="text-xs text-gray-600 mb-3 max-w-[120px]">Get up to 20% off on selected products</p>
+            <Link to="/" className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+              Shop Now
+            </Link>
+          </div>
+          <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform">🧺</span>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+// ─── Dashboard Header ───────────────────────────────────────────────────────
+const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount }) => {
+  const navigate = useNavigate();
+
+  return (
+    <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+      {/* Mobile Menu Toggle */}
+      <button 
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 text-gray-600 hover:text-green-600 mr-2"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+
+      {/* Universal Search Bar */}
+      <div className="flex items-center w-full max-w-xl bg-gray-50 border border-gray-200 rounded-xl overflow-hidden px-4 py-1.5 focus-within:border-green-500 transition-colors">
+        <input
+          type="text"
+          placeholder="Search for products or sellers..."
+          className="bg-transparent w-full text-sm text-gray-700 placeholder-gray-400 outline-none py-1"
+        />
+        <button className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </button>
+      </div>
+
+      {/* Global Action Icons */}
+      <div className="flex items-center gap-4 sm:gap-6">
+        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+          <span className="text-xl">🔔</span>
+          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
+        </div>
+        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+          <span className="text-xl">🤍</span>
+          {favoritesCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{favoritesCount}</span>
+          )}
+        </div>
+        <div onClick={() => navigate('/customer/cart')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+          <span className="text-xl">🛒</span>
+          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount || 0}</span>
+        </div>
+
+        {/* User Interactive Menu Context */}
+        <div className="flex items-center gap-3 border-l pl-4 sm:pl-6 border-gray-200 relative group">
+          <img
+            src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
+            alt="User profile"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100"
+          />
+          <div className="text-left hidden md:block">
+            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1 cursor-default">
+              Hi, {user?.name || "Selam!"}
+            </p>
+          </div>
+
+          <button className="text-gray-400 hover:text-gray-700 font-bold px-1 text-xl transition-colors ml-1 focus:outline-none">
+            &#8942;
+          </button>
+
+          {/* 3-Dot Dropdown Actions Panel */}
+          <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-xl py-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
+
+            <button onClick={() => navigate('/customer/dashboard/notifications')} className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
+              <div className="flex items-center gap-3">
+                <span>🔔</span> Notifications
+              </div>
+              <span className="bg-green-50 text-green-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+            </button>
+            <button onClick={() => navigate('/customer/dashboard/reviews')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
+              <span>⭐</span> My Reviews
+            </button>
+            <button onClick={() => navigate('/customer/dashboard/settings')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
+              <span>⚙️</span> Settings
+            </button>
+            <hr className="my-1 border-gray-100" />
+            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium text-left">
+              <span>📤</span> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
 
 // ─── Vendor Badge ─────────────────────────────────────────────────────────────
 const VendorBadge = ({ name, verified }) => (
@@ -33,7 +215,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   } = product;
 
   return (
-    <div className={`group bg-white rounded-2xl border border-neutral-100 hover:border-emerald-200 hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
+    <div className={`group bg-white rounded-2xl border border-neutral-100 hover:border-emerald-200 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
       {/* Image */}
       <div className="relative w-full overflow-hidden bg-neutral-100" style={{ height: '200px' }}>
         <img
@@ -93,9 +275,9 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
         {/* Price */}
         <div className="mt-3 flex items-baseline gap-2">
-          <span className="text-base font-extrabold text-emerald-700">${fmt(price)}</span>
+          <span className="text-base font-extrabold text-emerald-700">{fmt(price)}</span>
           {discountPercent > 0 && (
-            <span className="text-xs text-neutral-400 line-through">${calcOriginal(price, discountPercent)}</span>
+            <span className="text-xs text-neutral-400 line-through">{calcOriginal(price, discountPercent)}</span>
           )}
           <span className="text-[10px] text-neutral-400">/{unit}</span>
         </div>
@@ -112,7 +294,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   );
 };
 
-// ─── Public Header ────────────────────────────────────────────────────────────
+// ─── Public Header ───────────────────────────────────────────────────────────
 const PublicHeader = ({ cartCount }) => {
   const navigate = useNavigate();
   return (
@@ -156,7 +338,7 @@ const PublicHeader = ({ cartCount }) => {
             <div className="relative">
               <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
               )}
             </div>
             <span className="text-sm font-medium hidden sm:inline">Cart</span>
@@ -172,10 +354,9 @@ const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
   const { addToCart, cart } = useCart();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Calculate cart total from CartContext
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const products = [
@@ -224,56 +405,48 @@ const Favorites = () => {
   };
 
   const favoriteProducts = products.filter(p => favorites.includes(p.id));
+  const favoritesCount = favoriteProducts.length;
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {user ? (
-        <CustomerHeader user={user} onLogout={logout} cartCount={cartCount} />
-      ) : (
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
         <PublicHeader cartCount={cartCount} />
-      )}
-
-      {/* ─── Main Content ─── */}
-      <section className="max-w-7xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-extrabold text-neutral-800 mb-2">My Favorites</h1>
-          <p className="text-sm text-neutral-500">
-            {favoriteProducts.length > 0 
-              ? `You have ${favoriteProducts.length} favorite product${favoriteProducts.length !== 1 ? 's' : ''}`
-              : 'You haven\'t added any products to your favorites yet.'}
-          </p>
-        </div>
-
-        {favoriteProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {favoriteProducts.map(p => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                isFavorite={favorites.includes(p.id)}
-                onToggleFavorite={toggleFavorite}
-                onAddToCart={handleAddToCart}
-              />
-            ))}
+        <section className="max-w-7xl mx-auto px-6 py-10">
+          <div className="mb-8">
+            <h1 className="text-3xl font-extrabold text-neutral-800 mb-2">My Favorites</h1>
+            <p className="text-sm text-neutral-500">
+              {favoriteProducts.length > 0 
+                ? `You have ${favoriteProducts.length} favorite product${favoriteProducts.length !== 1 ? 's' : ''}`
+                : 'You haven\'t added any products to your favorites yet.'}
+            </p>
           </div>
-        ) : (
-          <div className="text-center py-20 bg-white rounded-2xl border border-neutral-200">
-            <Heart className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-neutral-700 mb-2">No favorites yet</h3>
-            <p className="text-sm text-neutral-500 mb-6">Start adding products you love to your wishlist!</p>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
-            >
-              Browse Products
-            </Link>
-          </div>
-        )}
-      </section>
 
-      {user ? (
-        <CustomerFooter />
-      ) : (
+          {favoriteProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favoriteProducts.map(p => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  isFavorite={favorites.includes(p.id)}
+                  onToggleFavorite={toggleFavorite}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-2xl border border-neutral-200">
+              <Heart className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-neutral-700 mb-2">No favorites yet</h3>
+              <p className="text-sm text-neutral-500 mb-6">Start adding products you love to your wishlist!</p>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
+              >
+                Browse Products
+              </Link>
+            </div>
+          )}
+        </section>
         <footer className="bg-gray-800 text-white mt-4">
           <div
             className="bg-gray-700 py-3 text-center cursor-pointer hover:bg-gray-600 text-sm"
@@ -295,7 +468,7 @@ const Favorites = () => {
 
             {[
               { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
-              { title: 'Company', links: ['About Us', 'Careers', 'Blog', 'Investor Relations'] },
+              { title: 'Company', links: ['Careers', 'Blog', 'Investor Relations'] },
               { title: 'Support', links: ['Help Center', 'Track Order', 'Returns', 'Contact Us'] },
             ].map(col => (
               <div key={col.title}>
@@ -320,7 +493,73 @@ const Favorites = () => {
             </div>
           </div>
         </footer>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50/50 text-gray-800 antialiased font-sans">
+      <div className="flex flex-1">
+        <Sidebar 
+          cartCount={cartCount} 
+          favoritesCount={favoritesCount}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <DashboardHeader 
+            user={user} 
+            cartCount={cartCount} 
+            onLogout={logout} 
+            onMenuToggle={() => setSidebarOpen(true)}
+            favoritesCount={favoritesCount}
+          />
+
+          <div className="flex-1 overflow-y-auto">
+            <main className="flex-1">
+              <section className="px-6 py-10">
+                <div className="mb-8">
+                  <h1 className="text-3xl font-extrabold text-neutral-800 mb-2">My Favorites</h1>
+                  <p className="text-sm text-neutral-500">
+                    {favoriteProducts.length > 0 
+                      ? `You have ${favoriteProducts.length} favorite product${favoriteProducts.length !== 1 ? 's' : ''}`
+                      : 'You haven\'t added any products to your favorites yet.'}
+                  </p>
+                </div>
+
+                {favoriteProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {favoriteProducts.map(p => (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        isFavorite={favorites.includes(p.id)}
+                        onToggleFavorite={toggleFavorite}
+                        onAddToCart={handleAddToCart}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-white rounded-2xl border border-neutral-200">
+                    <Heart className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-neutral-700 mb-2">No favorites yet</h3>
+                    <p className="text-sm text-neutral-500 mb-6">Start adding products you love to your wishlist!</p>
+                    <Link
+                      to="/"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
+                    >
+                      Browse Products
+                    </Link>
+                  </div>
+                )}
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+      
+      <CustomerFooter />
     </div>
   );
 };

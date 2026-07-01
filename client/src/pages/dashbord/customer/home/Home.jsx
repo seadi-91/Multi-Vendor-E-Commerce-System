@@ -403,8 +403,8 @@ const Home = () => {
                 <Truck size={24} />
               </div>
               <div className="flex flex-col">
-                <h4 className="font-semibold text-slate-800 text-[15px] mb-0.5">Free Delivery</h4>
-                <p className="text-sm text-slate-500">On orders above ₹500</p>
+                <h4 className="font-semibold text-slate-800 text-[15px] mb-0.5">Delivery</h4>
+                <p className="text-sm text-slate-500">On all orders</p>
               </div>
             </div>
             <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 hover:-translate-y-0.5 transition-all duration-300">

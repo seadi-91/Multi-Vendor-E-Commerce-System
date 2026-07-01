@@ -10,84 +10,104 @@ import Product from './product/Product';
 /* ==========================================================================
    SUB-COMPONENT: CLEANED SIDEBAR (Removed Profile, Settings, etc.)
    ========================================================================== */
-const Sidebar = ({ cartCount, favoritesCount }) => {
+const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
   const baseMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl text-gray-600 font-medium transition-all hover:bg-gray-50 hover:text-green-600 group";
   const activeMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all bg-green-50 text-green-600";
 
   return (
-    <aside className="w-64 h-fit bg-white border-r border-gray-100 p-6 flex flex-col justify-between shrink-0">
-      <div>
-        {/* Brand Logo */}
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-extrabold">FC</span>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div>
+          {/* Brand Logo */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+                <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
+                  <span className="text-white text-2xl">🌾</span>
+                </div>
+                <h1 className="text-xl font-extrabold flex items-center">
+                  <span className="text-green-600">Farm</span>
+                  <span className="text-gray-800">Connect</span>
+                </h1>
+              </Link>
+            </div>
+            <button 
+              onClick={onClose}
+              className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
           </div>
-          <h1 className="text-xl font-bold flex items-center">
-            <span className="text-green-600">Farm</span>
-            <span className="text-gray-800">Connect</span>
-          </h1>
+          <p className="text-xs text-gray-400 font-medium mb-8 pl-1">Fresh from Farm to You</p>
+
+          {/* Core Shopping Sidebar Links */}
+          <nav className="space-y-1">
+            <NavLink to="/customer/dashboard" end className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🏠</span> <span>Dashboard</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🥗</span> <span>Products</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/customer/dashboard/orders" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🛍️</span> <span>My Orders</span>
+              </div>
+            </NavLink>
+
+            <NavLink to="/favorites" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🤍</span> <span>Wishlist</span>
+              </div>
+              {favoritesCount > 0 && (
+                <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
+              )}
+            </NavLink>
+
+            <NavLink to="/customer/cart" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🛒</span> <span>Cart</span>
+              </div>
+              <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 2}</span>
+            </NavLink>
+
+
+          </nav>
         </div>
-        <p className="text-xs text-gray-400 font-medium mb-8 pl-1">Fresh from Farm to You</p>
 
-        {/* Core Shopping Sidebar Links */}
-        <nav className="space-y-1">
-          <NavLink to="/customer/dashboard" end className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass}>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🏠</span> <span>Dashboard</span>
-            </div>
-          </NavLink>
-
-          <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass}>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🥗</span> <span>Products</span>
-            </div>
-          </NavLink>
-
-          <NavLink to="/customer/dashboard/orders" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass}>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🛍️</span> <span>My Orders</span>
-            </div>
-          </NavLink>
-
-          <NavLink to="/favorites" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass}>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🤍</span> <span>Wishlist</span>
-            </div>
-            {favoritesCount > 0 && (
-              <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
-            )}
-          </NavLink>
-
-          <NavLink to="/customer/cart" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass}>
-            <div className="flex items-center gap-3">
-              <span className="text-lg">🛒</span> <span>Cart</span>
-            </div>
-            <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 2}</span>
-          </NavLink>
-
-
-        </nav>
-      </div>
-
-      {/* Sidebar Promo Card */}
-      <div className="bg-green-50 rounded-2xl p-4 mt-6 relative overflow-hidden group">
-        <div className="relative z-10">
-          <h3 className="text-green-800 font-bold text-base mb-1">Fresh Deals!</h3>
-          <p className="text-xs text-gray-600 mb-3 max-w-[120px]">Get up to 20% off on selected products</p>
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
-            Shop Now
-          </button>
+        {/* Sidebar Promo Card */}
+        <div className="bg-green-50 rounded-2xl p-4 mt-6 relative overflow-hidden group">
+          <div className="relative z-10">
+            <h3 className="text-green-800 font-bold text-base mb-1">Fresh Deals!</h3>
+            <p className="text-xs text-gray-600 mb-3 max-w-[120px]">Get up to 20% off on selected products</p>
+            <button className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+              Shop Now
+            </button>
+          </div>
+          <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform">🧺</span>
         </div>
-        <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform">🧺</span>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
 /* ==========================================================================
    SUB-COMPONENT: HEADER WITH DEDICATED 3-DOT MENUS
    ========================================================================== */
-const DashboardHeader = ({ user, cartCount, onLogout }) => {
+const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle }) => {
   const navigate = useNavigate();
   const [favoritesCount, setFavoritesCount] = useState(0);
 
@@ -110,7 +130,17 @@ const DashboardHeader = ({ user, cartCount, onLogout }) => {
   }, []);
 
   return (
-    <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+    <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+      {/* Mobile Menu Toggle */}
+      <button 
+        onClick={onMenuToggle}
+        className="lg:hidden p-2 text-gray-600 hover:text-green-600 mr-2"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+
       {/* Universal Search Bar */}
       <div className="flex items-center w-full max-w-xl bg-gray-50 border border-gray-200 rounded-xl overflow-hidden px-4 py-1.5 focus-within:border-green-500 transition-colors">
         <input
@@ -124,7 +154,7 @@ const DashboardHeader = ({ user, cartCount, onLogout }) => {
       </div>
 
       {/* Global Action Icons */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6">
         <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
           <span className="text-xl">🔔</span>
           <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
@@ -141,11 +171,11 @@ const DashboardHeader = ({ user, cartCount, onLogout }) => {
         </div>
 
         {/* User Interactive Menu Context */}
-        <div className="flex items-center gap-3 border-l pl-6 border-gray-200 relative group">
+        <div className="flex items-center gap-3 border-l pl-4 sm:pl-6 border-gray-200 relative group">
           <img
             src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
             alt="User profile"
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100"
           />
           <div className="text-left hidden md:block">
             <p className="text-sm font-semibold text-gray-800 flex items-center gap-1 cursor-default">
@@ -282,6 +312,7 @@ const CustomerDashboard = () => {
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const [favoritesCount, setFavoritesCount] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const Settings = React.lazy(() => import('./settings'));
 
   const updateFavoritesCount = () => {
@@ -305,10 +336,20 @@ const CustomerDashboard = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/50 text-gray-800 antialiased font-sans">
       <div className="flex flex-1">
-        <Sidebar cartCount={cartCount} favoritesCount={favoritesCount} />
+        <Sidebar 
+          cartCount={cartCount} 
+          favoritesCount={favoritesCount} 
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader user={user} cartCount={cartCount} onLogout={logout} />
+          <DashboardHeader 
+            user={user} 
+            cartCount={cartCount} 
+            onLogout={logout} 
+            onMenuToggle={() => setSidebarOpen(true)}
+          />
 
           <div className="flex-1 overflow-y-auto">
             <main className="flex-1">

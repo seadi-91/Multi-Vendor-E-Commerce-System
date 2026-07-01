@@ -74,18 +74,18 @@ const Product = () => {
       </div>
 
       <div className="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="mb-6 flex flex-wrap gap-3">
-          {Object.entries(CATEGORY_CONFIG).map(([key, cat]) => (
-            <button
-              key={key}
-              type="button"
-              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${activeCategory === key ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50'}`}
-              onClick={() => setActiveCategory(key)}
-            >
-              <span className="mr-2 text-base">{cat.icon}</span>
-              {cat.name}
-            </button>
-          ))}
+        <div className="mb-6">
+          <select
+            value={activeCategory}
+            onChange={(e) => setActiveCategory(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+          >
+            {Object.entries(CATEGORY_CONFIG).map(([key, cat]) => (
+              <option key={key} value={key}>
+                {cat.icon} {cat.name}
+              </option>
+            ))}
+          </select>
         </div>
 
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

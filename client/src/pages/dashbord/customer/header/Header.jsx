@@ -358,9 +358,7 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                 ))}
               </nav>
               
-              <div className="nav-promo">
-                <span className="promo-text">🚚 Free Delivery | 🎁 10% Off First Order</span>
-              </div>
+
             </div>
           </div>
         </nav>

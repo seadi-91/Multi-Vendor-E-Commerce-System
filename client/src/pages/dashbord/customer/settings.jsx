@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { authAPI } from '../../../api';
 import { 
-  User, Lock, MapPin, Heart, Shield, 
-  ChevronRight, Camera, Edit2, Trash2, Download, Bell, 
+  User, Lock, MapPin, 
+  ChevronRight, Camera, Edit2, Trash2, 
   Check, X, Plus, AlertCircle, Save, XCircle, Eye, EyeOff
 } from 'lucide-react';
 
@@ -33,17 +34,6 @@ const Settings = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [addressForm, setAddressForm] = useState({ city: '', subcity: '', fullAddress: '' });
-
-  const [wishlistSettings, setWishlistSettings] = useState({
-    visibility: 'private',
-    shareable: false,
-    defaultWishlist: true,
-    notifications: true
-  });
-
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: 'private'
-  });
   
   // Security form states
   const [passwordForm, setPasswordForm] = useState({
@@ -111,30 +101,6 @@ const Settings = () => {
     }
   };
 
-  const handleSaveWishlist = async () => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showSuccess('Wishlist settings saved!');
-    } catch (err) {
-      showError('Failed to save settings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSavePrivacy = async () => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showSuccess('Privacy settings saved!');
-    } catch (err) {
-      showError('Failed to save settings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Security handlers
   const validatePasswordChange = () => {
     const errors = {};
@@ -152,12 +118,15 @@ const Settings = () => {
     
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await authAPI.updateUser(user.id, {
+        password: passwordForm.newPassword,
+        oldPassword: passwordForm.currentPassword
+      });
       showSuccess('Password changed successfully!');
       setShowPasswordModal(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      showError('Failed to change password');
+      showError(err.response?.data?.error || 'Failed to change password');
     } finally {
       setLoading(false);
     }
@@ -186,12 +155,14 @@ const Settings = () => {
     
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await authAPI.updateUser(user.id, { phone: phoneForm.newPhone });
       showSuccess('Phone number updated successfully!');
       setShowPhoneModal(false);
       setPhoneForm({ newPhone: '' });
+      // Update local user data
+      setProfileData(prev => ({ ...prev, phone: phoneForm.newPhone }));
     } catch (err) {
-      showError('Failed to update phone number');
+      showError(err.response?.data?.error || 'Failed to update phone number');
     } finally {
       setLoading(false);
     }
@@ -199,17 +170,6 @@ const Settings = () => {
 
 
 
-  const handleDownloadData = async () => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      showSuccess('Your data is being prepared for download!');
-    } catch (err) {
-      showError('Failed to download data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     setLoading(true);
@@ -271,9 +231,7 @@ const Settings = () => {
   const sections = [
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'security', label: 'Login & Security', icon: Lock },
-    { id: 'address', label: 'Address Book', icon: MapPin },
-    { id: 'wishlist', label: 'Wishlist Settings', icon: Heart },
-    { id: 'privacy', label: 'Privacy Settings', icon: Shield }
+    { id: 'address', label: 'Address Book', icon: MapPin }
   ];
 
   const renderProfileSection = () => (
@@ -348,22 +306,6 @@ const Settings = () => {
             <div>
               <h3 className="font-medium text-gray-900">Change Phone Number</h3>
               <p className="text-sm text-gray-500">Update your contact number</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-gray-400" />
-        </div>
-
-
-
-        <div 
-          onClick={handleDownloadData}
-          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Download className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Download My Data</h3>
-              <p className="text-sm text-gray-500">Get a copy of your personal data</p>
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -553,8 +495,6 @@ const Settings = () => {
     </Modal>
   );
 
-
-
   const renderDeleteModal = () => (
     <Modal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Account">
       <div className="space-y-4">
@@ -732,124 +672,6 @@ const Settings = () => {
     </Modal>
   );
 
-  const renderWishlistSection = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Wishlist Settings</h2>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Heart className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Public / Private Wishlist</h3>
-              <p className="text-sm text-gray-500">Control who can see your wishlist</p>
-            </div>
-          </div>
-          <select
-            value={wishlistSettings.visibility}
-            onChange={(e) => setWishlistSettings({ ...wishlistSettings, visibility: e.target.value })}
-            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="private">Private</option>
-            <option value="public">Public</option>
-          </select>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Heart className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Share Wishlist</h3>
-              <p className="text-sm text-gray-500">Allow sharing your wishlist</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setWishlistSettings({ ...wishlistSettings, shareable: !wishlistSettings.shareable })}
-            className={`w-12 h-6 rounded-full p-1 transition-colors ${wishlistSettings.shareable ? 'bg-emerald-600' : 'bg-gray-300'}`}
-          >
-            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${wishlistSettings.shareable ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Heart className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Default Wishlist</h3>
-              <p className="text-sm text-gray-500">Set as default wishlist</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setWishlistSettings({ ...wishlistSettings, defaultWishlist: !wishlistSettings.defaultWishlist })}
-            className={`w-12 h-6 rounded-full p-1 transition-colors ${wishlistSettings.defaultWishlist ? 'bg-emerald-600' : 'bg-gray-300'}`}
-          >
-            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${wishlistSettings.defaultWishlist ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Wishlist Notifications</h3>
-              <p className="text-sm text-gray-500">Get notified about wishlist items</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setWishlistSettings({ ...wishlistSettings, notifications: !wishlistSettings.notifications })}
-            className={`w-12 h-6 rounded-full p-1 transition-colors ${wishlistSettings.notifications ? 'bg-emerald-600' : 'bg-gray-300'}`}
-          >
-            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${wishlistSettings.notifications ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-
-        <button 
-          onClick={handleSaveWishlist}
-          disabled={loading}
-          className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {loading ? 'Saving...' : 'Save Settings'}
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderPrivacySection = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Privacy Settings</h2>
-      
-      <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-gray-600" />
-            <div>
-              <h3 className="font-medium text-gray-900">Profile Visibility</h3>
-              <p className="text-sm text-gray-500">Control who can see your profile</p>
-            </div>
-          </div>
-          <select
-            value={privacySettings.profileVisibility}
-            onChange={(e) => setPrivacySettings({ ...privacySettings, profileVisibility: e.target.value })}
-            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="private">Private</option>
-            <option value="public">Public</option>
-          </select>
-        </div>
-
-        <button 
-          onClick={handleSavePrivacy}
-          disabled={loading}
-          className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {loading ? 'Saving...' : 'Save Settings'}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-8">
       {success && (
@@ -896,8 +718,6 @@ const Settings = () => {
           {activeSection === 'profile' && renderProfileSection()}
           {activeSection === 'security' && renderSecuritySection()}
           {activeSection === 'address' && renderAddressSection()}
-          {activeSection === 'wishlist' && renderWishlistSection()}
-          {activeSection === 'privacy' && renderPrivacySection()}
         </div>
       </div>
 

@@ -14,7 +14,6 @@ import ResetPassword from './pages/login/ResetPassword';
 import Checkout from './pages/checkout/Checkout';
 import Orders from './pages/orders/Orders';
 import Home from './pages/home/Home';
-import About from './pages/about/About';
 import Contact from './pages/contact/Contact';
 import Favorites from './pages/favorites/Favorites';
 import Product from './pages/dashbord/customer/product/Product';
@@ -29,7 +28,6 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/products" element={<Product />} />

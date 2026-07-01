@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authAPI } from '../api';
 
 const AuthContext = createContext();
 
@@ -43,39 +44,40 @@ export const AuthProvider = ({ children }) => {
     hydrateAuthState();
   }, []);
 
-  // Use VITE_API_BASE_URL from .env with fallback
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
   // Real login implementation
   const login = async (email, password) => {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.message || 'Login failed');
+    try {
+      const response = await authAPI.login({ email, password });
+      
+      // Ensure user object has a role
+      if (!response.data.user || !response.data.user.role) {
+        console.error('Login response missing user role:', response.data);
+        throw new Error('Invalid user data received from server');
+      }
+      
+      setUser(response.data.user);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.data.token);
+      console.log('Login successful:', { user: response.data.user, role: response.data.user.role });
+      return response.data;
+    } catch (error) {
+      let message;
+      
+      // Check for network errors
+      if (!error.response) {
+        message = 'Network error: Could not connect to server. Please check your internet connection.';
+      } else {
+        // Server errors
+        message = error.response?.data?.message || error.message || 'Invalid email or password';
+      }
+      
+      throw new Error(message);
     }
-    const data = await res.json();
-    
-    // Ensure user object has a role
-    if (!data.user || !data.user.role) {
-      console.error('Login response missing user role:', data);
-      throw new Error('Invalid user data received from server');
-    }
-    
-    setUser(data.user);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('token', data.token);
-    console.log('Login successful:', { user: data.user, role: data.user.role });
-    return data;
   };
 
   // Real register implementation
   const register = async (registrationData) => {
     console.log('Register data being sent:', registrationData);
-    console.log('API_BASE_URL:', API_BASE_URL);
     
     // Filter out any non-serializable data (like File objects)
     const serializableData = {};
@@ -89,40 +91,35 @@ export const AuthProvider = ({ children }) => {
     }
     
     console.log('Filtered data for API:', serializableData);
-    console.log('Full URL:', `${API_BASE_URL}/auth/register`);
     
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(serializableData)
-      });
-      
-      console.log('Response status:', res.status);
-      console.log('Response ok:', res.ok);
-      
-      if (!res.ok) {
-        const data = await res.json();
-        console.error('Error response:', data);
-        throw new Error(data.message || 'Registration failed');
-      }
-      const data = await res.json();
-      console.log('Success response:', data);
+      const response = await authAPI.register(serializableData);
+      console.log('Success response:', response.data);
       
       // Ensure user object has a role
-      if (!data.user || !data.user.role) {
-        console.error('Register response missing user role:', data);
+      if (!response.data.user || !response.data.user.role) {
+        console.error('Register response missing user role:', response.data);
         throw new Error('Invalid user data received from server');
       }
       
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      console.log('Registration successful:', { user: data.user, role: data.user.role });
-      return data;
+      setUser(response.data.user);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.data.token);
+      console.log('Registration successful:', { user: response.data.user, role: response.data.user.role });
+      return response.data;
     } catch (error) {
-      console.error('Register fetch error:', error);
-      throw error;
+      console.error('Register axios error:', error);
+      let message;
+      
+      // Check for network errors
+      if (!error.response) {
+        message = 'Network error: Could not connect to server. Please check your internet connection.';
+      } else {
+        // Server errors
+        message = error.response?.data?.message || error.message || 'Registration failed';
+      }
+      
+      throw new Error(message);
     }
   };
 

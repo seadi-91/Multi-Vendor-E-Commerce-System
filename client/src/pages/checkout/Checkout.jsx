@@ -4,8 +4,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import CustomerHeader from '../dashbord/customer/header/Header';
 import api from '../../api';
-import { FiShoppingBag, FiHome, FiMapPin, FiPhone, FiCreditCard, FiLock, FiCheck } from 'react-icons/fi';
-import { MdDeliveryDining, MdPayment } from 'react-icons/md';
+import { ShoppingBag, Home, MapPin, Phone, CreditCard, Lock, Check, Truck, Wallet } from 'lucide-react';
 
 const Checkout = () => {
   const { cart, cartCount, clearCart } = useCart();

@@ -11,7 +11,7 @@ model Customer {
   id                   Int       @id @default(autoincrement())
   name                 String
   email                String    @unique
-  phone                String?   @unique
+  phoneNumber          String?   @unique
   password             String
 <<<<<<< HEAD
   role                 Role      @default(CUSTOMER)
@@ -21,13 +21,21 @@ model Customer {
 =======
   role                 String    @default("customer")
   address              String?
+<<<<<<< HEAD
 >>>>>>> e9589db (customer page)
   profileImage         String?
   nationalId           String?
   tinNumber            String?
   landMapFile          String?
+=======
+>>>>>>> 0a7d7e3 (customer page)
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
+  landMapFile          String?
+  nationalId           String?
+  phone                String?
+  profileImage         String?
+  tinNumber            String?
   createdAt            DateTime  @default(now())
 <<<<<<< HEAD
   
@@ -91,7 +99,38 @@ model Product {
 =======
   updatedAt            DateTime  @updatedAt
 
+  orders               Order[]
+
   @@map("customer")
 }
 
+<<<<<<< HEAD
 >>>>>>> e9589db (customer page)
+=======
+model Order {
+  id                  Int         @id @default(autoincrement())
+  orderCode           String
+  customerId          Int?
+  customer            Customer?   @relation(fields: [customerId], references: [id])
+  items               Json        @default("[]")
+  total               Float       @default(0)
+  subtotal            Float       @default(0)
+  deliveryFee         Float       @default(0)
+  tax                 Float       @default(0)
+  status              String      @default("processing")
+  paymentMethod       String      @default("cash")
+  paymentStatus       String      @default("unpaid")
+  fullName            String?
+  email               String?
+  phone               String?
+  city                String?
+  address             String?
+  additionalInfo      String?
+  vendor              String?
+  restaurant          String?
+  estimatedDelivery   String?
+  specialInstructions String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+>>>>>>> 0a7d7e3 (customer page)
