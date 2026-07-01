@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState, memo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, Legend, ReferenceLine } from 'recharts';
+import { TrendingUp, TrendingDown, Download, Calendar, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -9,53 +9,109 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
-const EarningsChart = () => {
+const EarningsChart = memo(() => {
   const [timeframe, setTimeframe] = useState('week');
+  const [showComparison, setShowComparison] = useState(false);
+  const [showAverage, setShowAverage] = useState(true);
+  const [showProjected, setShowProjected] = useState(false);
 
   const data = {
+    day: [
+      { name: '6AM', earnings: 800, previous: 650, projected: 850 },
+      { name: '9AM', earnings: 1200, previous: 980, projected: 1300 },
+      { name: '12PM', earnings: 1500, previous: 1200, projected: 1600 },
+      { name: '3PM', earnings: 1100, previous: 900, projected: 1150 },
+      { name: '6PM', earnings: 900, previous: 750, projected: 950 },
+      { name: '9PM', earnings: 600, previous: 500, projected: 650 },
+    ],
     week: [
-      { name: 'Mon', earnings: 4500 },
-      { name: 'Tue', earnings: 5200 },
-      { name: 'Wed', earnings: 4800 },
-      { name: 'Thu', earnings: 6100 },
-      { name: 'Fri', earnings: 5800 },
-      { name: 'Sat', earnings: 7200 },
-      { name: 'Sun', earnings: 6900 },
+      { name: 'Mon', earnings: 4500, previous: 3800, projected: 4800 },
+      { name: 'Tue', earnings: 5200, previous: 4100, projected: 5500 },
+      { name: 'Wed', earnings: 4800, previous: 3900, projected: 5100 },
+      { name: 'Thu', earnings: 6100, previous: 5200, projected: 6500 },
+      { name: 'Fri', earnings: 5800, previous: 4900, projected: 6200 },
+      { name: 'Sat', earnings: 7200, previous: 6100, projected: 7500 },
+      { name: 'Sun', earnings: 6900, previous: 5800, projected: 7200 },
     ],
     month: [
-      { name: 'Week 1', earnings: 28000 },
-      { name: 'Week 2', earnings: 32000 },
-      { name: 'Week 3', earnings: 29000 },
-      { name: 'Week 4', earnings: 35000 },
+      { name: 'Week 1', earnings: 28000, previous: 24000, projected: 30000 },
+      { name: 'Week 2', earnings: 32000, previous: 27000, projected: 34000 },
+      { name: 'Week 3', earnings: 29000, previous: 25000, projected: 31000 },
+      { name: 'Week 4', earnings: 35000, previous: 29000, projected: 37000 },
+    ],
+    year: [
+      { name: 'Jan', earnings: 95000, previous: 80000, projected: 100000 },
+      { name: 'Feb', earnings: 88000, previous: 75000, projected: 92000 },
+      { name: 'Mar', earnings: 102000, previous: 85000, projected: 108000 },
+      { name: 'Apr', earnings: 95000, previous: 80000, projected: 100000 },
+      { name: 'May', earnings: 110000, previous: 92000, projected: 115000 },
+      { name: 'Jun', earnings: 105000, previous: 88000, projected: 110000 },
+      { name: 'Jul', earnings: 98000, previous: 82000, projected: 103000 },
+      { name: 'Aug', earnings: 92000, previous: 78000, projected: 97000 },
+      { name: 'Sep', earnings: 108000, previous: 90000, projected: 113000 },
+      { name: 'Oct', earnings: 115000, previous: 95000, projected: 120000 },
+      { name: 'Nov', earnings: 125000, previous: 105000, projected: 130000 },
+      { name: 'Dec', earnings: 130000, previous: 110000, projected: 135000 },
     ],
   };
 
   const currentData = data[timeframe];
   const totalEarnings = currentData.reduce((sum, item) => sum + item.earnings, 0);
-  const previousEarnings = timeframe === 'week' ? 38000 : 112000;
-  const percentageChange = ((totalEarnings - previousEarnings) / previousEarnings * 100).toFixed(1);
+  const totalPrevious = currentData.reduce((sum, item) => sum + (item.previous || 0), 0);
+  const totalProjected = currentData.reduce((sum, item) => sum + (item.projected || 0), 0);
+  const averageEarnings = totalEarnings / currentData.length;
+  const percentageChange = ((totalEarnings - totalPrevious) / totalPrevious * 100).toFixed(1);
   const isPositive = parseFloat(percentageChange) >= 0;
 
+  const handleDownloadReport = () => {
+    console.log('Downloading report for', timeframe);
+    // Implement download functionality
+  };
+
   return (
-    <div className="bg-white border border-forest-100 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-forest-900">Earnings Overview</h3>
-          <p className="text-sm text-forest-600">Track your farm's revenue</p>
+          <h3 className="text-lg font-semibold text-slate-900">Earnings Overview</h3>
+          <p className="text-xs text-muted-foreground">Track your farm's revenue</p>
         </div>
-        <Select value={timeframe} onValueChange={setTimeframe}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={timeframe} onValueChange={setTimeframe}>
+            <SelectTrigger className="w-32 h-8 text-sm rounded-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+              <SelectItem value="year">Yearly</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleDownloadReport} aria-label="Download report">
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="h-64 mb-6">
+      <div className="flex items-center gap-4 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Switch id="comparison" checked={showComparison} onCheckedChange={setShowComparison} />
+          <label htmlFor="comparison" className="text-xs text-slate-600 cursor-pointer">Compare</label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="average" checked={showAverage} onCheckedChange={setShowAverage} />
+          <label htmlFor="average" className="text-xs text-slate-600 cursor-pointer">Average</label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="projected" checked={showProjected} onCheckedChange={setShowProjected} />
+          <label htmlFor="projected" className="text-xs text-slate-600 cursor-pointer">Projected</label>
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0 mb-3" style={{ minHeight: '280px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={currentData}>
             <defs>
@@ -63,31 +119,79 @@ const EarningsChart = () => {
                 <stop offset="5%" stopColor="#0C5A30" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="#0C5A30" stopOpacity={0} />
               </linearGradient>
+              <linearGradient id="colorPrevious" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#68807F" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#68807F" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#E8EFE9" />
             <XAxis 
               dataKey="name" 
               stroke="#68807F"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
             />
             <YAxis 
               stroke="#68807F"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `${value.toLocaleString()} ETB`}
+              tickFormatter={(value) => `${value.toLocaleString()}`}
             />
             <Tooltip 
               contentStyle={{
                 backgroundColor: '#FFFFFF',
                 border: '1px solid #E8EFE9',
-                borderRadius: '12px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)',
+                fontSize: 12,
               }}
-              formatter={(value) => `${value.toLocaleString()} ETB`}
+              formatter={(value, name) => {
+                if (name === 'earnings') return [`${value.toLocaleString()} ETB`, 'Current'];
+                if (name === 'previous') return [`${value.toLocaleString()} ETB`, 'Previous'];
+                if (name === 'projected') return [`${value.toLocaleString()} ETB`, 'Projected'];
+                return [value, name];
+              }}
             />
+            {showAverage && (
+              <ReferenceLine 
+                y={averageEarnings} 
+                stroke="#68807F" 
+                strokeDasharray="3 3" 
+                label={{ value: 'Avg', position: 'right', fontSize: 10, fill: '#68807F' }}
+              />
+            )}
+            {showComparison && (
+              <Area 
+                type="monotone" 
+                dataKey="previous" 
+                stroke="#68807F" 
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                fillOpacity={0.5}
+                fill="url(#colorPrevious)"
+                animationDuration={1000}
+                animationEasing="ease-in-out"
+              />
+            )}
+            {showProjected && (
+              <Area 
+                type="monotone" 
+                dataKey="projected" 
+                stroke="#F59E0B" 
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                fillOpacity={0.3}
+                fill="url(#colorProjected)"
+                animationDuration={1000}
+                animationEasing="ease-in-out"
+              />
+            )}
             <Area 
               type="monotone" 
               dataKey="earnings" 
@@ -95,26 +199,50 @@ const EarningsChart = () => {
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorEarnings)"
+              animationDuration={1000}
+              animationEasing="ease-in-out"
             />
+            {(showComparison || showProjected) && (
+              <Legend 
+                verticalAlign="top" 
+                height={36} 
+                iconType="line"
+                wrapperStyle={{ fontSize: 11 }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-forest-100">
-        <div>
-          <p className="text-sm text-forest-600">This {timeframe === 'week' ? 'Week' : 'Month'}'s Earnings</p>
-          <p className="text-2xl font-bold text-forest-900">{totalEarnings.toLocaleString()} ETB</p>
+      <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-xs text-slate-500">Current Earnings</p>
+            <p className="text-sm font-semibold text-slate-900">{totalEarnings.toLocaleString()} ETB</p>
+          </div>
+          {showComparison && (
+            <div>
+              <p className="text-xs text-slate-500">Previous Period</p>
+              <p className="text-sm font-semibold text-slate-600">{totalPrevious.toLocaleString()} ETB</p>
+            </div>
+          )}
+          {showProjected && (
+            <div>
+              <p className="text-xs text-slate-500">Projected</p>
+              <p className="text-sm font-semibold text-amber-600">{totalProjected.toLocaleString()} ETB</p>
+            </div>
+          )}
         </div>
         <div className="text-right">
-          <p className="text-sm text-forest-600">Last {timeframe === 'week' ? 'Week' : 'Month'}</p>
-          <div className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-mint-600' : 'text-red-600'}`}>
-            {isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          <p className="text-xs text-slate-500">vs Previous</p>
+          <Badge variant={isPositive ? 'default' : 'destructive'} className={`flex items-center gap-1 ${isPositive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : ''}`}>
+            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             {isPositive ? '+' : ''}{percentageChange}%
-          </div>
+          </Badge>
         </div>
       </div>
     </div>
   );
-};
+});
 
 export default EarningsChart;

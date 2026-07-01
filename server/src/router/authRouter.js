@@ -1,92 +1,91 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const bcrypt = require('bcrypt');
 
 const { register, login, forgotPassword, resetPassword } = require('../controller/authController');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Public register route
+// Public auth routes
 router.post('/register', register);
-// Login route for all roles
 router.post('/login', login);
-// GET /api/users?role=farmer or /api/users?role=customer
-router.get('/users', async (req, res) => {
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+
+// Handle OPTIONS requests for CORS
+router.options('/forgot-password', (req, res) => res.sendStatus(200));
+router.options('/reset-password', (req, res) => res.sendStatus(200));
+
+// ─── User routes (admin use, now Prisma-backed) ────────────────────────────
+
+// GET /api/auth/users — used by old AdminDashboard (kept for compatibility)
+router.get('/users', protect, adminOnly, async (req, res) => {
   try {
     const { role } = req.query;
-    const filter = role ? { role } : {};
-    const users = await prisma.customer.findMany({ where: filter });
+    const where = role ? { role: role.toUpperCase() } : {};
+    const users = await prisma.user.findMany({
+      where,
+      select: { id: true, name: true, email: true, role: true, phone: true, isActive: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-// DELETE /api/users/:id
-router.delete('/users/:id', async (req, res) => {
+
+// DELETE /api/auth/users/:id
+router.delete('/users/:id', protect, adminOnly, async (req, res) => {
   try {
-    const user = await prisma.customer.delete({ where: { id: parseInt(req.params.id) } });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    await prisma.user.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// Get user by ID (profile fetch)
-router.get('/users/:id', async (req, res) => {
+// GET /api/auth/users/:id
+router.get('/users/:id', protect, async (req, res) => {
   try {
-    const user = await prisma.customer.findUnique({ where: { id: parseInt(req.params.id) } });
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(req.params.id) },
+      select: { id: true, name: true, email: true, role: true, address: true }
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, address: user.address });
+    res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update user by ID (profile update, with password change support)
-router.put('/users/:id', async (req, res) => {
+// PUT /api/auth/users/:id
+router.put('/users/:id', protect, async (req, res) => {
   try {
     const { name, email, password, oldPassword } = req.body;
-    const user = await prisma.customer.findUnique({ where: { id: parseInt(req.params.id) } });
+    const user = await prisma.user.findUnique({ where: { id: parseInt(req.params.id) } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     const updateData = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (password) {
-      if (!oldPassword) {
-        return res.status(400).json({ error: 'Old password is required.' });
-      }
-      const bcrypt = require('bcrypt');
+      if (!oldPassword) return res.status(400).json({ error: 'Old password is required.' });
       const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ error: 'Old password is incorrect.' });
-      }
+      if (!isMatch) return res.status(400).json({ error: 'Old password is incorrect.' });
       updateData.password = await bcrypt.hash(password, 10);
     }
-    
-    const updatedUser = await prisma.customer.update({
+
+    const updated = await prisma.user.update({
       where: { id: parseInt(req.params.id) },
-      data: updateData
+      data: updateData,
+      select: { id: true, name: true, email: true, role: true, address: true }
     });
-    res.json({ id: updatedUser.id, name: updatedUser.name, email: updatedUser.email, role: updatedUser.role, address: updatedUser.address });
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// Forgot Password routes
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
-
-// Handle OPTIONS requests for CORS
-router.options('/forgot-password', (req, res) => {
-  res.sendStatus(200);
-});
-router.options('/reset-password', (req, res) => {
-  res.sendStatus(200);
 });
 
 module.exports = router;

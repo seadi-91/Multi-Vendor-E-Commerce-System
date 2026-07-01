@@ -38,32 +38,32 @@ const TopSellingProducts = () => {
   ];
 
   return (
-    <div className="bg-white border border-forest-100 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-forest-900">Top Selling Products</h3>
-          <p className="text-sm text-forest-600">Your best performers</p>
+          <h3 className="text-lg font-semibold text-slate-900">Top Selling Products</h3>
+          <p className="text-xs text-muted-foreground">Your best performers</p>
         </div>
-        <button className="text-sm font-medium text-forest-600 hover:text-forest-900">
+        <button className="text-xs font-medium text-slate-600 hover:text-slate-900">
           View All
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 space-y-1">
         {products.map((product) => (
           <div
             key={product.id}
-            className="flex items-center gap-4 p-3 rounded-xl hover:bg-forest-50 transition-colors"
+            className="flex items-center gap-2 p-1.5 rounded-md hover:bg-slate-50 transition-colors group"
           >
-            <div className="h-12 w-12 rounded-xl bg-forest-100 flex items-center justify-center text-2xl">
+            <div className="h-7 w-7 rounded-md bg-slate-100 flex items-center justify-center text-sm shrink-0">
               {product.image}
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-forest-900">{product.name}</p>
-              <p className="text-sm text-forest-600">{product.sold} {product.unit} sold</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-900 truncate">{product.name}</p>
+              <p className="text-[10px] text-muted-foreground">{product.sold} {product.unit} sold</p>
             </div>
-            <div className="text-right">
-              <p className="font-bold text-forest-900">{product.revenue.toLocaleString()} ETB</p>
+            <div className="text-right shrink-0">
+              <p className="text-sm font-semibold text-slate-900">{product.revenue.toLocaleString()} ETB</p>
             </div>
           </div>
         ))}

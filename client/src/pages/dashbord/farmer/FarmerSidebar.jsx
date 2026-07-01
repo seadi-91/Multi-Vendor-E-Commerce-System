@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
   Settings,
   User,
-  ChevronDown,
-  ChevronRight,
-  ChevronLeft,
   LogOut,
   ShoppingBag,
   TrendingUp,
@@ -15,21 +12,27 @@ import {
   MessageSquare,
   Bell,
   HelpCircle,
-  ExternalLink,
-  Leaf
+  Leaf,
+  ChevronRight
 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuBadge,
+} from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
-import { Menu } from 'lucide-react';
 
-const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
+const FarmerSidebar = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [productsOpen, setProductsOpen] = useState(false);
-  const [ordersOpen, setOrdersOpen] = useState(false);
 
   const navigationItems = [
     {
@@ -43,11 +46,6 @@ const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
       path: '/farmer/analytics',
     },
     {
-      title: 'Farm Profile',
-      icon: User,
-      path: '/farmer/profile',
-    },
-    {
       title: 'Messages',
       icon: MessageSquare,
       path: '/farmer/messages',
@@ -58,16 +56,6 @@ const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
       path: '/farmer/notifications',
       badge: 3,
     },
-    {
-      title: 'Support',
-      icon: HelpCircle,
-      path: '/farmer/support',
-    },
-    {
-      title: 'Settings',
-      icon: Settings,
-      path: '/farmer/settings',
-    },
   ];
 
   const handleNavigation = (path) => {
@@ -76,203 +64,150 @@ const FarmerSidebar = ({ user, onLogout, onAddProduct }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  const SidebarContentComponent = () => (
-    <>
-      {/* Header */}
-      <div className="bg-forest-600 py-5 flex items-center justify-center">
-        {!isCollapsed ? (
-          <div className="flex items-center justify-between w-full px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 shrink-0">
-                <Leaf className="h-6 w-6 text-white" />
-              </div>
+  return (
+    <Sidebar className={isCollapsed ? 'w-28' : 'w-64'} data-state={isCollapsed ? 'collapsed' : 'expanded'}>
+      <SidebarHeader className="bg-green-600 border-b border-green-700 p-4">
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Leaf className="h-5 w-5 text-white" />
+            </div>
+            {!isCollapsed && (
               <div>
                 <h2 className="text-lg font-bold text-white">FarmConnect</h2>
-                <p className="text-xs text-forest-100">Farmer Portal</p>
+                <p className="text-xs text-green-100">Farmer Portal</p>
               </div>
-            </div>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors shrink-0"
-              title="Collapse Sidebar"
-            >
-              <ChevronLeft className="h-5 w-5 text-white" />
-            </button>
+            )}
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 w-full">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 shrink-0">
-              <Leaf className="h-6 w-6 text-white" />
-            </div>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors shrink-0"
-              title="Expand Sidebar"
-            >
-              <ChevronRight className="h-5 w-5 text-white" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto bg-white px-4 py-4">
-        <div className="space-y-1">
-          {/* Dashboard */}
           <button
-            onClick={() => handleNavigation('/farmer/dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              isActive('/farmer/dashboard')
-                ? 'bg-forest-600 text-white shadow-md'
-                : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
-            }`}
-            title={isCollapsed ? 'Dashboard' : undefined}
+            onClick={onToggleCollapse}
+            className="p-2 rounded-md border border-green-500 bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <LayoutDashboard className="h-5 w-5 shrink-0" />
-            {!isCollapsed && <span className="flex-1 text-left">Dashboard</span>}
+            {isCollapsed ? <ChevronRight size={20} className="text-white" /> : <ChevronRight size={20} className="rotate-180 text-white" />}
           </button>
-
-          {/* My Products Collapsible */}
-          {!isCollapsed ? (
-            <Collapsible open={productsOpen} onOpenChange={setProductsOpen} className="w-full">
-              <CollapsibleTrigger className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900">
-                <Package className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-left">My Products</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 pt-1 space-y-1">
-                <button
-                  onClick={() => handleNavigation('/farmer/products')}
-                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
-                >
-                  <span className="flex-1 text-left">All Products</span>
-                </button>
-                <button
-                  onClick={onAddProduct}
-                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-mint-600 hover:bg-mint-50 hover:text-mint-700"
-                >
-                  <span className="flex-1 text-left">+ Add Product</span>
-                </button>
-              </CollapsibleContent>
-            </Collapsible>
-          ) : (
-            <button
-              onClick={onAddProduct}
-              className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                isActive('/farmer/products')
-                  ? 'bg-forest-600 text-white shadow-md'
-                  : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
-              }`}
-              title="My Products"
-            >
-              <Package className="h-5 w-5 shrink-0" />
-            </button>
-          )}
-
-          {/* Orders Collapsible */}
-          {!isCollapsed ? (
-            <Collapsible open={ordersOpen} onOpenChange={setOrdersOpen} className="w-full">
-              <CollapsibleTrigger className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900">
-                <ShoppingBag className="h-5 w-5 shrink-0" />
-                <span className="flex-1 text-left">Orders</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 pt-1 space-y-1">
-                <button
-                  onClick={() => handleNavigation('/farmer/orders')}
-                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
-                >
-                  <span className="flex-1 text-left">All Orders</span>
-                </button>
-                <button
-                  onClick={() => handleNavigation('/farmer/orders/pending')}
-                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
-                >
-                  <span className="flex-1 text-left">Pending Orders</span>
-                </button>
-                <button
-                  onClick={() => handleNavigation('/farmer/orders/completed')}
-                  className="w-full flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all text-forest-700 hover:bg-forest-50 hover:text-forest-900"
-                >
-                  <span className="flex-1 text-left">Completed Orders</span>
-                </button>
-              </CollapsibleContent>
-            </Collapsible>
-          ) : (
-            <button
-              onClick={() => handleNavigation('/farmer/orders')}
-              className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                isActive('/farmer/orders')
-                  ? 'bg-forest-600 text-white shadow-md'
-                  : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
-              }`}
-              title="Orders"
-            >
-              <ShoppingBag className="h-5 w-5 shrink-0" />
-            </button>
-          )}
-
-          {/* Other Navigation Items */}
-          {navigationItems.map((item) => (
-            <button
-              key={item.title}
-              onClick={() => handleNavigation(item.path)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                isActive(item.path)
-                  ? 'bg-forest-600 text-white shadow-md'
-                  : 'text-forest-700 hover:bg-forest-50 hover:text-forest-900'
-              }`}
-              title={isCollapsed ? item.title : undefined}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left">{item.title}</span>
-                  {item.badge && (
-                    <Badge className="bg-orange-500 text-white border-none h-5 px-2 text-xs">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </button>
-          ))}
         </div>
-      </div>
+      </SidebarHeader>
 
-      {/* Footer */}
-      <div className="border-t border-forest-100 bg-white p-4">
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-red-200 text-red-600 font-medium hover:bg-red-50 hover:border-red-300 transition-all"
-          title={isCollapsed ? 'Logout' : undefined}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!isCollapsed && <span>Logout</span>}
-        </button>
-      </div>
-    </>
-  );
+      <SidebarContent className="p-4">
+        <SidebarGroup>
+          {!isCollapsed && <SidebarGroupLabel>Store</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNavigation('/farmer/dashboard')}
+                  isActive={isActive('/farmer/dashboard')}
+                  className={isCollapsed ? 'justify-center' : ''}
+                >
+                  <LayoutDashboard size={18} />
+                  {!isCollapsed && <span>Dashboard</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNavigation('/farmer/products')}
+                  isActive={isActive('/farmer/products') || isActive('/farmer/products/add')}
+                  className={isCollapsed ? 'justify-center' : ''}
+                >
+                  <Package size={18} />
+                  {!isCollapsed && <span>My Products</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNavigation('/farmer/orders')}
+                  isActive={isActive('/farmer/orders')}
+                  className={isCollapsed ? 'justify-center' : ''}
+                >
+                  <ShoppingBag size={18} />
+                  {!isCollapsed && <span>Orders</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <div className={`hidden md:flex h-full shrink-0 flex-col bg-white border-r border-forest-100 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
-        <SidebarContentComponent />
-      </div>
+        <SidebarGroup>
+          {!isCollapsed && <SidebarGroupLabel>Business</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.slice(0, 2).map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    onClick={() => handleNavigation(item.path)}
+                    isActive={isActive(item.path)}
+                    className={isCollapsed ? 'justify-center' : ''}
+                  >
+                    <item.icon size={18} />
+                    {!isCollapsed && <span>{item.title}</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-      {/* Mobile Sheet Sidebar */}
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="md:hidden fixed top-4 left-4 z-50 bg-forest-600 hover:bg-forest-700 text-white">
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0">
-          <div className="h-full flex flex-col">
-            <SidebarContentComponent />
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+        <SidebarGroup>
+          {!isCollapsed && <SidebarGroupLabel>System</SidebarGroupLabel>}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.slice(2).map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    onClick={() => handleNavigation(item.path)}
+                    isActive={isActive(item.path)}
+                    className={isCollapsed ? 'justify-center' : ''}
+                  >
+                    <item.icon size={18} />
+                    {!isCollapsed && (
+                      <>
+                        <span>{item.title}</span>
+                        {item.badge && (
+                          <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                        )}
+                      </>
+                    )}
+                    {isCollapsed && item.badge && (
+                      <span className="absolute top-1 right-1 bg-orange-500 w-2 h-2 rounded-full"></span>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNavigation('/farmer/profile')}
+                  isActive={isActive('/farmer/profile')}
+                >
+                  <User size={18} />
+                  {!isCollapsed && <span>Profile</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNavigation('/farmer/settings')}
+                  isActive={isActive('/farmer/settings')}
+                >
+                  <Settings size={18} />
+                  {!isCollapsed && <span>Settings</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-slate-200">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={onLogout} className="text-red-600 hover:text-red-700">
+              <LogOut size={18} />
+              {!isCollapsed && <span>Logout</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 };
 

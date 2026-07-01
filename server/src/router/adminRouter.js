@@ -28,6 +28,11 @@ router.put('/products/:id/approve', protect, adminOnly, adminController.approveP
 router.put('/products/:id/reject', protect, adminOnly, adminController.rejectProduct);
 router.delete('/products/:id', protect, adminOnly, adminController.deleteProduct);
 
+// Order Management
+router.get('/orders', protect, adminOnly, adminController.getAllOrders);
+router.get('/orders/recent', protect, adminOnly, adminController.getRecentOrders);
+router.put('/orders/:id/status', protect, adminOnly, adminController.updateOrderStatus);
+
 // Analytics & Reports
 router.get('/reports', protect, adminOnly, adminController.getReports);
 router.get('/transactions', protect, adminOnly, adminController.getTransactions);
@@ -35,5 +40,10 @@ router.get('/transactions', protect, adminOnly, adminController.getTransactions)
 // Admin Profile
 router.get('/profile', protect, adminOnly, adminController.getAdminProfile);
 router.put('/profile', protect, adminOnly, adminController.updateAdminProfile);
+
+// Notifications
+router.get('/notifications', protect, adminOnly, adminController.getNotifications);
+router.put('/notifications/:id/read', protect, adminOnly, adminController.markNotificationAsRead);
+router.put('/notifications/read-all', protect, adminOnly, adminController.markAllNotificationsAsRead);
 
 module.exports = router;

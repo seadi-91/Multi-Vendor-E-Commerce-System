@@ -11,26 +11,63 @@ exports.protect = async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(' ')[1];
   }
+
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await prisma.customer.findUnique({
+
+    // Use Prisma (PostgreSQL) — NOT Mongoose
+    const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, name: true, email: true, role: true, address: true }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        isVerified: true,
+      }
     });
+
+    if (!user) {
+      return res.status(401).json({ message: 'Not authorized, user not found' });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
+    console.error('Auth middleware error:', err.message);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
 // Middleware to check admin role
+// Prisma stores roles as uppercase enums: ADMIN, FARMER, CUSTOMER
 exports.adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && req.user.role === 'ADMIN') {
     next();
   } else {
     res.status(403).json({ message: 'Admin access required' });
+  }
+};
+
+// Middleware to check farmer role
+exports.farmerOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'FARMER') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Farmer access required' });
+  }
+};
+
+// Middleware to check customer role
+exports.customerOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'CUSTOMER') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Customer access required' });
   }
 };

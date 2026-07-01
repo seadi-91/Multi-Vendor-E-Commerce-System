@@ -202,7 +202,7 @@ const VendorBadge = ({ name, verified }) => (
       {name[0]}
     </div>
     <span className="text-[10px] font-semibold text-neutral-500 truncate">{name}</span>
-    {verified && <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" />}
+    {verified && <BadgeCheck className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
   </div>
 );
 

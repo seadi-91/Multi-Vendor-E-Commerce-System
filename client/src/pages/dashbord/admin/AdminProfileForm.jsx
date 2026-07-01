@@ -19,13 +19,13 @@ const AdminProfileForm = ({ user, onUpdate }) => {
     setError('');
     setSuccess(false);
     try {
-      // Only send password fields if password is being changed
       const payload = { name: form.name, email: form.email };
       if (showPasswordFields && form.password) {
         payload.password = form.password;
         payload.oldPassword = form.oldPassword;
       }
-      const res = await api.put(`/users/${user.id || user._id}`, payload);
+      // Use the dedicated admin profile endpoint (Prisma-backed)
+      const res = await api.put('/admin/profile', payload);
       setSuccess(true);
       setForm(f => ({ ...f, password: '', oldPassword: '' }));
       onUpdate(res.data);

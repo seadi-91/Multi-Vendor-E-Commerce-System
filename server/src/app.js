@@ -1,20 +1,54 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const requestLogger = require('./middleware/requestLogger');
+const sanitizeInput = require('./middleware/sanitize');
+const errorHandler = require('./middleware/errorHandler');
+const { apiLimiter, authLimiter, uploadLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
-// Middleware
-app.use(cors({
-	origin: [
-		'http://localhost:5173',
-		'http://localhost:5174',
-		'http://localhost:5175'
-	],
-	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'DNT', 'Cache-Control', 'X-Mx-ReqToken', 'Keep-Alive', 'X-Requested-With', 'If-Modified-Since', 'X-CSRF-Token']
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
 }));
-app.use(express.json());
+
+// Compression middleware
+app.use(compression());
+
+// Request logging
+if (process.env.NODE_ENV !== 'test') {
+  app.use(requestLogger);
+}
+
+// Input sanitization
+app.use(sanitizeInput);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'DNT', 'Cache-Control', 'X-Mx-ReqToken', 'Keep-Alive', 'X-Requested-With', 'If-Modified-Since', 'X-CSRF-Token'],
+  maxAge: 86400,
+}));
+
+// Body parsing with size limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 
 
@@ -22,21 +56,26 @@ const authRouter = require('./router/authRouter');
 const projectRouter = require('./router/projectRouter');
 const adminRouter = require('./router/adminRouter');
 const farmerRouter = require('./router/farmerRouter');
+const orderRouter = require('./router/orderRouter');
 
-app.use('/api/auth', authRouter);
-app.use('/api/projects', projectRouter);
-app.use('/api/admin', adminRouter);
-app.use('/api/farmer', farmerRouter);
+// Apply rate limiting to routes
+app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/projects', apiLimiter, projectRouter);
+app.use('/api/admin', apiLimiter, adminRouter);
+app.use('/api/farmer', apiLimiter, farmerRouter);
+app.use('/api/orders', apiLimiter, orderRouter);
 
 // Health check
 app.get('/', (req, res) => {
 	res.send('API is running...');
 });
 
-// Error handling middleware (basic)
-app.use((err, req, res, next) => {
-	console.error(err.stack);
-	res.status(500).json({ message: 'Server Error' });
+// Error handling middleware
+app.use(errorHandler);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
 module.exports = app;

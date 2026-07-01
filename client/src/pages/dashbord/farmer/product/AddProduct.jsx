@@ -1,148 +1,120 @@
-import React, { useState, useEffect, useRef } from 'react';
+// NOTE: Simplified AddProduct with single-page form layout
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../../../api.js';
-import './AddProduct.scss';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { CheckCircle2, X, Plus, Loader2, Image as ImageIcon, Trash2, Edit2, AlertCircle, Save, Calendar as CalendarIcon, TagIcon, Percent, ArrowLeft, TrendingUp, AlertTriangle, Search, Package } from 'lucide-react';
 
-// Category system with dynamic units, using backend enum keys
 const CATEGORY_CONFIG = {
-  Vegetables: {
-    name: 'Vegetables',
-    icon: '🥦',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'piece', label: 'Pieces' },
-      { value: 'bunch', label: 'Bunches' }
-    ]
-  },
-  Fruits: {
-    name: 'Fruits',
-    icon: '🍎',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'dozen', label: 'Dozen' },
-      { value: 'piece', label: 'Pieces' }
-    ]
-  },
-  Dairy: {
-    name: 'Dairy',
-    icon: '🥛',
-    units: [
-      { value: 'liter', label: 'Liters', default: true },
-      { value: 'ml', label: 'Milliliters', conversion: 1000 },
-      { value: 'packet', label: 'Packets' },
-      { value: 'bottle', label: 'Bottles' }
-    ]
-  },
-  Grains: {
-    name: 'Grains',
-    icon: '🌾',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'sack', label: 'Sacks' },
-      { value: 'bag', label: 'Bags' }
-    ]
-  },
-  Eggs: {
-    name: 'Eggs',
-    icon: '🥚',
-    units: [
-      { value: 'piece', label: 'Pieces', default: true },
-      { value: 'dozen', label: 'Dozen', conversion: 12 },
-      { value: 'tray', label: 'Trays', conversion: 30 }
-    ]
-  },
-  Meat: {
-    name: 'Meat',
-    icon: '🥩',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'piece', label: 'Pieces' }
-    ]
-  },
-  Honey: {
-    name: 'Honey',
-    icon: '🍯',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'jar', label: 'Jars' }
-    ]
-  },
-  Others: {
-    name: 'Others',
-    icon: '📦',
-    units: [
-      { value: 'kg', label: 'Kilograms', default: true },
-      { value: 'g', label: 'Grams', conversion: 1000 },
-      { value: 'piece', label: 'Pieces' }
-    ]
-  }
+  Vegetables: { icon: '🥦', units: ['kg', 'g', 'piece', 'bunch'] },
+  Fruits:     { icon: '🍎', units: ['kg', 'g', 'dozen', 'piece'] },
+  Dairy:      { icon: '🥛', units: ['liter', 'ml', 'packet', 'bottle'] },
+  Grains:     { icon: '🌾', units: ['kg', 'g', 'sack', 'bag'] },
+  Eggs:       { icon: '🥚', units: ['piece', 'dozen', 'tray'] },
+  Meat:       { icon: '🥩', units: ['kg', 'g', 'piece'] },
+  Honey:      { icon: '🍯', units: ['kg', 'g', 'jar'] },
+  Others:     { icon: '📦', units: ['kg', 'g', 'piece'] },
 };
 
-// Backend integration
+const EMPTY_FORM = {
+  name: '',
+  brand: '',
+  sku: '',
+  category: 'Vegetables',
+  customCategory: '',
+  subCategory: '',
+  tags: '',
+  description: '',
+  price: '',
+  discountPrice: '',
+  stock: '',
+  totalStock: '',
+  minOrderQuantity: '1',
+  unit: 'kg',
+  isOrganic: false,
+  harvestDate: '',
+  expiryDate: '',
+  image: null,
+};
+
+const StatCard = ({ icon: Icon, label, value, sub, color }) => (
+  <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-3 flex items-center gap-3 hover:shadow-md transition-shadow">
+    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+      <Icon className="w-4 h-4" />
+    </div>
+    <div>
+      <p className="text-[10px] font-medium text-slate-500 mb-0.5">{label}</p>
+      <p className="text-sm font-medium text-slate-900 leading-none">{value}</p>
+      {sub && <p className="text-[9px] text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+  </div>
+);
 
 const ProductManagement = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const [products, setProducts] = useState([]);
-    // Fetch products from backend
-    useEffect(() => {
-      api.get('/api/projects')
-        .then(res => setProducts(res.data))
-        .catch(() => setProducts([]));
-    }, []);
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 'Vegetables',
-    description: '',
-    stock: '',
-    unit: 'kg',
-    price: '',
-    image: null
-  });
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [showForm, setShowForm] = useState(location.pathname.endsWith('/add'));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [imagePreview, setImagePreview] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  // Update unit and stock when category changes, never touch category
+  const [currentStep, setCurrentStep] = useState(1);
+
+  const STEPS = [
+    { id: 1, title: 'Basic Info', icon: '📝' },
+    { id: 2, title: 'Details', icon: '📋' },
+    { id: 3, title: 'Pricing', icon: '💰' },
+    { id: 4, title: 'Media', icon: '🖼️' },
+    { id: 5, title: 'Review', icon: '✅' },
+  ];
+
   useEffect(() => {
-    // Ensure category is valid, fallback to 'Vegetables' if not
-    const validCategory = CATEGORY_CONFIG[formData.category] ? formData.category : 'Vegetables';
-    if (validCategory !== formData.category) {
-      setFormData(prev => ({ ...prev, category: validCategory }));
-      return;
+    setShowForm(location.pathname.endsWith('/add'));
+  }, [location.pathname]);
+
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const res = await api.get('/farmer/products');
+      setProducts(res.data);
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+      setError('Failed to load inventory.');
+    } finally {
+      setLoadingProducts(false);
     }
+  };
 
-    const categoryConfig = CATEGORY_CONFIG[validCategory];
-    if (categoryConfig) {
-      const defaultUnit = categoryConfig.units.find(u => u.default) || categoryConfig.units[0];
+  useEffect(() => { fetchProducts(); }, []);
 
-      setFormData(prev => {
-        // When category changes, keep the stock value but update to new category's default unit
-        // This preserves the user's input while adapting to the new category's unit system
-        return {
-          ...prev,
-          unit: defaultUnit.value,
-          // Keep existing stock value when editing, reset to empty for new products
-          stock: editingId ? prev.stock : ''
-        };
-      });
+  useEffect(() => {
+    const units = CATEGORY_CONFIG[formData.category]?.units || ['kg'];
+    if (!units.includes(formData.unit)) {
+      setFormData(prev => ({ ...prev, unit: units[0] }));
     }
-  }, [formData.category, editingId]);
+  }, [formData.category]);
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, type, files } = e.target;
-    
     if (type === 'file') {
       const file = files[0];
       if (file) {
+        setFormData(prev => ({ ...prev, image: file }));
         const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result);
-          setFormData(prev => ({ ...prev, image: file }));
-        };
+        reader.onloadend = () => setImagePreview(reader.result);
         reader.readAsDataURL(file);
       }
     } else {
@@ -150,525 +122,613 @@ const ProductManagement = () => {
     }
   };
 
+  const handleSelectChange = (name, value) => setFormData(prev => ({ ...prev, [name]: value }));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true); setError(''); setSuccess('');
+
     try {
       const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'image' && !value) return;
-        if (key === 'stock' || key === 'price') {
-          data.append(key, value ? value : 0);
-        } else {
-          data.append(key, value);
+      Object.keys(formData).forEach(key => {
+        if (key === 'image' && formData[key] instanceof File) {
+          data.append(key, formData[key]);
+        } else if (key !== 'image') {
+          data.append(key, formData[key]);
         }
       });
-      let res;
-      const token = localStorage.getItem('token');
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token && { Authorization: `Bearer ${token}` })
-        }
-      };
+
       if (editingId) {
-        res = await api.put(`/projects/${editingId}`, data, config);
+        await api.put(`/farmer/products/${editingId}`, data);
+        setSuccess('Product successfully updated!');
       } else {
-        res = await api.post('/projects', data, config);
+        await api.post('/farmer/products', data);
+        setSuccess('New product added to inventory!');
       }
-      // Refresh products
-      const productsRes = await api.get('/projects');
-      setProducts(productsRes.data);
+
+      await fetchProducts();
       resetForm();
     } catch (err) {
-      alert('Failed to save product');
+      setError(err.response?.data?.error || 'Failed to save product. Please check your inputs.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleEdit = (product) => {
-    // Ensure category exists in CATEGORY_CONFIG, fallback to 'Vegetables' if not
-    const validCategory = CATEGORY_CONFIG[product.category] ? product.category : 'Vegetables';
-
-    setFormData(prev => ({
-      ...prev,
-      name: product.name,
-      category: validCategory,
-      description: product.description,
-      stock: product.stock,
-      unit: product.unit,
-      price: product.price,
-      image: product.image // keep current image reference
-    }));
-    setEditingId(product._id);
-    setImagePreview(product.image); // show current image
+    setFormData({
+      name: product.name || '', brand: product.brand || '', sku: product.sku || '',
+      category: product.category || 'Vegetables', customCategory: product.customCategory || '', subCategory: product.subCategory || '',
+      tags: (product.tags || []).join(', '),
+      description: product.description || '', price: product.price || '', discountPrice: product.discountPrice || '',
+      stock: product.stock || '', totalStock: product.totalStock || product.stock || '',
+      minOrderQuantity: product.minOrderQuantity || '1', unit: product.unit || 'kg', isOrganic: product.isOrganic || false,
+      harvestDate: product.harvestDate ? new Date(product.harvestDate).toISOString().split('T')[0] : '',
+      expiryDate: product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : '',
+      image: null,
+    });
+    setImagePreview(product.image || null);
+    setEditingId(product.id);
     setShowForm(true);
+    setCurrentStep(1);
+    setError(''); setSuccess('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id) => {
-    if (!id) {
-      alert('Invalid product ID');
-      return;
-    }
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await api.delete(`/projects/${id}`, {
-          headers: {
-            ...(token && { Authorization: `Bearer ${token}` })
-          }
-        });
-        // Update local state immediately for better UX
-        setProducts(products => products.filter(p => p._id !== id));
-        // Also refresh from server to ensure consistency
-        const productsRes = await api.get('/projects');
-        setProducts(productsRes.data);
-        alert('Product deleted successfully');
-      } catch (error) {
-        console.error('Delete error:', error);
-        alert('Failed to delete product. Please try again.');
-        // Refresh products list in case of error
-        try {
-          const productsRes = await api.get('/projects');
-          setProducts(productsRes.data);
-        } catch (refreshError) {
-          console.error('Failed to refresh products:', refreshError);
-        }
-      }
+    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+    try {
+      console.log('Deleting product with ID:', id);
+      await api.delete(`/farmer/products/${id}`);
+      setProducts(prev => prev.filter(p => p.id !== id));
+      setSuccess('Product permanently deleted.');
+      await fetchProducts();
+    } catch (err) {
+      console.error('Delete error:', err);
+      setError('Failed to delete product.');
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      category: 'Vegetables',
-      description: '',
-      stock: '',
-      unit: 'kg',
-      price: '',
-      image: null
-    });
+    setFormData(EMPTY_FORM);
     setEditingId(null);
     setImagePreview(null);
     setShowForm(false);
+    setError(''); setSuccess('');
+    setCurrentStep(1);
+    if (location.pathname.endsWith('/add')) navigate('/farmer/products');
   };
 
-  const convertStock = (stock, fromUnit, toUnit, category) => {
-    // Ensure category is valid, fallback to Vegetables if not
-    const validCategory = CATEGORY_CONFIG[category] ? category : 'Vegetables';
-    const categoryConfig = CATEGORY_CONFIG[validCategory];
-
-    if (!categoryConfig) return stock;
-
-    const fromConfig = categoryConfig.units.find(u => u.value === fromUnit);
-    const toConfig = categoryConfig.units.find(u => u.value === toUnit);
-
-    if (!fromConfig?.conversion || !toConfig?.conversion) return stock;
-
-    // Convert to base unit first, then to target unit
-    const baseValue = stock / fromConfig.conversion;
-    return baseValue * toConfig.conversion;
-  };
-
-  const handleUnitChange = (newUnit) => {
-    if (formData.stock && formData.stock.trim() !== '') {
-      const convertedStock = convertStock(
-        parseFloat(formData.stock),
-        formData.unit,
-        newUnit,
-        formData.category
-      );
-      setFormData(prev => ({
-        ...prev,
-        unit: newUnit,
-        stock: convertedStock.toFixed(2)
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, unit: newUnit }));
-    }
-  };
-
-  // Filter products
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
-    return matchesSearch && matchesCategory;
+  const filteredProducts = products.filter(p => {
+    const matchSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCat = filterCategory === 'all' || p.category === filterCategory;
+    return matchSearch && matchCat;
   });
 
-  const getCategoryInfo = (category) => CATEGORY_CONFIG[category] || CATEGORY_CONFIG.Others;
+  // Derived Stats
+  const totalValue = products.reduce((sum, p) => sum + (Number(p.stock) * Number(p.price)), 0);
+  const lowStockCount = products.filter(p => Number(p.stock) < 10).length;
 
   return (
-    <div className="product-management">
-      {/* Header */}
-      <div className="management-header">
-        <div className="header-left">
-          <h1>🌱 Farm Product Management</h1>
-          <p>Manage your farm products inventory</p>
+    <div className="min-h-screen bg-slate-50/50 pb-12 w-full space-y-4">
+      
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {showForm ? (editingId ? 'Edit Product' : 'Add New Product') : 'Inventory Management'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            {showForm ? 'Provide detailed information to make your product stand out.' : 'Manage your farm products, pricing, and stock.'}
+          </p>
         </div>
-        <button 
-          className="btn-primary"
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-        >
-          <span>+</span> Add New Product
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="controls-row">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <span className="search-icon">🔍</span>
-        </div>
-        
-        <div className="filter-tabs">
-          <button
-            className={`filter-tab ${filterCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterCategory('all')}
-          >
-            All Products
-          </button>
-          {Object.keys(CATEGORY_CONFIG).map(category => (
-            <button
-              key={category}
-              className={`filter-tab ${filterCategory === category ? 'active' : ''}`}
-              onClick={() => setFilterCategory(category)}
-            >
-              {CATEGORY_CONFIG[category].icon} {CATEGORY_CONFIG[category].name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div className="product-form-section">
-          <div className="form-header">
-            <h2>{editingId ? 'Edit Product' : 'Add New Product'}</h2>
-            <button className="close-btn" onClick={resetForm}>×</button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="product-form">
-            <div className="form-grid">
-              {/* Product Name */}
-              <div className="form-group">
-                <label>Product Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Organic Tomatoes"
-                  required
-                />
-              </div>
-
-              {/* Category */}
-              <div className="form-group">
-                <label>Category *</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  required
-                >
-                  {Object.keys(CATEGORY_CONFIG).map(category => (
-                    <option key={category} value={category}>
-                      {CATEGORY_CONFIG[category].icon} {CATEGORY_CONFIG[category].name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Stock Quantity */}
-              <div className="form-group">
-                <label>Stock Quantity *</label>
-                <div className="quantity-input-group">
-                  <input
-                    type="number"
-                    name="stock"
-                    value={formData.stock}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                  <div className="unit-selector">
-                    <select
-                      value={formData.unit}
-                      onChange={(e) => handleUnitChange(e.target.value)}
-                    >
-                      {(CATEGORY_CONFIG[formData.category] || CATEGORY_CONFIG.Vegetables).units.map(unit => (
-                        <option key={unit.value} value={unit.value}>
-                          {unit.label}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="unit-conversion-hint">
-                      {(CATEGORY_CONFIG[formData.category] || CATEGORY_CONFIG.Vegetables).units
-                        .filter(u => u.conversion)
-                        .map(u => (
-                          <button
-                            key={u.value}
-                            type="button"
-                            className="unit-quick-btn"
-                            onClick={() => handleUnitChange(u.value)}
-                          >
-                            {u.value}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="unit-info">
-                  <small>
-                    Available units for {(CATEGORY_CONFIG[formData.category] || CATEGORY_CONFIG.Vegetables).name.toLowerCase()}: {
-                      (CATEGORY_CONFIG[formData.category] || CATEGORY_CONFIG.Vegetables).units
-                        .map(u => u.label)
-                        .join(', ')
-                    }
-                  </small>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="form-group">
-                <label>Price (ETB) *</label>
-                <div className="price-input">
-                  <span className="currency">ETB</span>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                  <span className="per-unit">/ {formData.unit}</span>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="form-group full-width">
-                <label>Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe your product (quality, features, benefits...)"
-                  rows="3"
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div className="form-group full-width">
-                <label>Product Image</label>
-                <div className="image-upload-area">
-                   <input
-                     type="file"
-                     accept="image/*"
-                     onChange={handleInputChange}
-                     className="file-input"
-                     id="product-image"
-                   />
-                   <label htmlFor="product-image" className="upload-label">
-                     {imagePreview ? (
-                       <img src={imagePreview} alt="Preview" className="image-preview" />
-                     ) : (
-                       <>
-                         <span className="upload-icon">📷</span>
-                         <span>Click to upload image</span>
-                         <small>JPG, PNG, WebP (Max 5MB)</small>
-                       </>
-                     )}
-                   </label>
-                   {/* Remove button only if a new image is selected, not for existing */}
-                   {imagePreview && typeof imagePreview !== 'string' && (
-                     <button
-                       type="button"
-                       className="remove-image"
-                       onClick={() => {
-                         setImagePreview(null);
-                         setFormData(prev => ({ ...prev, image: null }));
-                       }}
-                     >
-                       Remove
-                     </button>
-                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={resetForm}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary">
-                {editingId ? 'Update Product' : 'Add Product'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Products Grid */}
-      <div className="products-grid">
-        {filteredProducts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📦</div>
-            <h3>No products found</h3>
-            <p>{searchTerm || filterCategory !== 'all' 
-              ? 'Try changing your search or filter' 
-              : 'Add your first product to get started'}
-            </p>
-          </div>
+        {!showForm ? (
+          <Button onClick={() => { resetForm(); navigate('/farmer/products/add'); }} className="gap-2 bg-slate-900 hover:bg-slate-800 text-white shadow-sm rounded-lg px-4 h-9 text-sm transition-all">
+            <Plus className="w-4 h-4" /> Add Product
+          </Button>
         ) : (
-          filteredProducts.map(product => {
-            const categoryInfo = getCategoryInfo(product.category);
-            
-            return (
-              <div key={product._id} className="product-card">
-                {/* Card Header */}
-                <div className="card-header">
-                  <div className="category-badge">
-                    {categoryInfo.icon} {categoryInfo.name}
-                  </div>
-                  <div className="card-actions">
-                    <button 
-                      className="action-btn edit"
-                      onClick={() => handleEdit(product)}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      className="action-btn delete"
-                      onClick={() => handleDelete(product._id)}
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-
-                {/* Product Image */}
-                <div className="product-image">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} />
-                  ) : (
-                    <div className="image-placeholder">
-                      {categoryInfo.icon}
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Info */}
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-description">{product.description}</p>
-                  
-                  <div className="product-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">Stock:</span>
-                      <span className="stat-value">
-                        {product.stock} {product.unit}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Price:</span>
-                      <span className="stat-value">ETB {product.price}/{product.unit}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Value:</span>
-                      <span className="stat-value">
-                        ETB {(product.stock * product.price).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Unit Converter */}
-                  <div className="unit-converter">
-                    <label>Convert to:</label>
-                    <div className="unit-buttons">
-                      {categoryInfo.units
-                        .filter(u => u.value !== product.unit)
-                        .slice(0, 3)
-                        .map(unit => {
-                          const converted = convertStock(
-                            parseFloat(product.stock),
-                            product.unit,
-                            unit.value,
-                            product.category
-                          );
-                          
-                          return (
-                            <button
-                              key={unit.value}
-                              type="button"
-                              className="unit-btn"
-                              title={`${converted.toFixed(2)} ${unit.value}`}
-                            >
-                              {unit.value}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="card-footer">
-                  <span className="product-id">ID: {product._id}</span>
-                  <span className={`status-badge status-${product.status}`}>
-                    {product.status}
-                  </span>
-                </div>
-              </div>
-            );
-          })
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={resetForm} disabled={submitting} className="h-9 rounded-lg px-4 border-slate-200 text-sm rounded-md">
+              <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting} className="gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-sm h-9 rounded-lg px-6 text-sm transition-all">
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {editingId ? 'Save Changes' : 'Publish Product'}
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* Summary Stats */}
-      <div className="summary-stats">
-        <div className="stat-card">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <h3>Total Products</h3>
-            <p className="stat-value">{products.length}</p>
+      {/* ── Alerts ── */}
+      {error && (
+        <div className="flex items-center gap-3 bg-red-50 text-red-700 p-3 rounded-lg border border-red-200 shadow-sm animate-in slide-in-from-top-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <p className="font-semibold text-xs flex-1">{error}</p>
+          <button onClick={() => setError('')}><X className="w-3.5 h-3.5 hover:text-red-900" /></button>
+        </div>
+      )}
+      {success && (
+        <div className="flex items-center gap-3 bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 shadow-sm animate-in slide-in-from-top-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <p className="font-semibold text-xs flex-1">{success}</p>
+          <button onClick={() => setSuccess('')}><X className="w-3.5 h-3.5 hover:text-emerald-900" /></button>
+        </div>
+      )}
+
+      {/* ── Add / Edit Form (Wizard) ── */}
+      {showForm ? (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all duration-200">
+          {/* Wizard Progress */}
+          <div className="bg-slate-50 border-b border-slate-200 p-3">
+            <div className="flex items-center justify-between max-w-4xl mx-auto">
+              {STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] transition-all ${
+                      currentStep > step.id ? 'bg-emerald-500 text-white' :
+                      currentStep === step.id ? 'bg-slate-900 text-white' :
+                      'bg-slate-200 text-slate-500'
+                    }`}>
+                      {currentStep > step.id ? '✓' : step.icon}
+                    </div>
+                    <span className={`text-[9px] font-medium mt-1 ${
+                      currentStep === step.id ? 'text-slate-900' : 'text-slate-500'
+                    }`}>{step.title}</span>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div className={`h-0.5 flex-1 mx-2 transition-all ${
+                      currentStep > step.id ? 'bg-emerald-500' : 'bg-slate-200'
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 relative z-0 overflow-visible">
+            <form id="product-form" onSubmit={handleSubmit} className="max-w-4xl">
+              
+              {/* Step 1: Basic Information */}
+              {currentStep === 1 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Basic Information</h2>
+                    <p className="text-slate-500 text-xs mt-1">Provide the primary identity for your product.</p>
+                  </div>
+                  <div className="grid gap-4">
+                    {/* Row 1: Product Name and Category */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Product Name <span className="text-red-500">*</span></Label>
+                        <Input name="name" value={formData.name} onChange={handleChange} placeholder="e.g., Organic Heirloom Tomatoes" required className="h-9 bg-slate-50 text-sm rounded-md" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Category <span className="text-red-500">*</span></Label>
+                        {formData.category === 'Others' ? (
+                          <Input name="customCategory" value={formData.customCategory} onChange={handleChange} placeholder="e.g., Spices, Herbs, Nuts" required className="h-9 bg-slate-50 text-sm rounded-md" />
+                        ) : (
+                          <Select value={formData.category} onValueChange={(val) => handleSelectChange('category', val)} required>
+                            <SelectTrigger className="h-9 bg-slate-50 text-sm rounded-md">
+                              <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="z-[9999]">
+                              {Object.keys(CATEGORY_CONFIG).map(cat => (
+                                <SelectItem key={cat} value={cat}>
+                                  <div className="flex items-center gap-2 text-sm"><span>{CATEGORY_CONFIG[cat].icon}</span> {cat}</div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </div>
+                    {/* Row 2: Brand and Subcategory */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Brand / Farm Name</Label>
+                        <Input name="brand" value={formData.brand} onChange={handleChange} placeholder="e.g., Green Valley Farms" className="h-9 bg-slate-50 text-sm rounded-md" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Subcategory (Optional)</Label>
+                        <Input name="subCategory" value={formData.subCategory} onChange={handleChange} placeholder="e.g., Tomatoes, Leafy Greens, Dairy Products" className="h-9 bg-slate-50 text-sm rounded-md" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Details & Specifications */}
+              {currentStep === 2 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Details & Specifications</h2>
+                    <p className="text-slate-500 text-xs mt-1">Add rich descriptions and harvest information.</p>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-xs">Product Description</Label>
+                      <Textarea name="description" value={formData.description} onChange={handleChange} placeholder="Describe the key features, freshness, and origin..." rows={4} className="resize-y bg-slate-50 p-3 text-sm rounded-md" />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <Label className="text-slate-700 font-medium text-xs">Search Tags</Label>
+                      <div className="relative">
+                        <TagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <Input name="tags" value={formData.tags} onChange={handleChange} placeholder="fresh, local, premium (comma separated)" className="pl-10 h-9 bg-slate-50 text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Harvest Date</Label>
+                        <div className="relative">
+                          <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <Input name="harvestDate" type="date" value={formData.harvestDate} onChange={handleChange} className="pl-10 h-9 bg-white text-sm" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Expiry Date</Label>
+                        <div className="relative">
+                          <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <Input name="expiryDate" type="date" value={formData.expiryDate} onChange={handleChange} className="pl-10 h-9 bg-white text-sm" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <div>
+                        <Label className="text-emerald-900 font-medium text-xs">Certified Organic</Label>
+                        <p className="text-xs text-emerald-700 mt-0.5">Enable this if your product is officially certified organic.</p>
+                      </div>
+                      <Switch checked={formData.isOrganic} onCheckedChange={(c) => handleSelectChange('isOrganic', c)} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Pricing & Inventory */}
+              {currentStep === 3 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Pricing & Inventory</h2>
+                    <p className="text-slate-500 text-xs mt-1">Set your price and available stock quantities.</p>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Standard Price <span className="text-red-500">*</span></Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-slate-400 text-xs">ETB</span>
+                          <Input name="price" type="number" min="0" step="0.01" value={formData.price} onChange={handleChange} required className="pl-10 h-9 bg-white font-mono text-sm" placeholder="0.00" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Discount Price</Label>
+                        <div className="relative">
+                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <Input name="discountPrice" type="number" min="0" step="0.01" value={formData.discountPrice} onChange={handleChange} className="pl-9 h-9 bg-white font-mono text-sm" placeholder="0.00" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Available Stock <span className="text-red-500">*</span></Label>
+                        <div className="flex gap-2">
+                          <Input name="stock" type="number" min="0" step="0.01" value={formData.stock} onChange={handleChange} required className="h-9 bg-slate-50 font-mono text-sm" placeholder="0" />
+                          <Select value={formData.unit} onValueChange={(val) => handleSelectChange('unit', val)}>
+                            <SelectTrigger className="w-[100px] h-9 bg-slate-50 font-medium text-sm"><SelectValue placeholder="Unit" /></SelectTrigger>
+                            <SelectContent position="popper" className="z-[9999]">
+                              {(CATEGORY_CONFIG[formData.category]?.units || ['kg']).map(u => (<SelectItem key={u} value={u}>{u}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Min. Order Quantity <span className="text-red-500">*</span></Label>
+                        <Input name="minOrderQuantity" type="number" min="1" step="1" value={formData.minOrderQuantity} onChange={handleChange} required className="h-9 bg-slate-50 font-mono text-sm" placeholder="1" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">SKU (Optional)</Label>
+                        <Input name="sku" value={formData.sku} onChange={handleChange} className="h-9 bg-slate-50 font-mono text-sm" placeholder="e.g., TOM-001" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-slate-700 font-medium text-xs">Total Stock Capacity</Label>
+                        <Input name="totalStock" type="number" min="0" step="0.01" value={formData.totalStock} onChange={handleChange} className="h-9 bg-slate-50 font-mono text-sm" placeholder="e.g., 500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Product Media */}
+              {currentStep === 4 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Product Media</h2>
+                    <p className="text-slate-500 text-xs mt-1">Upload a high-quality image of your product.</p>
+                  </div>
+                  <div className="max-w-xl">
+                    <div className="relative group rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/30 transition-all overflow-hidden">
+                      <input type="file" accept="image/*" onChange={handleChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" id="product-image" />
+                      <div className="flex flex-col items-center justify-center p-6 text-center min-h-[220px]">
+                        {imagePreview ? (
+                          <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                          <>
+                            <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-200 mb-3 transition-transform duration-300">
+                              <ImageIcon className="w-7 h-7 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-700">Click or drag image to upload</p>
+                            <p className="text-xs text-slate-500 mt-1 font-medium">High quality JPG, PNG, WebP (Max 5MB)</p>
+                          </>
+                        )}
+                      </div>
+                      {imagePreview && (
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none backdrop-blur-sm">
+                          <p className="text-white font-semibold flex items-center gap-2 text-xs"><ImageIcon className="w-3.5 h-3.5"/> Replace Image</p>
+                        </div>
+                      )}
+                    </div>
+                    {imagePreview && (
+                      <Button type="button" variant="ghost" className="w-full mt-3 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium text-xs" onClick={() => { setImagePreview(null); setFormData(prev => ({ ...prev, image: null })); }}>
+                        <Trash2 className="w-3.5 h-3.5 mr-2" /> Remove Image
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Review & Publish */}
+              {currentStep === 5 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h2 className="text-base font-semibold text-slate-900">Review & Publish</h2>
+                    <p className="text-slate-500 text-xs mt-1">Review your product information before publishing.</p>
+                  </div>
+                  <div className="grid gap-4 bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Product Name</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.name || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Category</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">
+                          {formData.category === 'Others' 
+                            ? (formData.customCategory || 'Not provided') 
+                            : `${CATEGORY_CONFIG[formData.category]?.icon} ${formData.category}`}
+                        </p>
+                      </div>
+                      {formData.subCategory && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Subcategory</p>
+                          <p className="font-medium text-slate-900 mt-1 text-sm">{formData.subCategory}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Brand</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.brand || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">SKU</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.sku || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Price</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">ETB {formData.price || '0'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Stock</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.stock || '0'} {formData.unit}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Description</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.description || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tags</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.tags || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Organic</p>
+                        <p className="font-medium text-slate-900 mt-1 text-sm">{formData.isOrganic ? 'Yes' : 'No'}</p>
+                      </div>
+                      {imagePreview && (
+                        <div className="md:col-span-2">
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Product Image</p>
+                          <img src={imagePreview} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Wizard Navigation Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+                  disabled={currentStep === 1}
+                  className="h-9 rounded-lg px-4 border-slate-200 text-sm"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Previous
+                </Button>
+                
+                {currentStep < STEPS.length ? (
+                  <Button
+                    type="button"
+                    onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
+                    className="gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg h-9 px-6 text-sm transition-all"
+                  >
+                    Next <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-sm h-9 rounded-lg px-6 text-sm transition-all"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {editingId ? 'Save Changes' : 'Publish Product'}
+                  </Button>
+                )}
+              </div>
+
+            </form>
           </div>
         </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <h3>Total Value</h3>
-              <p className="stat-value">
-                ETB {products.reduce((sum, p) => sum + (p.stock * p.price), 0).toFixed(2)}
-              </p>
+      ) : (
+        /* ── Inventory List View ── */
+        <div className="space-y-4 animate-in fade-in duration-300">
+          
+          {/* Stats Row */}
+          {!loadingProducts && products.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard icon={Package} label="Total Products" value={products.length} color="bg-emerald-50 text-emerald-600" />
+              <StatCard icon={TrendingUp} label="Inventory Value" value={`ETB ${totalValue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`} color="bg-emerald-50 text-emerald-600" />
+              <StatCard icon={AlertTriangle} label="Low Stock Alerts" value={lowStockCount} color="bg-amber-50 text-amber-600" />
+            </div>
+          )}
+
+          {/* Table Container */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Filter Bar */}
+            <div className="p-3 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center justify-between">
+              <div className="relative w-full sm:max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input type="text" placeholder="Search by name or SKU..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 bg-white border-slate-200 h-9 w-full rounded-md text-sm" />
+              </div>
+              <div className="flex gap-2 overflow-x-auto w-full sm:w-auto scrollbar-hide pb-2 sm:pb-0">
+                <Button variant={filterCategory === 'all' ? 'default' : 'outline'} onClick={() => setFilterCategory('all')} className={filterCategory === 'all' ? 'bg-emerald-600 rounded-md' : 'rounded-md bg-white border-slate-200 hover:bg-emerald-50 transition-colors'} size="sm">
+                  All Products
+                </Button>
+                {Object.keys(CATEGORY_CONFIG).map(cat => (
+                  <Button key={cat} variant={filterCategory === cat ? 'default' : 'outline'} onClick={() => setFilterCategory(cat)} className={`whitespace-nowrap rounded-md text-sm transition-colors ${filterCategory === cat ? 'bg-emerald-600' : 'bg-white border-slate-200 hover:bg-emerald-50'}`} size="sm">
+                    {CATEGORY_CONFIG[cat].icon} {cat}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {loadingProducts ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mb-3" />
+                <p className="text-slate-500 font-medium text-xs">Loading inventory...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                  <Package className="w-6 h-6 text-slate-300" />
+                </div>
+                <h3 className="text-sm font-semibold text-slate-900">No products found</h3>
+                <p className="text-slate-500 font-medium text-xs mt-1 mb-4 max-w-sm">
+                  {searchTerm || filterCategory !== 'all' ? 'Try adjusting your filters.' : 'Your inventory is empty.'}
+                </p>
+                {!(searchTerm || filterCategory !== 'all') && (
+                  <Button onClick={() => { resetForm(); navigate('/farmer/products/add'); }} className="gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 h-9 shadow-sm text-xs">
+                    <Plus className="w-3.5 h-3.5" /> Add Your First Product
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="sticky top-0 bg-white z-10">
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-3">Product</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Price</th>
+                        <th className="px-4 py-3">Stock</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredProducts.map(product => {
+                        const catConfig = CATEGORY_CONFIG[product.category] || CATEGORY_CONFIG.Others;
+                        const statusColor = product.status === 'approved' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
+                                            product.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-amber-100 text-amber-700 border-amber-200';
+                        
+                        return (
+                          <tr key={product.id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm border border-slate-200">
+                                  {product.image ? (
+                                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-lg">{catConfig.icon}</span>
+                                  )}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-slate-900 text-sm">{product.name}</span>
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    {product.sku && <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{product.sku}</span>}
+                                    {catConfig.icon} {product.category}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge className={`${statusColor} font-medium capitalize px-2.5 py-1 rounded-md text-xs`}>
+                                {product.status || 'pending'}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-slate-900 text-sm">{(product.price || 0).toFixed(2)} <span className="text-xs font-medium text-muted-foreground">ETB</span></div>
+                              <div className="text-xs text-muted-foreground mt-0.5">per {product.unit}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="font-semibold text-slate-900 text-sm">{product.stock} <span className="text-xs font-medium text-muted-foreground">{product.unit}</span></div>
+                                {Number(product.stock) < 10 && (
+                                  <Badge className="bg-red-100 text-red-700 border-red-200 font-medium px-2 py-0.5 rounded-md text-[10px]">
+                                    Low
+                                  </Badge>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md w-8 h-8">
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md w-8 h-8">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Pagination */}
+                {filteredProducts.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50">
+                    <p className="text-xs text-muted-foreground">
+                      Showing <span className="font-medium text-slate-900">1</span> to <span className="font-medium text-slate-900">{filteredProducts.length}</span> of <span className="font-medium text-slate-900">{filteredProducts.length}</span> products
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" disabled className="h-8 px-3 rounded-md text-xs">
+                        Previous
+                      </Button>
+                      <Button variant="outline" size="sm" disabled className="h-8 px-3 rounded-md text-xs">
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">📦</div>
-          <div className="stat-content">
-            <h3>Categories</h3>
-            <p className="stat-value">
-              {new Set(products.map(p => p.category)).size}
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -11,10 +11,6 @@ import {
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
-<<<<<<< HEAD
-
-=======
->>>>>>> 0a7d7e3 (customer page)
 // ─── Product Card ─────────────────────────────────────────────────────────────
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, className = '' }) => {
   const {
@@ -121,9 +117,33 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        console.log('=== Fetching Products from Home Page ===');
         const response = await fetch('http://localhost:5000/api/projects');
         const data = await response.json();
-        setProducts(Array.isArray(data) ? data : []);
+        console.log('Products received:', data);
+        console.log('Products count:', Array.isArray(data) ? data.length : 0);
+
+        // Map API response to ProductCard format
+        const mappedProducts = Array.isArray(data) ? data.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          description: product.description,
+          unit: product.unit,
+          discountPercent: product.discountPrice ? Math.round((1 - product.discountPrice / product.price) * 100) : 0,
+          vendor: product.farmer?.name || 'Unknown Farmer',
+          vendorVerified: true,
+          rating: 4.5,
+          reviewsCount: Math.floor(Math.random() * 100) + 10,
+          badge: product.isOrganic ? 'Organic' : null,
+          freeShipping: false,
+          category: product.category,
+          stock: product.stock
+        })) : [];
+
+        console.log('Mapped products:', mappedProducts);
+        setProducts(mappedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
         setProducts([]);
@@ -132,6 +152,7 @@ const Home = () => {
       }
     };
 
+    // Always fetch products on mount
     fetchProducts();
 
     // Listen for product addition events
@@ -179,40 +200,6 @@ const Home = () => {
   ];
 
   const categories = [
-<<<<<<< HEAD
-    { 
-      name: 'Legumes & Pulses', 
-      count: 48, 
-      icon: '🫘', 
-      image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Vegetables', 
-      count: 110, 
-      icon: '🥦', 
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80',
-        'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300&q=80',
-        'https://images.unsplash.com/photo-1563565080-749774653557?w=300&q=80',
-        'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Fruits', 
-      count: 85, 
-      icon: '🍎', 
-      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&q=80',
-        'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=300&q=80',
-=======
     {
       name: 'Legumes & Pulses',
       count: 48,
@@ -249,71 +236,10 @@ const Home = () => {
         
         'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80',
         'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&q=80',
->>>>>>> 0a7d7e3 (customer page)
         'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&q=80',
         'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80'
       ]
     },
-<<<<<<< HEAD
-    { 
-      name: 'Coffee', 
-      count: 15, 
-      icon: '☕', 
-      image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
-        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
-        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
-        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Grains & Cereals', 
-      count: 62, 
-      icon: '🌾', 
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Nuts & Seeds', 
-      count: 34, 
-      icon: '🌰', 
-      image: 'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Herbs & Spices', 
-      count: 28, 
-      icon: '🌿', 
-      image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80'
-      ]
-    },
-    { 
-      name: 'Dairy Products', 
-      count: 22, 
-      icon: '🥛', 
-      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=80',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
-        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
-        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80',
-        'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&q=80'
-=======
     {
       name: 'Coffee',
       count: 15,
@@ -377,7 +303,6 @@ const Home = () => {
         'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=400&q=80',
         'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=400&q=80',
         'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&q=80'
->>>>>>> 0a7d7e3 (customer page)
       ]
     },
   ];
@@ -397,73 +322,33 @@ const Home = () => {
   });
 
   const slides = [
-<<<<<<< HEAD
-    { 
-      id: 1, 
-      title: 'Premium Organic Produce', 
-=======
     {
       id: 1,
       title: 'Premium Organic Produce',
->>>>>>> 0a7d7e3 (customer page)
       subtitle: 'Certified organic vegetables and fruits grown with care by local farmers. Connecting local growers directly to your table.',
       ctaPrimary: 'Shop Organic',
       ctaSecondary: 'Learn More',
       tag: '100% ORGANIC',
       image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1400&q=80'
     },
-<<<<<<< HEAD
-    { 
-      id: 2, 
-      title: 'Farm Fresh Fruits & Vegetables', 
-=======
     {
       id: 2,
       title: 'Farm Fresh Fruits & Vegetables',
->>>>>>> 0a7d7e3 (customer page)
       subtitle: 'Direct from local farms to your doorstep. Guaranteed freshness with 100% middleman-free trade.',
       ctaPrimary: 'Shop Fresh Harvest',
       ctaSecondary: 'Explore Organic Farms',
       tag: 'FARM TO TABLE',
       image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1400&q=80'
     },
-<<<<<<< HEAD
-    { 
-      id: 3, 
-      title: 'Freshly Harvested Grains', 
-=======
     {
       id: 3,
       title: 'Freshly Harvested Grains',
->>>>>>> 0a7d7e3 (customer page)
       subtitle: 'Premium quality grains and cereals sourced directly from Ethiopian farmers.',
       ctaPrimary: 'Browse Grains',
       ctaSecondary: 'View All',
       tag: 'PURE QUALITY',
       image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&q=80'
     },
-<<<<<<< HEAD
-=======
-    {
-      id: 4,
-      title: 'Premium Ethiopian Coffee',
-      subtitle: 'World-renowned coffee beans from the birthplace of coffee. Experience the rich flavors of Ethiopian heritage.',
-      ctaPrimary: 'Shop Coffee',
-      ctaSecondary: 'Learn More',
-      tag: 'PREMIUM COFFEE',
-      image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1400&q=80'
-    },
-    {
-      id: 5,
-      title: 'Fresh Legumes & Pulses',
-      subtitle: 'Nutritious legumes and pulses packed with protein. Essential staples for healthy living.',
-      ctaPrimary: 'Shop Legumes',
-      ctaSecondary: 'View All',
-      tag: 'PROTEIN RICH',
-      image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80'
-    },
-    
->>>>>>> 0a7d7e3 (customer page)
   ];
 
   const toggleFavorite = (id) => {
@@ -485,6 +370,11 @@ const Home = () => {
     if (user?.role) navigate(routes[user.role] || '/');
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   useEffect(() => {
     const t = setInterval(() => setCurrentSlide(s => (s + 1) % slides.length), 5000);
     return () => clearInterval(t);
@@ -493,7 +383,6 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-white">
 
-<<<<<<< HEAD
       {/* ── Top Notification Bar ── */}
       <div className="bg-amber-400 text-amber-900 text-center py-2 text-sm font-semibold">
         ⚡ Free shipping on orders over 1000 ETB!
@@ -512,23 +401,6 @@ const Home = () => {
               <span className="text-xl font-extrabold text-emerald-700 tracking-tight">FarmConnect</span>
             </Link>
 
-=======
-
-
-      {/* ── Main Navigation Bar ── */}
-      <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-6">
-
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white text-2xl">🌾</span>
-              </div>
-              <span className="text-xl font-extrabold text-emerald-700 tracking-tight">FarmConnect</span>
-            </Link>
-
->>>>>>> 0a7d7e3 (customer page)
             {/* Location Selector */}
             <div className="hidden lg:block relative">
               <button
@@ -560,16 +432,6 @@ const Home = () => {
             {/* Advanced Search Bar */}
             <div className="flex-1 hidden md:block">
               <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-emerald-500 transition-colors shadow-sm">
-<<<<<<< HEAD
-                <select className="px-4 py-2.5 bg-slate-50 border-r border-slate-200 text-sm text-slate-700 focus:outline-none">
-                  <option>All Categories</option>
-                  <option>Vegetables</option>
-                  <option>Fruits</option>
-                  <option>Grains</option>
-                  <option>Coffee</option>
-                </select>
-=======
->>>>>>> 0a7d7e3 (customer page)
                 <input
                   type="text"
                   placeholder="Search fresh vegetables, organic fruits, cereals..."
@@ -587,10 +449,27 @@ const Home = () => {
             <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
               {/* Account */}
               {user ? (
-                <button onClick={handleDashboardRedirect} className="hidden sm:flex flex-col items-start text-slate-700 hover:text-emerald-600 transition-colors">
-                  <span className="text-[10px] text-slate-400">Hello, {user.name || 'User'}</span>
-                  <span className="text-xs font-semibold flex items-center gap-0.5">Account <ChevronDown className="w-3 h-3" /></span>
-                </button>
+                <div className="relative group">
+                  <button className="hidden sm:flex flex-col items-start text-slate-700 hover:text-emerald-600 transition-colors">
+                    <span className="text-[10px] text-slate-400">Hello, {user.name || 'User'}</span>
+                    <span className="text-xs font-semibold flex items-center gap-0.5">Account <ChevronDown className="w-3 h-3" /></span>
+                  </button>
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <button
+                      onClick={handleDashboardRedirect}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-t-xl"
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-xl"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <button
                   onClick={() => navigate('/login')}
@@ -659,9 +538,14 @@ const Home = () => {
                 <span className="text-sm font-medium text-slate-800">{selectedLocation}</span>
               </button>
               {user ? (
-                <button onClick={handleDashboardRedirect} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
-                  Dashboard
-                </button>
+                <>
+                  <button onClick={handleDashboardRedirect} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
+                    Dashboard
+                  </button>
+                  <button onClick={handleLogout} className="text-left px-4 py-2 text-red-600 hover:bg-red-50">
+                    Logout
+                  </button>
+                </>
               ) : (
                 <button onClick={() => navigate('/login')} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
                   Sign In
@@ -730,92 +614,6 @@ const Home = () => {
               ))}
             </div>
           </div>
-<<<<<<< HEAD
-        </div>
-      </section>
-
-      {/* ── Premium Category Showcase ── */}
-      <section className="bg-slate-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-slate-800">Shop by Category</h2>
-            <p className="text-slate-500 mt-2">Browse fresh produce curated directly from certified local farmlands.</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categoryData.map((cat, i) => (
-              <Link
-                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
-                key={i}
-                className="group relative rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white"
-              >
-                {/* 2x2 Mosaic Image Grid */}
-                <div className="grid grid-cols-2 grid-rows-2 h-56">
-                  {cat.mosaicImages.map((img, idx) => (
-                    <div key={idx} className="relative overflow-hidden">
-                      <img
-                        src={img}
-                        alt={`${cat.name} ${idx + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Card Footer */}
-                <div className="p-5 flex items-center justify-between border-t border-slate-100">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 leading-tight">{cat.name}</h3>
-                    <p className="text-sm text-slate-500 mt-1">{cat.count} Items</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm group-hover:text-emerald-700 transition-colors">
-                    View All
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Flash Deals & Fresh Harvest ── */}
-      <section className="bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-extrabold text-slate-800">Flash Deals & Fresh Harvest</h2>
-              <p className="text-slate-500 mt-2">Limited-time offers on freshly harvested produce.</p>
-            </div>
-            <Link to="/market" className="hidden sm:flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700">
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Product grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.slice(0, 8).map(p => (
-              <ProductCard
-                key={p._id || p.id}
-                product={{...p, id: p._id || p.id}}
-                isFavorite={favorites.includes(p._id || p.id)}
-                onToggleFavorite={toggleFavorite}
-                onAddToCart={handleAddToCart}
-              />
-            ))}
-          </div>
-
-          <div className="mt-10 text-center sm:hidden">
-            <Link
-              to="/market"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md"
-            >
-              View All Products <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-=======
->>>>>>> 0a7d7e3 (customer page)
         </div>
       </section>
 
@@ -877,11 +675,6 @@ const Home = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-<<<<<<< HEAD
-                <Leaf className="w-5 h-5 text-white" />
-=======
-                <span className="text-white text-xl">🌾</span>
->>>>>>> 0a7d7e3 (customer page)
               </div>
               <span className="text-lg font-extrabold">FarmConnect</span>
             </div>
@@ -891,11 +684,6 @@ const Home = () => {
           {[
             { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
             { title: 'For Vendors',  links: ['Start Selling', 'Vendor Dashboard', 'Pricing', 'Analytics'] },
-<<<<<<< HEAD
-            { title: 'Company',      links: ['About Us', 'Careers', 'Blog', 'Contact'] },
-=======
-            { title: 'Company',      links: ['Careers', 'Blog', 'Contact'] },
->>>>>>> 0a7d7e3 (customer page)
             { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'FAQ'] },
           ].map(col => (
             <div key={col.title}>

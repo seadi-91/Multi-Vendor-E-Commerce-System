@@ -1,43 +1,34 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Customer {
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  FARMER
+}
+
+model User {
   id                   Int       @id @default(autoincrement())
   name                 String
   email                String    @unique
-  phoneNumber          String?   @unique
   password             String
-<<<<<<< HEAD
   role                 Role      @default(CUSTOMER)
   phone                String?
   address              String?
   location             String?
-=======
-  role                 String    @default("customer")
-  address              String?
-<<<<<<< HEAD
->>>>>>> e9589db (customer page)
   profileImage         String?
   nationalId           String?
   tinNumber            String?
   landMapFile          String?
-=======
->>>>>>> 0a7d7e3 (customer page)
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
-  landMapFile          String?
-  nationalId           String?
-  phone                String?
-  profileImage         String?
-  tinNumber            String?
   createdAt            DateTime  @default(now())
-<<<<<<< HEAD
   
   // Farmer-specific fields
   farmName             String?
@@ -76,9 +67,12 @@ model Customer {
   
   // Account status
   isActive             Boolean   @default(true)
-  
+
   // Relations
   products             Product[]
+  notifications        Notification[]
+  orders               Order[]
+  orderItems          OrderItem[]
 }
 
 model Product {
@@ -86,51 +80,66 @@ model Product {
   name        String
   description String?
   price       Float
-  stock       Int      @default(0)
+  stock       Float    @default(0)
+  totalStock  Float    @default(0)
+  minOrderQuantity Float @default(1)
+  unit        String   @default("kg")
   category    String?
+  brand       String?
+  sku         String?
+  discountPrice Float?
+  isOrganic   Boolean  @default(false)
+  harvestDate DateTime?
+  expiryDate  DateTime?
   image       String?
   badges      String[]
+  tags        String[]
   status      String   @default("pending")
   farmerId    Int
-  farmer      User     @relation(fields: [farmerId], references: [id])
+  farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+  orderItems  OrderItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
-=======
-  updatedAt            DateTime  @updatedAt
 
-  orders               Order[]
-
-  @@map("customer")
+model Notification {
+  id          Int      @id @default(autoincrement())
+  type        String
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 }
 
-<<<<<<< HEAD
->>>>>>> e9589db (customer page)
-=======
 model Order {
-  id                  Int         @id @default(autoincrement())
-  orderCode           String
-  customerId          Int?
-  customer            Customer?   @relation(fields: [customerId], references: [id])
-  items               Json        @default("[]")
-  total               Float       @default(0)
-  subtotal            Float       @default(0)
-  deliveryFee         Float       @default(0)
-  tax                 Float       @default(0)
-  status              String      @default("processing")
-  paymentMethod       String      @default("cash")
-  paymentStatus       String      @default("unpaid")
-  fullName            String?
-  email               String?
-  phone               String?
-  city                String?
-  address             String?
-  additionalInfo      String?
-  vendor              String?
-  restaurant          String?
-  estimatedDelivery   String?
-  specialInstructions String?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id          Int      @id @default(autoincrement())
+  total       Float
+  status      String   @default("pending")
+  customerName String
+  customerEmail String
+  customerPhone String?
+  customerAddress String?
+  notes       String?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
->>>>>>> 0a7d7e3 (customer page)
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  price       Float
+  farmerId    Int
+  farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+}

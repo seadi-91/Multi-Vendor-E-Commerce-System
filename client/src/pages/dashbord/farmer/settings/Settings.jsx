@@ -105,27 +105,27 @@ const Settings = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 w-full">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-forest-900">Settings</h1>
-        <p className="text-forest-600">Manage your account and professional settings</p>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+        <h1 className="text-lg font-semibold text-slate-900">Settings</h1>
+        <p className="text-xs text-slate-500">Manage your account and professional settings</p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Sidebar Tabs */}
-        <div className="lg:w-64 space-y-2">
+        <div className="lg:w-56 space-y-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-forest-600 text-white shadow-md'
-                  : 'text-forest-700 hover:bg-forest-50'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-700 hover:bg-slate-100'
               }`}
             >
-              <tab.icon className="h-5 w-5" />
+              <tab.icon className="h-4 w-4" />
               <span className="flex-1 text-left">{tab.label}</span>
               {activeTab === tab.id && <ChevronRight className="h-4 w-4" />}
             </button>
@@ -133,31 +133,31 @@ const Settings = () => {
         </div>
 
         {/* Settings Content */}
-        <div className="flex-1 bg-white border border-forest-100 rounded-2xl p-6 shadow-sm">
+        <div className="flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
           {activeTab === 'account' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Account Settings</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Account Settings</h2>
               
               <div className="space-y-4">
                 <div>
-                  <Label className="text-forest-700">Email Address</Label>
+                  <Label className="text-xs text-slate-700">Email Address</Label>
                   <Input 
                     defaultValue={settings.account.email} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1 rounded-md"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Phone Number</Label>
+                  <Label className="text-xs text-slate-700">Phone Number</Label>
                   <Input 
                     defaultValue={settings.account.phone} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1 rounded-md"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Language</Label>
+                  <Label className="text-xs text-slate-700">Language</Label>
                   <select 
                     defaultValue={settings.account.language}
-                    className="w-full mt-1 px-3 py-2 border border-forest-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-sm h-9"
                   >
                     <option>English</option>
                     <option>Amharic</option>
@@ -165,10 +165,10 @@ const Settings = () => {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-forest-700">Timezone</Label>
+                  <Label className="text-xs text-slate-700">Timezone</Label>
                   <select 
                     defaultValue={settings.account.timezone}
-                    className="w-full mt-1 px-3 py-2 border border-forest-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-sm h-9"
                   >
                     <option>Africa/Addis_Ababa</option>
                     <option>Africa/Nairobi</option>
@@ -177,7 +177,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm rounded-lg transition-all">
                 <Save className="h-4 w-4 mr-2" />
                 Save Changes
               </Button>
@@ -185,44 +185,44 @@ const Settings = () => {
           )}
 
           {activeTab === 'password' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Change Password</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Change Password</h2>
               
               <div className="space-y-4">
                 <div className="relative">
-                  <Label className="text-forest-700">Current Password</Label>
+                  <Label className="text-xs text-slate-700">Current Password</Label>
                   <div className="relative mt-1">
                     <Input 
                       type={showPassword ? 'text' : 'password'}
-                      className="border-forest-200 pr-10"
+                      className="border-slate-200 pr-10 h-9 text-sm rounded-md"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-forest-400 hover:text-forest-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <Label className="text-forest-700">New Password</Label>
+                  <Label className="text-xs text-slate-700">New Password</Label>
                   <Input 
                     type="password" 
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                   {newPassword && (
                     <div className="mt-2 space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-forest-100 rounded-full overflow-hidden">
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div 
                             className={`h-full transition-all duration-300 ${getStrengthColor(getPasswordStrength(newPassword))}`}
                             style={{ width: `${(getPasswordStrength(newPassword) / 5) * 100}%` }}
                           />
                         </div>
-                        <span className={`text-sm font-medium ${getStrengthColor(getPasswordStrength(newPassword)).replace('bg-', 'text-')}`}>
+                        <span className={`text-xs font-medium ${getStrengthColor(getPasswordStrength(newPassword)).replace('bg-', 'text-')}`}>
                           {getStrengthText(getPasswordStrength(newPassword))}
                         </span>
                       </div>
@@ -230,38 +230,38 @@ const Settings = () => {
                   )}
                 </div>
                 <div>
-                  <Label className="text-forest-700">Confirm New Password</Label>
-                  <Input type="password" className="border-forest-200 mt-1" />
+                  <Label className="text-xs text-slate-700">Confirm New Password</Label>
+                  <Input type="password" className="border-slate-200 h-9 text-sm mt-1" />
                 </div>
               </div>
 
-              <div className="p-4 bg-forest-50 border border-forest-200 rounded-xl">
-                <h3 className="font-semibold text-forest-900 mb-3">Password Requirements:</h3>
-                <ul className="text-sm space-y-2">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <h3 className="font-semibold text-slate-900 mb-2 text-sm">Password Requirements:</h3>
+                <ul className="text-xs space-y-2">
                   <li className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${newPassword.length >= 8 ? 'bg-green-500' : 'bg-forest-300'}`} />
-                    <span className={newPassword.length >= 8 ? 'text-green-600 font-medium' : 'text-forest-600'}>At least 8 characters long</span>
+                    <span className={`w-2 h-2 rounded-full ${newPassword.length >= 8 ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    <span className={newPassword.length >= 8 ? 'text-green-600 font-medium' : 'text-slate-600'}>At least 8 characters long</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-green-500' : 'bg-forest-300'}`} />
-                    <span className={/[A-Z]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-forest-600'}>Contains at least one uppercase letter</span>
+                    <span className={`w-2 h-2 rounded-full ${/[A-Z]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    <span className={/[A-Z]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-slate-600'}>Contains at least one uppercase letter</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-green-500' : 'bg-forest-300'}`} />
-                    <span className={/[a-z]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-forest-600'}>Contains at least one lowercase letter</span>
+                    <span className={`w-2 h-2 rounded-full ${/[a-z]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    <span className={/[a-z]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-slate-600'}>Contains at least one lowercase letter</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-forest-300'}`} />
-                    <span className={/[0-9]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-forest-600'}>Contains at least one number</span>
+                    <span className={`w-2 h-2 rounded-full ${/[0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    <span className={/[0-9]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-slate-600'}>Contains at least one number</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${/[^A-Za-z0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-forest-300'}`} />
-                    <span className={/[^A-Za-z0-9]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-forest-600'}>Contains at least one special character</span>
+                    <span className={`w-2 h-2 rounded-full ${/[^A-Za-z0-9]/.test(newPassword) ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    <span className={/[^A-Za-z0-9]/.test(newPassword) ? 'text-green-600 font-medium' : 'text-slate-600'}>Contains at least one special character</span>
                   </li>
                 </ul>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm">
                 <Save className="h-4 w-4 mr-2" />
                 Update Password
               </Button>
@@ -269,71 +269,71 @@ const Settings = () => {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Notification Preferences</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Notification Preferences</h2>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <h3 className="text-md font-semibold text-forest-900 mb-4 flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
                     Email Notifications
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">New Orders</span>
+                      <span className="text-sm text-slate-700">New Orders</span>
                       <Switch checked={settings.notifications.emailOrders} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Messages</span>
+                      <span className="text-sm text-slate-700">Messages</span>
                       <Switch checked={settings.notifications.emailMessages} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Promotions & Updates</span>
+                      <span className="text-sm text-slate-700">Promotions & Updates</span>
                       <Switch checked={settings.notifications.emailPromotions} />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-md font-semibold text-forest-900 mb-4 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Smartphone className="h-4 w-4" />
                     Push Notifications
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">New Orders</span>
+                      <span className="text-sm text-slate-700">New Orders</span>
                       <Switch checked={settings.notifications.pushOrders} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Messages</span>
+                      <span className="text-sm text-slate-700">Messages</span>
                       <Switch checked={settings.notifications.pushMessages} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Promotions & Updates</span>
+                      <span className="text-sm text-slate-700">Promotions & Updates</span>
                       <Switch checked={settings.notifications.pushPromotions} />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-md font-semibold text-forest-900 mb-4 flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
                     SMS Notifications
                   </h3>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Order Alerts</span>
+                      <span className="text-sm text-slate-700">Order Alerts</span>
                       <Switch checked={settings.notifications.smsOrders} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-forest-700">Critical Alerts</span>
+                      <span className="text-sm text-slate-700">Critical Alerts</span>
                       <Switch checked={settings.notifications.smsAlerts} />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm">
                 <Save className="h-4 w-4 mr-2" />
                 Save Preferences
               </Button>
@@ -341,15 +341,15 @@ const Settings = () => {
           )}
 
           {activeTab === 'payment' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Payment Settings</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Payment Settings</h2>
               
               <div className="space-y-4">
                 <div>
-                  <Label className="text-forest-700">Bank Name</Label>
+                  <Label className="text-xs text-slate-700">Bank Name</Label>
                   <select 
                     defaultValue={settings.payment.bankName}
-                    className="w-full mt-1 px-3 py-2 border border-forest-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 text-sm h-9"
                   >
                     <option value="">Select Bank</option>
                     <option value="Commercial Bank of Ethiopia">Commercial Bank of Ethiopia (CBE)</option>
@@ -379,40 +379,40 @@ const Settings = () => {
                   </select>
                 </div>
                 <div>
-                  <Label className="text-forest-700">Account Number</Label>
+                  <Label className="text-xs text-slate-700">Account Number</Label>
                   <Input 
                     defaultValue={settings.payment.accountNumber} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Preferred Payment Method</Label>
+                  <Label className="text-xs text-slate-700">Preferred Payment Method</Label>
                   <select 
                     defaultValue={settings.payment.paymentMethod}
-                    className="w-full mt-1 px-3 py-2 border border-forest-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-forest-500"
+                    className="w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 text-sm h-9"
                   >
                     <option>Bank Transfer</option>
                     <option>Mobile Money</option>
                     <option>Check</option>
                   </select>
                 </div>
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center justify-between pt-2">
                   <div>
-                    <Label className="text-forest-700">Auto Withdrawal</Label>
-                    <p className="text-sm text-forest-600">Automatically withdraw earnings when threshold is reached</p>
+                    <Label className="text-xs text-slate-700">Auto Withdrawal</Label>
+                    <p className="text-xs text-slate-500">Automatically withdraw earnings when threshold is reached</p>
                   </div>
                   <Switch checked={settings.payment.autoWithdraw} />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Withdrawal Threshold (ETB)</Label>
+                  <Label className="text-xs text-slate-700">Withdrawal Threshold (ETB)</Label>
                   <Input 
                     defaultValue={settings.payment.withdrawalThreshold} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm">
                 <Save className="h-4 w-4 mr-2" />
                 Save Payment Settings
               </Button>
@@ -420,39 +420,39 @@ const Settings = () => {
           )}
 
           {activeTab === 'security' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Security Settings</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Security Settings</h2>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-forest-50 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div>
-                    <h3 className="font-semibold text-forest-900">Two-Factor Authentication</h3>
-                    <p className="text-sm text-forest-600">Add an extra layer of security to your account</p>
+                    <h3 className="font-semibold text-slate-900 text-sm">Two-Factor Authentication</h3>
+                    <p className="text-xs text-slate-500">Add an extra layer of security to your account</p>
                   </div>
                   <Switch checked={settings.security.twoFactor} />
                 </div>
-                <div className="flex items-center justify-between p-4 bg-forest-50 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div>
-                    <h3 className="font-semibold text-forest-900">Login Alerts</h3>
-                    <p className="text-sm text-forest-600">Get notified when someone logs into your account</p>
+                    <h3 className="font-semibold text-slate-900 text-sm">Login Alerts</h3>
+                    <p className="text-xs text-slate-500">Get notified when someone logs into your account</p>
                   </div>
                   <Switch checked={settings.security.loginAlerts} />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Session Timeout (minutes)</Label>
+                  <Label className="text-xs text-slate-700">Session Timeout (minutes)</Label>
                   <Input 
                     defaultValue={settings.security.sessionTimeout} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-sm text-amber-700">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-700">
                     <strong>Last Password Change:</strong> {settings.security.lastPasswordChange}
                   </p>
                 </div>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm">
                 <Save className="h-4 w-4 mr-2" />
                 Save Security Settings
               </Button>
@@ -460,82 +460,82 @@ const Settings = () => {
           )}
 
           {activeTab === 'professional' && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-forest-900">Professional Settings</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-semibold text-slate-900">Professional Settings</h2>
               
               <div className="space-y-4">
                 <div>
-                  <Label className="text-forest-700">Business License Number</Label>
+                  <Label className="text-xs text-slate-700">Business License Number</Label>
                   <Input 
                     defaultValue={settings.professional.businessLicense} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Tax ID (TIN)</Label>
+                  <Label className="text-xs text-slate-700">Tax ID (TIN)</Label>
                   <Input 
                     defaultValue={settings.professional.taxId} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-forest-700">VAT Registered</Label>
-                    <p className="text-sm text-forest-600">Enable if your business is VAT registered</p>
+                    <Label className="text-xs text-slate-700">VAT Registered</Label>
+                    <p className="text-xs text-slate-500">Enable if your business is VAT registered</p>
                   </div>
                   <Switch checked={settings.professional.vatRegistered} />
                 </div>
                 <div>
-                  <Label className="text-forest-700">VAT Number</Label>
+                  <Label className="text-xs text-slate-700">VAT Number</Label>
                   <Input 
                     defaultValue={settings.professional.vatNumber} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Insurance Provider</Label>
+                  <Label className="text-xs text-slate-700">Insurance Provider</Label>
                   <Input 
                     defaultValue={settings.professional.insuranceProvider} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Insurance Policy Number</Label>
+                  <Label className="text-xs text-slate-700">Insurance Policy Number</Label>
                   <Input 
                     defaultValue={settings.professional.insurancePolicy} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Insurance Expiry Date</Label>
+                  <Label className="text-xs text-slate-700">Insurance Expiry Date</Label>
                   <Input 
                     type="date"
                     defaultValue={settings.professional.insuranceExpiry}
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Farm Registration Number</Label>
+                  <Label className="text-xs text-slate-700">Farm Registration Number</Label>
                   <Input 
                     defaultValue={settings.professional.farmRegistration} 
-                    className="border-forest-200 mt-1"
+                    className="border-slate-200 h-9 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-forest-700">Certifications</Label>
+                  <Label className="text-xs text-slate-700">Certifications</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {settings.professional.certifications.map((cert, index) => (
-                      <span key={index} className="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm">
+                      <span key={index} className="px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-xs">
                         {cert}
                       </span>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <Label className="text-forest-700">Membership Associations</Label>
+                  <Label className="text-xs text-slate-700">Membership Associations</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {settings.professional.membershipAssociations.map((assoc, index) => (
-                      <span key={index} className="px-3 py-1 bg-mint-100 text-mint-700 rounded-full text-sm">
+                      <span key={index} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
                         {assoc}
                       </span>
                     ))}
@@ -543,7 +543,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              <Button className="bg-forest-600 hover:bg-forest-700">
+              <Button className="bg-slate-900 hover:bg-slate-800 h-9 text-sm">
                 <Save className="h-4 w-4 mr-2" />
                 Save Professional Settings
               </Button>

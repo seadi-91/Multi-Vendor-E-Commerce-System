@@ -1,48 +1,105 @@
 const express = require('express');
 const router = express.Router();
-const projectController = require('../controller/projectController');
-const auth = require('../middleware/auth');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
-// Update project by id
-router.put('/:id', auth.protect, upload.single('image'), async (req, res) => {
-	try {
-		const { name, description, price, stock } = req.body;
-		let update = { name, description, price, stock };
-		if (req.file) {
-			const cloudinary = require('cloudinary').v2;
-			const result = await cloudinary.uploader.upload(req.file.path, { folder: 'projects' });
-			update.image = result.secure_url;
-		}
-		const updated = await require('../model/Project').findByIdAndUpdate(
-			req.params.id,
-			{ $set: update },
-			{ new: true }
-		);
-		if (!updated) return res.status(404).json({ error: 'Project not found' });
-		res.json(updated);
-	} catch (err) {
-		res.status(500).json({ error: err.message });
-	}
+// GET /api/projects — used by customer product page
+router.get('/', async (req, res) => {
+  try {
+    console.log('=== Fetching Products for Home Page ===');
+    const { category } = req.query;
+    console.log('Category filter:', category);
+
+    const where = { status: 'approved' };
+    if (category && category !== 'all') {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+
+    console.log('Query where clause:', where);
+
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        farmer: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    console.log('Products found:', products.length);
+    console.log('Products:', products);
+
+    res.json(products);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Create project (with image upload)
-router.post('/', auth.protect, upload.single('image'), projectController.createProject);
+// POST /api/projects — legacy create (redirects to farmer product endpoint)
+router.post('/', protect, upload.single('image'), async (req, res) => {
+  try {
+    const { name, description, price, stock, category, unit } = req.body;
+    const farmerId = req.user.id;
 
-// Get all projects
-router.get('/', projectController.getProjects);
+    let imageUrl = '';
+    if (req.file) {
+      const cloudinary = require('cloudinary').v2;
+      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
+      imageUrl = result.secure_url;
+    }
 
+    const product = await prisma.product.create({
+      data: {
+        name,
+        description,
+        price: Number(price) || 0,
+        stock: Number(stock) || 0,
+        unit: unit || 'kg',
+        category,
+        image: imageUrl,
+        farmerId,
+        status: 'pending',
+      }
+    });
+    res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// Delete project by id
-router.delete('/:id', auth.protect, async (req, res) => {
-	try {
-		const deleted = await require('../model/Project').findByIdAndDelete(req.params.id);
-		if (!deleted) return res.status(404).json({ error: 'Project not found' });
-		res.json({ message: 'Project deleted' });
-	} catch (err) {
-		res.status(500).json({ error: err.message });
-	}
+// PUT /api/projects/:id
+router.put('/:id', protect, upload.single('image'), async (req, res) => {
+  try {
+    const { name, description, price, stock, unit } = req.body;
+    const updateData = { name, description, price: Number(price) || 0, stock: Number(stock) || 0, unit: unit || 'kg' };
+
+    if (req.file) {
+      const cloudinary = require('cloudinary').v2;
+      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
+      updateData.image = result.secure_url;
+    }
+
+    const product = await prisma.product.update({
+      where: { id: parseInt(req.params.id) },
+      data: updateData,
+    });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/projects/:id
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    await prisma.product.delete({ where: { id: parseInt(req.params.id) } });
+    res.json({ message: 'Product deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

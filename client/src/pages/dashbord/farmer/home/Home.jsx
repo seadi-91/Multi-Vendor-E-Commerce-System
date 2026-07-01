@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../../../api';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Package, TrendingUp, Star, DollarSign } from 'lucide-react';
+import { ShoppingCart, Package, TrendingUp, Star, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle, MessageSquare } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import EarningsChart from '../components/EarningsChart';
 import TopSellingProducts from '../components/TopSellingProducts';
-import FarmTipsAlerts from '../components/FarmTipsAlerts';
 import RecentOrders from '../components/RecentOrders';
+import FarmTipsAlerts from '../components/FarmTipsAlerts';
+import LoadingSkeleton from '../components/LoadingSkeleton';
 
-const getFarmOrders = () => {
-  const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-  return allOrders;
-};
+// Removed getFarmOrders localStorage usage
 
 const FarmerHome = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [productCount, setProductCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,178 +23,261 @@ const FarmerHome = () => {
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalOrders: 0,
-    totalRevenue: 0,
+    totalEarnings: 0,
     pendingOrders: 0,
     completedOrders: 0,
+    cancelledOrders: 0,
+    lowStockProducts: 0,
+    inventoryAlerts: 0,
+    pendingReviews: 0,
+    monthlyRevenue: 0,
     rating: 4.7,
     ratingCount: 128,
   });
 
-  const fetchProducts = async () => {
+  const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/farmer/products');
-      setProductCount(res.data?.length || 0);
-      setStats(prev => ({ ...prev, totalProducts: res.data?.length || 0 }));
+      console.log('=== Fetching Farmer Dashboard Data ===');
+      const [productsRes, ordersRes, statsRes] = await Promise.all([
+        api.get('/farmer/products'),
+        api.get('/farmer/orders'),
+        api.get('/farmer/stats')
+      ]);
+
+      const productsData = productsRes.data || [];
+      const ordersData = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+      const statsData = statsRes.data || {};
+
+      console.log('Products:', productsData.length);
+      console.log('Orders:', ordersData.length);
+      console.log('Stats:', statsData);
+
+      setProductCount(productsData.length);
+      setOrders(ordersData);
+
+      // Use stats from API, fallback to calculated values
+      const totalRevenue = statsData.totalEarnings || ordersData.reduce((sum, order) => sum + (order.total || 0), 0);
+      const pendingOrders = statsData.pendingOrders || ordersData.filter(o => o.status === 'pending' || o.status === 'processing').length;
+      const completedOrders = statsData.completedOrders || ordersData.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+      const cancelledOrders = statsData.cancelledOrders || ordersData.filter(o => o.status === 'cancelled' || o.status === 'rejected').length;
+      const lowStockProducts = statsData.lowStockProducts || productsData.filter(p => p.stock < 10).length;
+      const inventoryAlerts = statsData.inventoryAlerts || productsData.filter(p => p.stock === 0).length;
+      const pendingReviews = 5; // Mock data - would come from API
+
+      setStats(prev => ({
+        ...prev,
+        totalProducts: statsData.totalProducts || productsData.length,
+        totalOrders: statsData.totalOrders || ordersData.length,
+        totalEarnings: totalRevenue,
+        pendingOrders,
+        completedOrders,
+        cancelledOrders,
+        lowStockProducts,
+        inventoryAlerts,
+        pendingReviews,
+        monthlyRevenue: statsData.monthlyRevenue || 0,
+      }));
     } catch (err) {
-      setError('Could not load product information.');
+      console.error('Failed to load dashboard data:', err);
+      setError('Could not load dashboard data.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
-    const allOrders = getFarmOrders();
-    const totalRevenue = allOrders.reduce((sum, order) => 
-      sum + order.items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0), 0
-    );
-    const pendingOrders = allOrders.filter(order => 
-      order.status === 'pending' || order.status === 'processing'
-    ).length;
-    const completedOrders = allOrders.filter(order => 
-      order.status === 'delivered'
-    ).length;
-    
-    setStats(prev => ({
-      ...prev,
-      totalOrders: allOrders.length,
-      totalRevenue,
-      pendingOrders,
-      completedOrders,
-    }));
+    fetchDashboardData();
   }, []);
 
-  const handleShowOrders = () => {
-    setOrders(getFarmOrders());
-    setShowOrders(true);
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const res = await api.put(`/orders/${orderId}/status`, { status: newStatus });
+      const updatedOrder = res.data;
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      
+      // Update stats if needed
+      setStats(prev => {
+        const totalRevenue = prev.totalRevenue; // recalculate if necessary
+        const pendingOrders = orders.map(o => o.id === orderId ? updatedOrder : o).filter(o => o.status === 'pending' || o.status === 'processing').length;
+        const completedOrders = orders.map(o => o.id === orderId ? updatedOrder : o).filter(o => o.status === 'delivered' || o.status === 'completed').length;
+        return { ...prev, pendingOrders, completedOrders };
+      });
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      alert('Failed to update order status');
+    }
   };
 
-  const handleStatusChange = (orderIdx, newStatus) => {
-    const updatedOrders = [...orders];
-    updatedOrders[orderIdx] = { ...updatedOrders[orderIdx], status: newStatus };
-    setOrders(updatedOrders);
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+  const handleCloseOrders = () => {
+    setShowOrders(false);
+    // Remove query param from URL without refreshing
+    navigate('/farmer/dashboard', { replace: true });
   };
-
-  const handleCloseOrders = () => setShowOrders(false);
 
   return (
-    <div className="space-y-6">
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Orders"
-          value={stats.totalOrders}
-          icon={ShoppingCart}
-          color="green"
-          trend="+18% this week"
-        />
-        <StatCard
-          title="Total Earnings"
-          value={`${stats.totalRevenue.toLocaleString()} ETB`}
-          icon={DollarSign}
-          color="mint"
-          trend="+22% this week"
-        />
-        <StatCard
-          title="Products Listed"
-          value={stats.totalProducts}
-          icon={Package}
-          color="orange"
-          trend="+4 new this week"
-        />
-        <StatCard
-          title="Average Rating"
-          value={stats.rating}
-          icon={Star}
-          color="blue"
-          rating={stats.rating}
-          ratingCount={stats.ratingCount}
-        />
-      </div>
-
-      {/* Double Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (60%) */}
-        <div className="lg:col-span-2 space-y-6">
-          <EarningsChart />
-          <TopSellingProducts />
-          <FarmTipsAlerts />
-        </div>
-
-        {/* Right Column (40%) */}
-        <div className="space-y-6">
-          <RecentOrders />
-        </div>
-      </div>
-
-      {/* Orders Modal */}
-      {showOrders && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 max-w-4xl shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-forest-900">Farm Orders</h3>
-            <button 
-              onClick={handleCloseOrders}
-              className="bg-none border-none text-2xl cursor-pointer text-forest-400 hover:text-forest-600 transition-colors"
-            >
-              ×
-            </button>
+    <div className="space-y-4 w-full animate-in fade-in duration-500">
+      {loading ? (
+        <>
+          {/* Primary KPI Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            {[...Array(4)].map((_, i) => (
+              <LoadingSkeleton key={i} variant="card" />
+            ))}
           </div>
-          {orders.length === 0 ? (
-            <div className="text-center text-forest-400 text-lg my-8">No orders found.</div>
-          ) : (
-            <div className="space-y-6">
-              {orders.map((order, idx) => (
-                <div key={idx} className="bg-white border border-forest-100 rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-semibold text-forest-900">Order #{order.orderId || idx+1}</span>
-                    <span className="text-forest-600 text-sm">{order.orderDate?.slice(0,10)}</span>
-                  </div>
-                  <div className="mb-2"><b>Customer:</b> {order.fullName} <span className="text-forest-400">({order.phone})</span></div>
-                  <div className="mb-2"><b>Address:</b> {order.city}, {order.address} {order.additionalInfo && (<span>, {order.additionalInfo}</span>)}</div>
-                  <div className="mb-2"><b>Payment:</b> <span className="text-mint-600">{order.paymentMethod}</span></div>
-                  <div className="mb-2 flex items-center gap-3">
-                    <b>Status:</b>
-                    <select 
-                      value={order.status || 'processing'} 
-                      onChange={e => handleStatusChange(idx, e.target.value)}
-                      className="px-2.5 py-1 rounded-md border border-forest-200 bg-forest-50 text-forest-800 font-semibold text-sm"
-                    >
-                      <option value="processing">Processing</option>
-                      <option value="on the way">On the Way</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="pending">Pending</option>
-                    </select>
-                  </div>
-                  <div className="mb-2"><b>Products:</b></div>
-                  <table className="w-full border-collapse mb-2">
-                    <thead>
-                      <tr className="bg-forest-50">
-                        <th className="text-left px-2 py-1.5 font-semibold text-forest-900 text-base">Product</th>
-                        <th className="text-center px-2 py-1.5 font-semibold text-forest-900 text-base">Qty</th>
-                        <th className="text-center px-2 py-1.5 font-semibold text-forest-900 text-base">Price</th>
-                        <th className="text-center px-2 py-1.5 font-semibold text-forest-900 text-base">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {order.items.map((item, i) => (
-                        <tr key={i} className="border-b border-forest-100">
-                          <td className="px-2 py-1.5">{item.name}</td>
-                          <td className="text-center px-2 py-1.5">{item.quantity}</td>
-                          <td className="text-center px-2 py-1.5">{item.price} ETB</td>
-                          <td className="text-center px-2 py-1.5">{(item.price * item.quantity).toFixed(2)} ETB</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div className="text-right font-bold text-forest-900 text-lg">Order Total: {order.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)} ETB</div>
-                </div>
-              ))}
+
+          {/* Secondary KPI Cards Skeleton */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+            {[...Array(6)].map((_, i) => (
+              <LoadingSkeleton key={i} variant="card" />
+            ))}
+          </div>
+
+          {/* Quick Actions Skeleton */}
+          <LoadingSkeleton variant="card" className="h-32 w-full" />
+
+          {/* Chart and Products Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+            <div className="lg:col-span-7">
+              <LoadingSkeleton variant="chart" />
             </div>
-          )}
-        </div>
+            <div className="lg:col-span-5">
+              <LoadingSkeleton variant="list" />
+            </div>
+          </div>
+
+          {/* Orders and Tips Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+            <LoadingSkeleton variant="table" />
+            <LoadingSkeleton variant="list" />
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Primary KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <StatCard
+              title="Total Orders"
+              value={stats.totalOrders}
+              icon={ShoppingCart}
+              color="green"
+              trend="+18% this week"
+              trendDirection="up"
+              comparison="vs last week"
+              sparklineData={[10, 12, 15, 14, 18, 20, 22]}
+              loading={loading}
+            />
+            <StatCard
+              title="Total Earnings"
+              value={`${stats.totalEarnings?.toLocaleString() || 0} ETB`}
+              icon={DollarSign}
+              color="mint"
+              trend="+22% this week"
+              trendDirection="up"
+              comparison="vs last week"
+              sparklineData={[5000, 6000, 5500, 7000, 7500, 8000, 8500]}
+              loading={loading}
+            />
+            <StatCard
+              title="Products Listed"
+              value={stats.totalProducts}
+              icon={Package}
+              color="orange"
+              trend="+4 new this week"
+              trendDirection="up"
+              comparison="vs last week"
+              loading={loading}
+            />
+            <StatCard
+              title="Average Rating"
+              value={stats.rating}
+              icon={Star}
+              color="blue"
+              rating={stats.rating}
+              ratingCount={stats.ratingCount}
+              loading={loading}
+            />
+          </div>
+
+          {/* Secondary KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+            <StatCard
+              title="Pending Orders"
+              value={stats.pendingOrders}
+              icon={Clock}
+              color="orange"
+              trend="Requires attention"
+              trendDirection="neutral"
+              loading={loading}
+            />
+            <StatCard
+              title="Completed Orders"
+              value={stats.completedOrders}
+              icon={CheckCircle}
+              color="green"
+              trend="+12% this week"
+              trendDirection="up"
+              loading={loading}
+            />
+            <StatCard
+              title="Cancelled Orders"
+              value={stats.cancelledOrders}
+              icon={XCircle}
+              color="red"
+              trend="-3% this week"
+              trendDirection="down"
+              loading={loading}
+            />
+            <StatCard
+              title="Low Stock"
+              value={stats.lowStockProducts}
+              icon={AlertTriangle}
+              color="orange"
+              trend="Needs restock"
+              trendDirection="neutral"
+              loading={loading}
+            />
+            <StatCard
+              title="Inventory Alerts"
+              value={stats.inventoryAlerts}
+              icon={AlertTriangle}
+              color="red"
+              trend="Out of stock"
+              trendDirection="down"
+              loading={loading}
+            />
+            <StatCard
+              title="Pending Reviews"
+              value={stats.pendingReviews}
+              icon={MessageSquare}
+              color="blue"
+              trend="Awaiting response"
+              trendDirection="neutral"
+              loading={loading}
+            />
+          </div>
+
+          {/* First Row - Earnings Chart (7 cols) and Top Selling Products (5 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+            <div className="lg:col-span-7 h-full min-h-[350px]">
+              <EarningsChart />
+            </div>
+            <div className="lg:col-span-5 h-full min-h-[350px]">
+              <TopSellingProducts />
+            </div>
+          </div>
+
+          {/* Second Row - Recent Orders (6 cols) and Farm Tips (6 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+            <div className="h-full min-h-[300px]">
+              <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
+            </div>
+            <div className="h-full min-h-[300px]">
+              <FarmTipsAlerts />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

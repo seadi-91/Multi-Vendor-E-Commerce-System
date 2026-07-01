@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { prisma } = require('../db/connectDB');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -17,13 +16,13 @@ function buildCustomerRegistrationData({
   tinNumber,
   landMapFile
 }) {
-  const normalizedRole = String(role || 'customer').toLowerCase();
+  const normalizedRole = String(role || 'CUSTOMER').toUpperCase();
   const userData = {
     name,
     email,
     password,
-    role: normalizedRole === 'farmer' ? 'farmer' : 'customer',
-    address: normalizedRole === 'farmer' ? (address || null) : null
+    role: normalizedRole === 'FARMER' ? 'FARMER' : 'CUSTOMER',
+    address: normalizedRole === 'FARMER' ? (address || null) : null
   };
 
   if (phone && typeof phone === 'string' && phone.trim()) userData.phone = phone.trim();
@@ -62,7 +61,7 @@ exports.register = async (req, res) => {
       return res.status(500).json({ message: 'Server configuration error' });
     }
 
-    const existingUser = await prisma.customer.findUnique({
+    const existingUser = await prisma.user.findUnique({
       where: { email }
     });
 
@@ -73,7 +72,7 @@ exports.register = async (req, res) => {
 
     // Check if phone number already exists
     if (phone) {
-      const existingPhone = await prisma.customer.findUnique({
+      const existingPhone = await prisma.user.findFirst({
         where: { phone }
       });
 
@@ -100,7 +99,7 @@ exports.register = async (req, res) => {
 
     console.log('Creating user with data:', userData);
 
-    const user = await prisma.customer.create({
+    const user = await prisma.user.create({
       data: userData
     });
 
@@ -139,7 +138,7 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     // Prisma findUnique ተጠቀምን
-    const user = await prisma.customer.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email }
     });
 
@@ -173,7 +172,7 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await prisma.customer.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -183,7 +182,7 @@ exports.forgotPassword = async (req, res) => {
     const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour (Prisma DateTime ይጠብቃል)
 
     // Prisma update ተጠቀምን
-    await prisma.customer.update({
+    await prisma.user.update({
       where: { email },
       data: {
         resetPasswordToken: resetToken,
@@ -232,7 +231,7 @@ exports.resetPassword = async (req, res) => {
     const { token, password } = req.body;
 
     // Prisma findFirst ተጠቀምን
-    const user = await prisma.customer.findFirst({
+    const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: token,
         resetPasswordExpires: {
@@ -248,7 +247,7 @@ exports.resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Prisma update ተጠቀምን
-    await prisma.customer.update({
+    await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,

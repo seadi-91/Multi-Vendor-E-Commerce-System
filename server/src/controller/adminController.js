@@ -1,15 +1,39 @@
-const User = require('../model/User');
-const Project = require('../model/Project');
+const { prisma } = require('../db/connectDB');
 
 // Dashboard Statistics
 exports.getDashboardStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: 'customer' });
-    const totalFarmers = await User.countDocuments({ role: 'farmer' });
-    const totalProducts = await Project.countDocuments();
-    const pendingFarmers = await User.countDocuments({ role: 'farmer', isVerified: false });
-    const pendingProducts = await Project.countDocuments({ status: 'pending' });
-    const activeUsers = await User.countDocuments({ role: 'customer', isActive: true });
+    console.log('=== Fetching Admin Dashboard Stats ===');
+    const totalUsers = await prisma.user.count({ where: { role: 'CUSTOMER' } });
+    const totalFarmers = await prisma.user.count({ where: { role: 'FARMER' } });
+    const totalProducts = await prisma.product.count();
+    const pendingFarmers = await prisma.user.count({ where: { role: 'FARMER', isVerified: false } });
+    const pendingProducts = await prisma.product.count({ where: { status: 'pending' } });
+    const activeUsers = await prisma.user.count({ where: { role: 'CUSTOMER', isActive: true } });
+
+    // Order statistics
+    const totalOrders = await prisma.order.count();
+    const pendingOrders = await prisma.order.count({ where: { status: 'pending' } });
+    const completedOrders = await prisma.order.count({ where: { status: 'completed' } });
+    const cancelledOrders = await prisma.order.count({ where: { status: 'cancelled' } });
+
+    // Calculate total earnings
+    const orders = await prisma.order.findMany({ where: { status: 'completed' } });
+    const totalEarnings = orders.reduce((sum, order) => sum + order.total, 0);
+
+    // Inventory statistics
+    const lowStockProducts = await prisma.product.count({ where: { stock: { lt: 10 } } });
+    const outOfStockProducts = await prisma.product.count({ where: { stock: 0 } });
+
+    console.log('Stats calculated:', {
+      totalOrders,
+      totalEarnings,
+      pendingOrders,
+      completedOrders,
+      cancelledOrders,
+      lowStockProducts,
+      outOfStockProducts
+    });
 
     res.json({
       totalUsers,
@@ -18,8 +42,16 @@ exports.getDashboardStats = async (req, res) => {
       pendingFarmers,
       pendingProducts,
       activeUsers,
+      totalOrders,
+      totalEarnings,
+      pendingOrders,
+      completedOrders,
+      cancelledOrders,
+      lowStockProducts,
+      inventoryAlerts: outOfStockProducts,
     });
   } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -27,9 +59,13 @@ exports.getDashboardStats = async (req, res) => {
 // User Management
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'customer' })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const users = await prisma.user.findMany({
+      where: { role: 'CUSTOMER' },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, isActive: true, createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -38,9 +74,13 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getActiveUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'customer', isActive: true })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const users = await prisma.user.findMany({
+      where: { role: 'CUSTOMER', isActive: true },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, isActive: true, createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -49,9 +89,13 @@ exports.getActiveUsers = async (req, res) => {
 
 exports.getSuspendedUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'customer', isActive: false })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const users = await prisma.user.findMany({
+      where: { role: 'CUSTOMER', isActive: false },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, isActive: true, createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -60,12 +104,11 @@ exports.getSuspendedUsers = async (req, res) => {
 
 exports.suspendUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    ).select('-password');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await prisma.user.update({
+      where: { id: parseInt(req.params.id) },
+      data: { isActive: false },
+      select: { id: true, name: true, email: true, isActive: true }
+    });
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -74,12 +117,11 @@ exports.suspendUser = async (req, res) => {
 
 exports.activateUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive: true },
-      { new: true }
-    ).select('-password');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await prisma.user.update({
+      where: { id: parseInt(req.params.id) },
+      data: { isActive: true },
+      select: { id: true, name: true, email: true, isActive: true }
+    });
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -88,10 +130,30 @@ exports.activateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    console.log('=== Deleting User ===');
+    console.log('User ID:', req.params.id);
+
+    // Check if user has products
+    const userProducts = await prisma.product.count({
+      where: { farmerId: parseInt(req.params.id) }
+    });
+    console.log('User products count:', userProducts);
+
+    if (userProducts > 0) {
+      // Delete user's products first
+      await prisma.product.deleteMany({
+        where: { farmerId: parseInt(req.params.id) }
+      });
+      console.log('Deleted user products');
+    }
+
+    await prisma.user.delete({
+      where: { id: parseInt(req.params.id) }
+    });
+    console.log('User deleted successfully');
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
+    console.error('Error deleting user:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -99,9 +161,13 @@ exports.deleteUser = async (req, res) => {
 // Farmer Management
 exports.getAllFarmers = async (req, res) => {
   try {
-    const farmers = await User.find({ role: 'farmer' })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const farmers = await prisma.user.findMany({
+      where: { role: 'FARMER' },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, address: true, isVerified: true, createdAt: true, farmName: true, bio: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(farmers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -110,9 +176,13 @@ exports.getAllFarmers = async (req, res) => {
 
 exports.getPendingFarmers = async (req, res) => {
   try {
-    const farmers = await User.find({ role: 'farmer', isVerified: false })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const farmers = await prisma.user.findMany({
+      where: { role: 'FARMER', isVerified: false },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, address: true, isVerified: true, createdAt: true, farmName: true, bio: true, nationalId: true, tinNumber: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(farmers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -121,9 +191,13 @@ exports.getPendingFarmers = async (req, res) => {
 
 exports.getVerifiedFarmers = async (req, res) => {
   try {
-    const farmers = await User.find({ role: 'farmer', isVerified: true })
-      .select('-password')
-      .sort({ createdAt: -1 });
+    const farmers = await prisma.user.findMany({
+      where: { role: 'FARMER', isVerified: true },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, address: true, isVerified: true, createdAt: true, farmName: true, bio: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     res.json(farmers);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -132,12 +206,11 @@ exports.getVerifiedFarmers = async (req, res) => {
 
 exports.verifyFarmer = async (req, res) => {
   try {
-    const farmer = await User.findByIdAndUpdate(
-      req.params.id,
-      { isVerified: true },
-      { new: true }
-    ).select('-password');
-    if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
+    const farmer = await prisma.user.update({
+      where: { id: parseInt(req.params.id) },
+      data: { isVerified: true },
+      select: { id: true, name: true, email: true, isVerified: true }
+    });
     res.json(farmer);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -146,9 +219,180 @@ exports.verifyFarmer = async (req, res) => {
 
 exports.rejectFarmer = async (req, res) => {
   try {
-    const farmer = await User.findByIdAndDelete(req.params.id);
-    if (!farmer) return res.status(404).json({ error: 'Farmer not found' });
+    await prisma.user.delete({
+      where: { id: parseInt(req.params.id) }
+    });
     res.json({ message: 'Farmer rejected and deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Order Management
+exports.getAllOrders = async (req, res) => {
+  try {
+    console.log('=== Fetching All Orders ===');
+    const orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: { name: true, email: true, phone: true }
+        },
+        items: {
+          include: {
+            product: {
+              include: {
+                farmer: {
+                  select: { name: true, email: true }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    console.log('Orders found:', orders.length);
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getRecentOrders = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: {
+          select: { name: true, email: true }
+        },
+        items: {
+          include: {
+            product: {
+              select: { name: true, image: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { status } = req.body;
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { status }
+    });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Reports
+exports.getReports = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: { select: { name: true, email: true } },
+        items: {
+          include: {
+            product: { include: { farmer: { select: { name: true } } } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const monthlyRevenue = orders.reduce((sum, order) => {
+      const orderDate = new Date(order.createdAt);
+      const now = new Date();
+      if (orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear()) {
+        return sum + order.total;
+      }
+      return sum;
+    }, 0);
+
+    const topProducts = await prisma.orderItem.groupBy({
+      by: ['productId'],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 10
+    });
+
+    res.json({
+      totalOrders: orders.length,
+      monthlyRevenue,
+      topProducts,
+      recentOrders: orders.slice(0, 20)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Transactions
+exports.getTransactions = async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        user: { select: { name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const transactions = orders.map(order => ({
+      id: order.id,
+      date: order.createdAt,
+      amount: order.total,
+      status: order.status,
+      customer: order.customerName,
+      customerEmail: order.customerEmail
+    }));
+
+    res.json(transactions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Admin Profile
+exports.getAdminProfile = async (req, res) => {
+  try {
+    const admin = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        profileImage: true,
+        createdAt: true
+      }
+    });
+    res.json(admin);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateAdminProfile = async (req, res) => {
+  try {
+    const { name, email, phone, address, profileImage } = req.body;
+    const admin = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name, email, phone, address, profileImage }
+    });
+    res.json(admin);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -157,34 +401,68 @@ exports.rejectFarmer = async (req, res) => {
 // Product Management
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Project.find()
-      .populate('farmerId', 'name email')
-      .sort({ createTime: -1 });
+    console.log('=== Fetching All Products ===');
+    const products = await prisma.product.findMany({
+      include: {
+        farmer: {
+          select: { name: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    console.log('All products found:', products.length);
+    console.log('Products:', products);
     res.json(products);
   } catch (error) {
+    console.error('Error fetching all products:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.getPendingProducts = async (req, res) => {
   try {
-    const products = await Project.find({ status: 'pending' })
-      .populate('farmerId', 'name email')
-      .sort({ createTime: -1 });
+    console.log('=== Fetching Pending Products ===');
+    const products = await prisma.product.findMany({
+      where: { status: 'pending' },
+      include: {
+        farmer: {
+          select: { name: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    console.log('Pending products found:', products.length);
+    console.log('Products:', products);
     res.json(products);
   } catch (error) {
+    console.error('Error fetching pending products:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.approveProduct = async (req, res) => {
   try {
-    const product = await Project.findByIdAndUpdate(
-      req.params.id,
-      { status: 'approved' },
-      { new: true }
-    ).populate('farmerId', 'name email');
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    const product = await prisma.product.update({
+      where: { id: parseInt(req.params.id) },
+      data: { status: 'approved' },
+      include: {
+        farmer: {
+          select: { name: true, email: true }
+        }
+      }
+    });
+
+    // Create notification for the farmer
+    await prisma.notification.create({
+      data: {
+        type: 'product_approved',
+        title: 'Product Approved',
+        message: `Your product "${product.name}" has been approved and is now visible on the marketplace`,
+        userId: product.farmerId,
+        productId: product.id
+      }
+    });
+
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -193,12 +471,15 @@ exports.approveProduct = async (req, res) => {
 
 exports.rejectProduct = async (req, res) => {
   try {
-    const product = await Project.findByIdAndUpdate(
-      req.params.id,
-      { status: 'rejected' },
-      { new: true }
-    ).populate('farmerId', 'name email');
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    const product = await prisma.product.update({
+      where: { id: parseInt(req.params.id) },
+      data: { status: 'rejected' },
+      include: {
+        farmer: {
+          select: { name: true, email: true }
+        }
+      }
+    });
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -207,8 +488,9 @@ exports.rejectProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Project.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    await prisma.product.delete({
+      where: { id: parseInt(req.params.id) }
+    });
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -218,34 +500,31 @@ exports.deleteProduct = async (req, res) => {
 // Analytics & Reports
 exports.getReports = async (req, res) => {
   try {
-    const totalRevenue = await Project.aggregate([
-      { $match: { status: 'approved' } },
-      { $group: { _id: null, total: { $sum: '$price' } } }
-    ]);
+    // Prisma aggregation for revenue
+    const revenueAgg = await prisma.product.aggregate({
+      where: { status: 'approved' },
+      _sum: { price: true }
+    });
+    const totalRevenue = revenueAgg._sum.price || 0;
 
-    const productsByCategory = await Project.aggregate([
-      { $match: { status: 'approved' } },
-      { $group: { _id: '$category', count: { $sum: 1 } } }
-    ]);
+    // Prisma group by for category count
+    const productsByCategoryRaw = await prisma.product.groupBy({
+      by: ['category'],
+      where: { status: 'approved' },
+      _count: { category: true }
+    });
+    
+    const productsByCategory = productsByCategoryRaw.map(item => ({
+      _id: item.category,
+      count: item._count.category
+    }));
 
-    const monthlySales = await Project.aggregate([
-      {
-        $match: {
-          status: 'approved',
-          createTime: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 6)) }
-        }
-      },
-      {
-        $group: {
-          _id: { month: { $month: '$createTime' }, year: { $year: '$createTime' } },
-          count: { $sum: 1 },
-          revenue: { $sum: '$price' }
-        }
-      }
-    ]);
+    // For monthly sales we'll do a simple raw query or JS processing
+    // For simplicity, returning empty for now since we don't have orders yet
+    const monthlySales = [];
 
     res.json({
-      totalRevenue: totalRevenue[0]?.total || 0,
+      totalRevenue,
       productsByCategory,
       monthlySales,
     });
@@ -256,8 +535,6 @@ exports.getReports = async (req, res) => {
 
 exports.getTransactions = async (req, res) => {
   try {
-    // This would typically come from an Order model
-    // For now, returning placeholder data
     res.json({
       message: 'Transaction endpoint - implement Order model for full functionality',
       transactions: []
@@ -270,7 +547,12 @@ exports.getTransactions = async (req, res) => {
 // Admin Profile
 exports.getAdminProfile = async (req, res) => {
   try {
-    const admin = await User.findById(req.user.id).select('-password');
+    const admin = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, location: true
+      }
+    });
     if (!admin) return res.status(404).json({ error: 'Admin not found' });
     res.json(admin);
   } catch (error) {
@@ -281,13 +563,56 @@ exports.getAdminProfile = async (req, res) => {
 exports.updateAdminProfile = async (req, res) => {
   try {
     const { name, email, phone, location } = req.body;
-    const admin = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, email, phone, location },
-      { new: true }
-    ).select('-password');
-    if (!admin) return res.status(404).json({ error: 'Admin not found' });
+    const admin = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name, email, phone, location },
+      select: {
+        id: true, name: true, email: true, role: true, phone: true, location: true
+      }
+    });
     res.json(admin);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Notification Management
+exports.getNotifications = async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.user.id },
+      include: {
+        product: {
+          select: { name: true, image: true, category: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.markNotificationAsRead = async (req, res) => {
+  try {
+    const notification = await prisma.notification.update({
+      where: { id: parseInt(req.params.id) },
+      data: { isRead: true }
+    });
+    res.json(notification);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.markAllNotificationsAsRead = async (req, res) => {
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.user.id, isRead: false },
+      data: { isRead: true }
+    });
+    res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
