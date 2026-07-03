@@ -125,14 +125,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     console.log('Logging out user');
-    try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Logout API error:', error);
-    }
+    // Note: Logout is client-side only since we use JWT tokens
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');         // ← always clear the token too

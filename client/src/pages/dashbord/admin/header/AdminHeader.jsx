@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  FiUsers, 
-  FiUserCheck, 
-  FiSettings,
-  FiBell,
-  FiSearch,
-  FiMenu,
-  FiLogOut,
-  FiBarChart2,
-  FiPackage,
-  FiX,
-  FiChevronDown
-} from 'react-icons/fi';
-import { FaUserTie } from 'react-icons/fa';
+  Users, 
+  UserCheck, 
+  Settings,
+  Bell,
+  Search,
+  Menu,
+  LogOut,
+  BarChart2,
+  Package,
+  X,
+  ChevronDown,
+  User
+} from 'lucide-react';
 import './AdminHeader.scss';
 
 const AdminHeader = ({ 
@@ -31,9 +31,9 @@ const AdminHeader = ({
   const [isScrolled, setIsScrolled] = useState(false);
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <FiBarChart2 />, count: null },
-    { id: 'users', label: 'Users', icon: <FiUsers />, count: userCount },
-    { id: 'farmers', label: 'Farmers', icon: <FaUserTie />, count: farmerCount },
+    { id: 'dashboard', label: 'Dashboard', icon: <BarChart2 />, count: null },
+    { id: 'users', label: 'Users', icon: <Users />, count: userCount },
+    { id: 'farmers', label: 'Farmers', icon: <User />, count: farmerCount },
   ];
 
   const mobileNavItems = navItems.slice(0, 4);
@@ -72,7 +72,7 @@ const AdminHeader = ({
           {/* Desktop Search */}
           <div className="header-center">
             <div className="search-container">
-              <FiSearch className="search-icon" />
+              <Search className="search-icon" />
               <input 
                 type="text" 
                 placeholder="Search users, orders..." 
@@ -89,11 +89,11 @@ const AdminHeader = ({
               onClick={() => setShowSearch(!showSearch)}
               aria-label="Toggle search"
             >
-              <FiSearch />
+              <Search />
             </button>
 
             <button className="header-btn notification-btn">
-              <FiBell />
+              <Bell />
               {notificationCount > 0 && (
                 <span className="notification-badge">{notificationCount}</span>
               )}
@@ -109,16 +109,16 @@ const AdminHeader = ({
                   <span className="profile-name">Admin User</span>
                   <span className="profile-role">Super Admin</span>
                 </div>
-                <FiChevronDown className="profile-arrow" />
+                <ChevronDown className="profile-arrow" />
               </button>
               <div className="profile-dropdown">
                 <button className="dropdown-item" onClick={() => handleMobileNav('profile')}>
-                  <FaUserTie />
+                  <User />
                   <span>My Profile</span>
                 </button>
                 <div className="dropdown-divider"></div>
                 <button className="dropdown-item logout" onClick={onLogout}>
-                  <FiLogOut />
+                  <LogOut />
                   <span>Logout</span>
                 </button>
               </div>
@@ -130,7 +130,7 @@ const AdminHeader = ({
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               aria-label="Toggle menu"
             >
-              {showMobileMenu ? <FiX /> : <FiMenu />}
+              {showMobileMenu ? <X /> : <Menu />}
             </button>
           </div>
         </div>
@@ -139,7 +139,7 @@ const AdminHeader = ({
         {showSearch && (
           <div className="mobile-search-container">
             <div className="mobile-search-input-container">
-              <FiSearch className="mobile-search-icon" />
+              <Search className="mobile-search-icon" />
               <input 
                 type="text" 
                 placeholder="Search..." 
@@ -150,7 +150,7 @@ const AdminHeader = ({
                 className="mobile-search-close"
                 onClick={() => setShowSearch(false)}
               >
-                <FiX />
+                <X />
               </button>
             </div>
           </div>
@@ -161,7 +161,7 @@ const AdminHeader = ({
           <div className="header-stats">
             <div className="stat-card">
               <div className="stat-icon users">
-                <FiUsers />
+                <Users />
               </div>
               <div className="stat-content">
                 <h3 className="stat-title">Total Users</h3>
@@ -172,7 +172,7 @@ const AdminHeader = ({
             
             <div className="stat-card">
               <div className="stat-icon farmers">
-                <FaUserTie />
+                <User />
               </div>
               <div className="stat-content">
                 <h3 className="stat-title">Active Farmers</h3>
@@ -204,7 +204,7 @@ const AdminHeader = ({
             
             <div className="quick-actions">
               <button className="quick-action-btn">
-                <FiUserCheck />
+                <UserCheck />
                 <span>Verify Farmers</span>
               </button>
             </div>
@@ -226,7 +226,7 @@ const AdminHeader = ({
             className="mobile-nav-close"
             onClick={() => setShowMobileMenu(false)}
           >
-            <FiX />
+            <X />
           </button>
         </div>
 
@@ -248,7 +248,7 @@ const AdminHeader = ({
           <div className="mobile-nav-divider"></div>
 
           <button className="mobile-nav-item" onClick={onLogout}>
-            <FiLogOut />
+            <LogOut />
             <span>Logout</span>
           </button>
         </div>
@@ -280,7 +280,7 @@ const AdminHeader = ({
             onClick={() => setShowMobileMenu(true)}
           >
             <span className="mobile-bottom-nav-icon">
-              <FiMenu />
+              <Menu />
             </span>
             <span className="mobile-bottom-nav-label">More</span>
           </button>

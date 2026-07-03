@@ -56,7 +56,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
               </div>
             </NavLink>
 
-            <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+            <NavLink to="/market" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
               <div className="flex items-center gap-3">
                 <span className="text-lg">🥗</span> <span>Products</span>
               </div>
@@ -470,12 +470,12 @@ const Favorites = () => {
               { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
               { title: 'Company', links: ['Careers', 'Blog', 'Investor Relations'] },
               { title: 'Support', links: ['Help Center', 'Track Order', 'Returns', 'Contact Us'] },
-            ].map(col => (
-              <div key={col.title}>
+            ].map((col, index) => (
+              <div key={`favorites-footer-${index}-${col.title}`}>
                 <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
                 <ul className="space-y-2">
-                  {col.links.map(link => (
-                    <li key={link}><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{link}</a></li>
+                  {col.links.map((link, linkIndex) => (
+                    <li key={`${col.title}-link-${linkIndex}`}><a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{link}</a></li>
                   ))}
                 </ul>
               </div>

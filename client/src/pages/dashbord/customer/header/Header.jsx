@@ -6,7 +6,6 @@ import {
   Menu, ChevronDown, Package, Home, Store, 
   History, Settings, LogOut
 } from 'lucide-react';
-import './Header.scss';
 
 const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
   const { cart, cartCount } = useCart();
@@ -108,130 +107,140 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
 
   return (
     <>
-      <header className="customer-header">
+      <header className="sticky top-0 z-[1000] bg-white shadow-[0_2px_20px_rgba(0,0,0,0.08)] font-sans">
         {/* Top Bar - Desktop & Mobile */}
-        <div className="header-top">
-          <div className="container">
-            <div className="header-main">
+        <div className="py-3 border-b border-slate-100">
+          <div className="max-w-[1400px] mx-auto px-4">
+            <div className="flex items-center justify-between gap-4 relative">
               {/* Logo Section */}
-              <div className="logo-section">
-                <button 
-                  className="mobile-menu-btn"
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {/* Back Button - navigates to home */}
+                <button
+                  onClick={() => navigate('/')}
+                  className="flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-100 transition-colors"
+                  aria-label="Back to home"
+                  title="Back to home"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                <button
+                  className="hidden md:flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-50"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   aria-label="Toggle menu"
                 >
                   <Menu size={24} />
                 </button>
-                
-                <div className="logo" onClick={() => navigate('/customer/dashboard')}>
-                  <span className="logo-icon">🌾</span>
-                  <div className="logo-text">
-                    <h1 className="logo-title">FarmFresh</h1>
-                    <span className="logo-subtitle">Direct from Farm</span>
+
+                <div className="flex items-center gap-3 cursor-pointer transition-transform hover:scale-[1.02]" onClick={() => navigate('/customer/dashboard')}>
+                  <span className="text-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 bg-clip-text text-transparent">🌾</span>
+                  <div className="flex flex-col">
+                    <h1 className="text-xl font-extrabold text-slate-800 m-0 leading-tight tracking-tight">FarmFresh</h1>
+                    <span className="text-xs text-slate-500 font-medium">Direct from Farm</span>
                   </div>
                 </div>
               </div>
 
               {/* Search Section - Desktop */}
-              <div className="search-section desktop-search" ref={searchRef}>
-                <form onSubmit={handleSearch} className="search-form">
-                  <div className="search-wrapper">
+              <div className="flex-1 max-w-[600px] relative hidden md:block" ref={searchRef}>
+                <form onSubmit={handleSearch} className="w-full">
+                  <div className="flex border-2 border-slate-200 rounded-xl overflow-hidden bg-white transition-all focus-within:border-emerald-500 focus-within:shadow-[0_0_0_3px_rgba(16,185,129,0.1)]">
                     <input
                       type="search"
                       placeholder="Search products..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="search-input"
+                      className="flex-1 px-4 py-3 border-none outline-none text-sm text-slate-800 bg-transparent placeholder:text-slate-400"
                       aria-label="Search products"
                     />
-                    
-                    <button type="submit" className="search-btn" aria-label="Search">
-                      <Search size={20} />
+
+                    <button type="submit" className="px-5 bg-emerald-500 border-none cursor-pointer transition-colors hover:bg-emerald-600 flex items-center justify-center" aria-label="Search">
+                      <Search size={20} className="text-white" />
                     </button>
                   </div>
                 </form>
               </div>
 
               {/* User Actions */}
-              <div className="user-actions">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Mobile Search Toggle */}
-                <button 
-                  className="mobile-search-toggle"
+                <button
+                  className="hidden md:flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-50"
                   onClick={() => setIsSearchExpanded(!isSearchExpanded)}
                   aria-label="Search"
                 >
                   <Search size={22} />
                 </button>
 
-                {/* Delivery Info - Desktop */}
-
                 {/* Notifications */}
-                <div className="notification-wrapper">
-                  <button 
-                    className="action-btn"
+                <div className="relative">
+                  <button
+                    className="relative w-10 h-10 rounded-xl border border-slate-200 bg-white cursor-pointer flex items-center justify-center transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => navigate('/customer/notifications')}
                     aria-label={`Notifications (${notificationCount})`}
                   >
-                    <Bell size={22} />
+                    <Bell size={22} className="text-slate-600" />
                     {notificationCount > 0 && (
-                      <span className="badge">{notificationCount}</span>
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-[3px]">{notificationCount}</span>
                     )}
                   </button>
                 </div>
 
                 {/* Cart */}
-                <div className="cart-wrapper" ref={cartRef}>
-                  <button 
-                    className="action-btn cart-btn"
+                <div className="relative" ref={cartRef}>
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => navigate('/customer/cart')}
                     aria-label={`Cart (${cartCount} items)`}
                   >
-                    <ShoppingCart size={22} />
+                    <ShoppingCart size={22} className="text-slate-600" />
                     {cartCount > 0 && (
-                      <span className="badge">{cartCount}</span>
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-[3px]">{cartCount}</span>
                     )}
-                    <span className="cart-label">Cart</span>
+                    <span className="text-sm font-medium text-slate-600 hidden sm:inline">Cart</span>
                   </button>
 
                   {/* Cart Preview */}
                   {showCartPreview && (
-                    <div className="cart-preview">
-                      <div className="preview-header">
-                        <h3>Your Cart ({cartCount})</h3>
-                        <button 
-                          className="close-preview"
+                    <div className="absolute top-[calc(100%+10px)] right-0 w-[350px] bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] z-[1002] border border-slate-200 overflow-hidden animate-slide-down max-sm:w-[300px] max-sm:right-[-20px]">
+                      <div className="px-4 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                        <h3 className="m-0 text-base text-slate-800 font-semibold">Your Cart ({cartCount})</h3>
+                        <button
+                          className="bg-none border-none text-xl text-slate-500 cursor-pointer p-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-200"
                           onClick={() => setShowCartPreview(false)}
                         >
                           ×
                         </button>
                       </div>
-                      
-                      <div className="cart-items">
-                        {cart.length === 0 && <div className="empty-cart">Your cart is empty.</div>}
+
+                      <div className="max-h-[250px] overflow-y-auto p-4">
+                        {cart.length === 0 && <div className="text-slate-500 text-center py-4">Your cart is empty.</div>}
                         {cart.map(item => (
-                          <div key={item._id} className="cart-item">
-                            <div className="item-info">
-                              <h4 className="item-name">{item.name}</h4>
-                              <div className="item-meta">
-                                <span className="item-qty">{item.quantity}</span>
-                                <span className="item-price">{item.price} ETB</span>
+                          <div key={item._id} className="flex justify-between items-center py-3 border-b border-slate-100 last:border-b-0">
+                            <div className="flex-1">
+                              <h4 className="m-0 mb-1 text-sm text-slate-800 font-semibold">{item.name}</h4>
+                              <div className="flex gap-3 text-xs text-slate-500">
+                                <span className="bg-slate-200 px-2 py-[2px] rounded">{item.quantity}</span>
+                                <span>{item.price} ETB</span>
                               </div>
                             </div>
-                            <div className="item-total">
+                            <div className="font-bold text-slate-800 text-sm">
                               {item.quantity * item.price} ETB
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="cart-summary">
-                        <div className="total-row">
-                          <span>Total:</span>
-                          <span className="total-amount">{cartTotal.toFixed(2)} ETB</span>
+                      <div className="px-4 py-4 border-t border-slate-200 bg-slate-50">
+                        <div className="flex justify-between items-center mb-4">
+                          <span className="text-sm text-slate-600 font-semibold">Total:</span>
+                          <span className="text-xl font-extrabold text-slate-800">{cartTotal.toFixed(2)} ETB</span>
                         </div>
-                        <div className="cart-actions">
-                          <button 
-                            className="btn view-cart"
+                        <div className="flex gap-2">
+                          <button
+                            className="flex-1 py-3 rounded-xl font-semibold cursor-pointer transition-all border-2 border-transparent bg-white text-slate-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
                             onClick={() => {
                               navigate('/customer/cart');
                               setShowCartPreview(false);
@@ -239,8 +248,8 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                           >
                             View Cart
                           </button>
-                          <button 
-                            className="btn checkout"
+                          <button
+                            className="flex-1 py-3 rounded-xl font-semibold cursor-pointer transition-all border-2 border-transparent bg-emerald-500 text-white hover:bg-emerald-600"
                             onClick={() => {
                               navigate('/customer/checkout');
                               setShowCartPreview(false);
@@ -255,39 +264,39 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                 </div>
 
                 {/* User Profile */}
-                <div className="user-profile-wrapper" ref={userMenuRef}>
-                  <button 
-                    className="user-profile-btn"
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-xl cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     aria-label="User menu"
                   >
-                    <div className="user-avatar">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {user?.name?.charAt(0) || 'C'}
                     </div>
-                    <span className="user-name">{user?.name?.split(' ')[0] || 'Guest'}</span>
-                    <ChevronDown size={16} className={`chevron ${showUserMenu ? 'up' : ''}`} />
+                    <span className="text-sm font-medium text-slate-800 whitespace-nowrap hidden lg:inline">{user?.name?.split(' ')[0] || 'Guest'}</span>
+                    <ChevronDown size={16} className={`text-slate-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                   </button>
 
                   {/* User Dropdown */}
                   {showUserMenu && (
-                    <div className="user-dropdown">
-                      <div className="dropdown-header">
-                        <div className="user-details">
-                          <div className="dropdown-avatar">
+                    <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] z-[1002] border border-slate-200 overflow-hidden animate-slide-down max-sm:w-[260px] max-sm:right-[-20px]">
+                      <div className="px-4 py-4 bg-slate-50 border-b border-slate-200">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-base">
                             {user?.name?.charAt(0) || 'C'}
                           </div>
                           <div>
-                            <h4 className="dropdown-name">{user?.name || 'Customer'}</h4>
-                            <span className="dropdown-email">{user?.email || 'customer@example.com'}</span>
+                            <h4 className="m-0 mb-1 text-sm text-slate-800 font-semibold">{user?.name || 'Customer'}</h4>
+                            <span className="text-xs text-slate-500">{user?.email || 'customer@example.com'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="dropdown-items">
+                      <div className="py-2">
                         {userMenuItems.map((item, index) => (
                           <button
                             key={index}
-                            className="dropdown-item"
+                            className="w-full px-4 py-3 border-none bg-none flex items-center gap-3 cursor-pointer text-slate-600 text-sm transition-colors hover:bg-slate-50 hover:text-slate-800"
                             onClick={() => {
                               if (item.label === 'Settings') {
                                 navigate('/customer/settings');
@@ -297,15 +306,15 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                               setShowUserMenu(false);
                             }}
                           >
-                            {item.label !== 'Settings' && item.icon}
+                            {item.label !== 'Settings' && <span className="text-slate-500 w-5">{item.icon}</span>}
                             <span>{item.label}</span>
                           </button>
                         ))}
                       </div>
 
-                      <div className="dropdown-footer">
-                        <button 
-                          className="dropdown-item logout"
+                      <div className="border-t border-slate-200 py-2">
+                        <button
+                          className="w-full px-4 py-3 border-none bg-none flex items-center gap-3 cursor-pointer text-red-500 text-sm transition-colors hover:bg-red-50 hover:text-red-600"
                           onClick={onLogout}
                         >
                           <LogOut size={18} />
@@ -320,19 +329,19 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
 
             {/* Mobile Search - Expanded */}
             {isSearchExpanded && (
-              <div className="mobile-search-expanded">
-                <form onSubmit={handleSearch} className="search-form full-width">
-                  <div className="search-wrapper">
+              <div className="mt-3 pt-3 border-t border-slate-100 animate-slide-down">
+                <form onSubmit={handleSearch} className="w-full">
+                  <div className="flex border-2 border-slate-200 rounded-lg overflow-hidden mb-3">
                     <input
                       type="search"
                       placeholder="What are you looking for?"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="search-input"
+                      className="flex-1 px-4 py-3 border-none outline-none text-base bg-transparent"
                       autoFocus
                     />
-                    <button type="submit" className="search-btn">
-                      <Search size={20} />
+                    <button type="submit" className="px-4 bg-emerald-500 border-none cursor-pointer flex items-center justify-center">
+                      <Search size={20} className="text-white" />
                     </button>
                   </div>
                 </form>
@@ -342,41 +351,39 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
         </div>
 
         {/* Main Navigation - Desktop */}
-        <nav className="main-navigation desktop-only">
-          <div className="container">
-            <div className="nav-container">
+        <nav className="py-2 bg-white border-b border-slate-100 hidden md:block">
+          <div className="max-w-[1400px] mx-auto px-4">
+            <div className="flex items-center justify-between">
               {/* Navigation Links */}
-              <nav className="nav-links">
+              <nav className="flex gap-1">
                 {navLinks.map(link => (
                   <button
                     key={link.path}
-                    className={`nav-link${location.pathname === link.path ? ' active' : ''}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-slate-600 font-medium text-sm transition-all hover:bg-slate-50 hover:text-slate-800 ${location.pathname === link.path ? 'bg-green-50 text-green-700 font-semibold' : ''}`}
                     onClick={() => navigate(link.path)}
                   >
                     <span>{link.label}</span>
                   </button>
                 ))}
               </nav>
-              
-
             </div>
           </div>
         </nav>
 
         {/* Mobile Navigation Menu */}
-        <div className={`mobile-nav-menu ${isMobileMenuOpen ? 'open' : ''}`}>
-          <div className="mobile-nav-header">
-            <div className="mobile-user-info">
-              <div className="mobile-avatar">
+        <div className={`fixed top-0 left-[-100%] bottom-0 w-[320px] bg-white z-[2000] transition-left duration-300 flex flex-col shadow-[2px_0_20px_rgba(0,0,0,0.1)] ${isMobileMenuOpen ? 'left-0' : ''}`}>
+          <div className="px-4 py-4 border-b border-slate-100 flex justify-between items-start">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-xl">
                 {user?.name?.charAt(0) || 'C'}
               </div>
-              <div className="mobile-user-details">
-                <h3>{user?.name || 'Welcome'}</h3>
-                <span>{user?.email || 'customer@example.com'}</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="m-0 mb-1 text-base text-slate-800 whitespace-nowrap overflow-hidden text-ellipsis">{user?.name || 'Welcome'}</h3>
+                <span className="text-xs text-slate-500 block whitespace-nowrap overflow-hidden text-ellipsis">{user?.email || 'customer@example.com'}</span>
               </div>
             </div>
-            <button 
-              className="close-mobile-nav"
+            <button
+              className="bg-none border-none text-xl text-slate-500 cursor-pointer p-2 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 hover:bg-slate-100"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Close menu"
             >
@@ -384,15 +391,15 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
             </button>
           </div>
 
-          <div className="mobile-nav-content">
-            <div className="mobile-address">
-              <MapPin size={18} />
-              <div>
-                <span className="address-label">Delivering to</span>
-                <span className="address-text">{deliveryAddress.primary}</span>
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <div className="px-4 py-4 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
+              <MapPin size={18} className="text-emerald-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-slate-500 block mb-0.5">Delivering to</span>
+                <span className="text-sm text-slate-800 font-medium block whitespace-nowrap overflow-hidden text-ellipsis">{deliveryAddress.primary}</span>
               </div>
-              <button 
-                className="change-address"
+              <button
+                className="px-3 py-1 bg-white border border-slate-300 rounded-lg text-slate-600 text-xs font-medium cursor-pointer flex-shrink-0 whitespace-nowrap hover:bg-slate-100"
                 onClick={() => {
                   navigate('/customer/addresses');
                   setIsMobileMenuOpen(false);
@@ -402,44 +409,46 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
               </button>
             </div>
 
-            <div className="mobile-nav-links">
+            <div className="py-4">
               {navLinks.map(link => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`mobile-nav-item ${location.pathname === link.path ? 'active' : ''}`}
+                  className={`flex items-center justify-between px-4 py-3 text-slate-600 text-sm transition-colors border-l-4 border-transparent hover:bg-slate-50 ${location.pathname === link.path ? 'bg-green-50 text-green-700 font-semibold border-l-green-500' : ''}`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span>{link.label}</span>
-                  <ChevronDown size={16} className="arrow" />
+                  <ChevronDown size={16} className="text-slate-400 -rotate-90" />
                 </Link>
               ))}
 
-              <div className="mobile-nav-divider"></div>
+              <div className="h-px bg-slate-200 my-3 mx-4"></div>
 
               {userMenuItems.map((item, index) => (
                 <Link
                   key={index}
                   to={item.path}
-                  className="mobile-nav-item"
+                  className="flex items-center justify-between px-4 py-3 text-slate-600 text-sm transition-colors border-l-4 border-transparent hover:bg-slate-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.label !== 'Settings' && item.icon}
-                  <span>{item.label}</span>
-                  <ChevronDown size={16} className="arrow" />
+                  <div className="flex items-center gap-3">
+                    {item.label !== 'Settings' && <span className="text-slate-500">{item.icon}</span>}
+                    <span>{item.label}</span>
+                  </div>
+                  <ChevronDown size={16} className="text-slate-400 -rotate-90" />
                 </Link>
               ))}
             </div>
 
-            <div className="mobile-nav-footer">
-              <button 
-                className="mobile-logout"
+            <div className="mt-auto px-4 py-4 border-t border-slate-200">
+              <button
+                className="w-full px-4 py-3 bg-red-100 border-none border-0 rounded-lg text-red-600 font-semibold cursor-pointer flex items-center justify-center gap-2 transition-colors hover:bg-red-200"
                 onClick={() => {
                   onLogout();
                   setIsMobileMenuOpen(false);
                 }}
               >
-                <LogOut size={18} />
+                <LogOut size={18} className="text-red-600" />
                 <span>Logout</span>
               </button>
             </div>
@@ -449,8 +458,8 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
 
       {/* Overlay for mobile menu */}
       {isMobileMenuOpen && (
-        <div 
-          className="mobile-nav-overlay"
+        <div
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-[1999] animate-fade-in"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

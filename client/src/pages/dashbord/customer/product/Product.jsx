@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import api from '../../../../api';
 
 const CATEGORY_CONFIG = {
@@ -60,19 +59,6 @@ const Product = () => {
 
   return (
     <div className="w-full">
-      {/* Header with back button */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">Back to Home</span>
-          </Link>
-        </div>
-      </div>
-
       <div className="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="mb-6">
           <select
@@ -99,8 +85,9 @@ const Product = () => {
           </div>
         ) : (
           products.map(product => (
-            <div
+            <Link
               key={product._id}
+              to="/market"
               className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex h-44 items-center justify-center bg-slate-50 p-4">
@@ -126,13 +113,16 @@ const Product = () => {
                   <button
                     type="button"
                     className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                    onClick={() => alert(`Added ${product.name} to cart!`)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert(`Added ${product.name} to cart!`);
+                    }}
                   >
                     Add to Cart
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

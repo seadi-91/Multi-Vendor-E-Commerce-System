@@ -1,6 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../db/prismaClient');
 const bcrypt = require('bcrypt');
 
 const { register, login, forgotPassword, resetPassword } = require('../controller/authController');
@@ -18,18 +17,12 @@ router.post('/reset-password', resetPassword);
 router.options('/forgot-password', (req, res) => res.sendStatus(200));
 router.options('/reset-password', (req, res) => res.sendStatus(200));
 
-// ─── User routes (admin use, now Prisma-backed) ────────────────────────────
-
-// GET /api/auth/users — used by old AdminDashboard (kept for compatibility)
+// GET /api/auth/users
 router.get('/users', protect, adminOnly, async (req, res) => {
   try {
     const { role } = req.query;
-    const where = role ? { role: role.toUpperCase() } : {};
-    const users = await prisma.user.findMany({
-      where,
-      select: { id: true, name: true, email: true, role: true, phone: true, isActive: true, createdAt: true },
-      orderBy: { createdAt: 'desc' }
-    });
+    const filter = role ? { role: role.toUpperCase() } : {};
+    const users = await prisma.user.findMany({ where: filter });
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -39,7 +32,8 @@ router.get('/users', protect, adminOnly, async (req, res) => {
 // DELETE /api/auth/users/:id
 router.delete('/users/:id', protect, adminOnly, async (req, res) => {
   try {
-    await prisma.user.delete({ where: { id: parseInt(req.params.id) } });
+    const user = await prisma.user.delete({ where: { id: parseInt(req.params.id) } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -49,10 +43,7 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
 // GET /api/auth/users/:id
 router.get('/users/:id', protect, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(req.params.id) },
-      select: { id: true, name: true, email: true, role: true, address: true }
-    });
+    const user = await prisma.user.findUnique({ where: { id: parseInt(req.params.id) } });
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
@@ -79,8 +70,7 @@ router.put('/users/:id', protect, async (req, res) => {
 
     const updated = await prisma.user.update({
       where: { id: parseInt(req.params.id) },
-      data: updateData,
-      select: { id: true, name: true, email: true, role: true, address: true }
+      data: updateData
     });
     res.json(updated);
   } catch (err) {

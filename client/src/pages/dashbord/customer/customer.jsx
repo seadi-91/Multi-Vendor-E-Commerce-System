@@ -29,7 +29,10 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
           {/* Brand Logo */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
+              <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition-opacity">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
                 <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-md">
                   <span className="text-white text-2xl">🌾</span>
                 </div>
@@ -56,7 +59,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
               </div>
             </NavLink>
 
-            <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+            <NavLink to="/market" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
               <div className="flex items-center gap-3">
                 <span className="text-lg">🥗</span> <span>Products</span>
               </div>

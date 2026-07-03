@@ -1,4 +1,4 @@
-const { prisma } = require('../db/connectDB');
+const prisma = require('../db/prismaClient');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -14,14 +14,17 @@ function buildCustomerRegistrationData({
   profileImage,
   nationalId,
   tinNumber,
-  landMapFile
+  landMapFile,
+  farmName,
+  farmSize,
+  bio
 }) {
   const normalizedRole = String(role || 'CUSTOMER').toUpperCase();
   const userData = {
     name,
     email,
     password,
-    role: normalizedRole === 'FARMER' ? 'FARMER' : 'CUSTOMER',
+    role: normalizedRole === 'FARMER' ? 'FARMER' : (normalizedRole === 'ADMIN' ? 'ADMIN' : 'CUSTOMER'),
     address: normalizedRole === 'FARMER' ? (address || null) : null
   };
 
@@ -30,6 +33,13 @@ function buildCustomerRegistrationData({
   if (profileImage && typeof profileImage === 'string' && profileImage.trim()) userData.profileImage = profileImage.trim();
   if (nationalId && typeof nationalId === 'string' && nationalId.trim()) userData.nationalId = nationalId.trim();
   if (landMapFile && typeof landMapFile === 'string' && landMapFile.trim()) userData.landMapFile = landMapFile.trim();
+  
+  // Farmer-specific fields
+  if (normalizedRole === 'farmer') {
+    if (farmName && typeof farmName === 'string' && farmName.trim()) userData.farmName = farmName.trim();
+    if (farmSize && typeof farmSize === 'string' && farmSize.trim()) userData.farmSize = farmSize.trim();
+    if (bio && typeof bio === 'string' && bio.trim()) userData.bio = bio.trim();
+  }
 
   return userData;
 }
@@ -41,7 +51,7 @@ exports.register = async (req, res) => {
     console.log('Register request body:', req.body);
 
     // Extract all fields that exist in Prisma schema
-    const { name, email, password, role, address, phone, profileImage, nationalId, tinNumber, landMapFile } = req.body;
+    const { name, email, password, role, address, phone, profileImage, nationalId, tinNumber, landMapFile, farmName, farmSize, bio } = req.body;
     const normalizedRole = String(role || 'customer').toLowerCase();
 
     if (!name || !email || !password) {
@@ -72,7 +82,7 @@ exports.register = async (req, res) => {
 
     // Check if phone number already exists
     if (phone) {
-      const existingPhone = await prisma.user.findFirst({
+      const existingPhone = await prisma.user.findUnique({
         where: { phone }
       });
 
@@ -94,7 +104,10 @@ exports.register = async (req, res) => {
       profileImage,
       nationalId,
       tinNumber,
-      landMapFile
+      landMapFile,
+      farmName,
+      farmSize,
+      bio
     });
 
     console.log('Creating user with data:', userData);
@@ -137,13 +150,17 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Prisma findUnique ተጠቀምን
+    console.log('Login attempt:', { email });
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
-    console.log('Login attempt:', { email, password });
-    console.log('User found:', user);
+    console.log('User found:', user ? { id: user.id, email: user.email, role: user.role } : 'Not found');
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -156,14 +173,27 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // በ Prisma መታወቂያው id ስለሆነ user.id ተጠቀምን (user._id አይደለም)
+    // Ensure JWT_SECRET is set
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not set in environment variables');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+    console.log('Login successful for user:', user.id);
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role  // This will be CUSTOMER, FARMER, or ADMIN from the enum
+      }
     });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -179,9 +209,8 @@ exports.forgotPassword = async (req, res) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour (Prisma DateTime ይጠብቃል)
+    const resetPasswordExpires = new Date(Date.now() + 3600000);
 
-    // Prisma update ተጠቀምን
     await prisma.user.update({
       where: { email },
       data: {
@@ -230,7 +259,6 @@ exports.resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
-    // Prisma findFirst ተጠቀምን
     const user = await prisma.user.findFirst({
       where: {
         resetPasswordToken: token,
@@ -246,7 +274,6 @@ exports.resetPassword = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Prisma update ተጠቀምን
     await prisma.user.update({
       where: { id: user.id },
       data: {

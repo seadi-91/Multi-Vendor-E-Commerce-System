@@ -52,7 +52,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
               </div>
             </NavLink>
 
-            <NavLink to="/customer/dashboard/products" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
+            <NavLink to="/market" className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
               <div className="flex items-center gap-3">
                 <span className="text-lg">🥗</span> <span>Products</span>
               </div>

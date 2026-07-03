@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { toast } from 'react-hot-toast';
+import api from '../../api';
 import {
   ChevronLeft, ChevronRight, Search, Heart, Star,
   ShoppingCart, MapPin, Sprout, Users, Truck,
@@ -20,9 +21,9 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   } = product;
 
   return (
-    <div className={`group bg-white rounded-2xl border border-slate-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
+    <div className={`group bg-white rounded-xl sm:rounded-2xl border border-slate-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
       {/* Image */}
-      <div className="relative w-full overflow-hidden bg-slate-100" style={{ height: '220px' }}>
+      <div className="relative w-full overflow-hidden bg-slate-100" style={{ height: '160px', minHeight: '160px' }}>
         <img
           src={image}
           alt={name}
@@ -34,14 +35,14 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
         />
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
           {discountPercent > 0 && (
-            <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-lg shadow-md">
+            <span className="bg-emerald-600 text-white text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
               {discountPercent}% OFF
             </span>
           )}
           {badge && (
-            <span className="bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-lg shadow-md">
+            <span className="bg-amber-400 text-amber-900 text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
               {badge}
             </span>
           )}
@@ -50,47 +51,48 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
         {/* Favorite */}
         <button
           onClick={(e) => { e.preventDefault(); onToggleFavorite(id); }}
-          className="absolute top-3 right-3 w-9 h-9 bg-white/95 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
+          className="absolute top-2 right-2 w-8 sm:w-9 h-8 sm:h-9 bg-white/95 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
         >
-          <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+          <Heart className={`w-4 sm:w-5 h-4 sm:h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
         </button>
       </div>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-5">
-        <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-700 mt-1 leading-snug">
+      <div className="flex-1 flex flex-col p-3 sm:p-5">
+        <h3 className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-emerald-700 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
           {name}
         </h3>
 
         {description && (
-          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{description}</p>
+          <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 line-clamp-1">{description}</p>
         )}
 
         {/* Rating */}
-        <div className="flex items-center mt-3 gap-1.5">
-          <div className="flex">
+        <div className="flex items-center mt-2 sm:mt-3 gap-1">
+          <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+              <Star key={i} className={`w-3 sm:w-4 h-3 sm:h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
             ))}
           </div>
-          <span className="text-xs text-slate-400">({reviewsCount.toLocaleString()})</span>
+          <span className="text-[9px] sm:text-xs text-slate-400">({(reviewsCount / 100 | 0)})</span>
         </div>
 
         {/* Price */}
-        <div className="mt-4 flex items-baseline gap-2">
-          <span className="text-lg font-extrabold text-emerald-700">{fmt(price)} ETB</span>
+        <div className="mt-2 sm:mt-4 flex items-baseline gap-1 sm:gap-2">
+          <span className="text-base sm:text-lg font-extrabold text-emerald-700">{fmt(price)}</span>
           {discountPercent > 0 && (
-            <span className="text-sm text-slate-400 line-through">{calcOriginal(price, discountPercent)} ETB</span>
+            <span className="text-xs text-slate-400 line-through">{calcOriginal(price, discountPercent)}</span>
           )}
-          <span className="text-xs text-slate-400">/ {unit}</span>
+          <span className="text-[9px] sm:text-xs text-slate-400">/{unit}</span>
         </div>
 
         <button
           onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-          className="w-full mt-4 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          className="w-full mt-2 sm:mt-4 py-2 sm:py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 shadow-md hover:shadow-lg"
         >
-          <ShoppingCart className="w-4 h-4" />
-          Add to Cart
+          <ShoppingCart className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          <span className="hidden sm:inline">Add to Cart</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
     </div>
@@ -233,7 +235,6 @@ const Home = () => {
       image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&q=80',
       categoryKey: 'fruit',
       mosaicImages: [
-        
         'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80',
         'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&q=80',
         'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&q=80',
@@ -349,6 +350,24 @@ const Home = () => {
       tag: 'PURE QUALITY',
       image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&q=80'
     },
+    {
+      id: 4,
+      title: 'Premium Ethiopian Coffee',
+      subtitle: 'World-renowned coffee beans from the birthplace of coffee. Experience the rich flavors of Ethiopian heritage.',
+      ctaPrimary: 'Shop Coffee',
+      ctaSecondary: 'Learn More',
+      tag: 'PREMIUM COFFEE',
+      image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1400&q=80'
+    },
+    {
+      id: 5,
+      title: 'Fresh Legumes & Pulses',
+      subtitle: 'Nutritious legumes and pulses packed with protein. Essential staples for healthy living.',
+      ctaPrimary: 'Shop Legumes',
+      ctaSecondary: 'View All',
+      tag: 'PROTEIN RICH',
+      image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80'
+    },
   ];
 
   const toggleFavorite = (id) => {
@@ -366,8 +385,34 @@ const Home = () => {
   };
 
   const handleDashboardRedirect = () => {
-    const routes = { customer: '/customer/dashboard', farmer: '/farmer/dashboard', admin: '/admin/dashboard' };
-    if (user?.role) navigate(routes[user.role] || '/');
+    console.log('🔵 Account button CLICKED!');
+    console.log('📍 User object:', user);
+    console.log('📍 User role:', user?.role);
+    
+    if (!user) {
+      console.warn('❌ No user found');
+      navigate('/login');
+      return;
+    }
+    
+    const routes = { 
+      CUSTOMER: '/customer/dashboard', 
+      FARMER: '/farmer/dashboard', 
+      ADMIN: '/admin/dashboard' 
+    };
+    
+    const userRole = user.role?.toUpperCase();
+    const targetRoute = routes[userRole] || '/customer/dashboard';
+    
+    console.log('✅ Attempting navigation to:', targetRoute);
+    console.log('   with role:', userRole);
+    
+    try {
+      navigate(targetRoute);
+      console.log('✅ Navigation successful!');
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+    }
   };
 
   const handleLogout = () => {
@@ -382,11 +427,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
-
-      {/* ── Top Notification Bar ── */}
-      <div className="bg-amber-400 text-amber-900 text-center py-2 text-sm font-semibold">
-        ⚡ Free shipping on orders over 1000 ETB!
-      </div>
 
       {/* ── Main Navigation Bar ── */}
       <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-slate-200">
@@ -446,7 +486,7 @@ const Home = () => {
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 ml-auto">
               {/* Account */}
               {user ? (
                 <div className="relative group">
@@ -473,7 +513,7 @@ const Home = () => {
               ) : (
                 <button
                   onClick={() => navigate('/login')}
-                  className="hidden sm:block text-sm font-semibold text-slate-700 hover:text-emerald-600 transition-colors border border-slate-300 hover:border-emerald-500 px-4 py-2 rounded-xl"
+                  className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-600 transition-colors border border-slate-300 hover:border-emerald-500 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl"
                 >
                   Sign In
                 </button>
@@ -547,7 +587,10 @@ const Home = () => {
                   </button>
                 </>
               ) : (
-                <button onClick={() => navigate('/login')} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
+                <button 
+                  onClick={() => navigate('/login')} 
+                  className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600 cursor-pointer font-medium"
+                >
                   Sign In
                 </button>
               )}
@@ -556,10 +599,10 @@ const Home = () => {
         )}
       </header>
 
-      {/* ── Container-Bounded Hero Banner (Centered & Clean with Auto-play) ── */}
-      <section className="bg-slate-50 py-8 px-4 sm:px-6">
+      {/* ── Container-Bounded Hero Banner ── */}
+      <section className="bg-slate-50 py-4 sm:py-8 px-3 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="relative w-full min-h-[440px] md:min-h-[480px] rounded-3xl overflow-hidden flex items-center justify-center text-center p-8 md:p-16">
+          <div className="relative w-full min-h-[280px] sm:min-h-[380px] md:min-h-[480px] rounded-2xl sm:rounded-3xl overflow-hidden flex items-center justify-center text-center p-4 sm:p-8 md:p-16">
             
             {slides.map((slide, i) => (
               <div
@@ -577,22 +620,19 @@ const Home = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/50" />
                 
                 {/* Centered Content */}
-                <div className="relative z-10 max-w-2xl mx-auto space-y-6 flex flex-col items-center justify-center h-full">
-                  <span className="inline-block bg-amber-400 text-emerald-900 text-xs font-extrabold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                <div className="relative z-10 max-w-2xl mx-auto space-y-2 sm:space-y-6 flex flex-col items-center justify-center h-full px-3 sm:px-6">
+                  <span className="inline-block bg-amber-400 text-emerald-900 text-[8px] sm:text-xs font-extrabold px-2.5 sm:px-4 py-0.5 sm:py-1.5 rounded-full uppercase tracking-wider shadow-lg">
                     {slide.tag}
                   </span>
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-lg">
+                  <h2 className="text-lg sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-lg">
                     {slide.title}
                   </h2>
-                  <p className="text-white/95 text-sm md:text-base max-w-lg mx-auto leading-relaxed drop-shadow-md">
+                  <p className="text-white/95 text-[10px] sm:text-sm md:text-base max-w-lg mx-auto leading-relaxed drop-shadow-md">
                     {slide.subtitle}
                   </p>
-                  <div className="flex gap-4 flex-wrap justify-center">
-                    <button className="px-8 py-3.5 bg-amber-400 text-emerald-900 font-bold rounded-xl hover:bg-amber-300 transition-colors text-sm md:text-base shadow-lg">
-                      Shop Fresh Harvest
-                    </button>
-                    <button className="px-8 py-3.5 bg-white/10 border-2 border-white/30 text-white font-semibold rounded-xl hover:bg-white/20 transition-colors text-sm md:text-base backdrop-blur-sm shadow-lg">
-                      Explore Organic Farms
+                  <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
+                    <button className="px-4 sm:px-8 py-2 sm:py-3.5 bg-amber-400 text-emerald-900 font-bold rounded-lg sm:rounded-xl hover:bg-amber-300 transition-colors text-xs sm:text-sm md:text-base shadow-lg">
+                      Shop Now
                     </button>
                   </div>
                 </div>
@@ -600,17 +640,17 @@ const Home = () => {
             ))}
 
             {/* Navigation Arrows */}
-            <button onClick={() => setCurrentSlide(s => (s - 1 + slides.length) % slides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
-              <ChevronLeft className="w-6 h-6 text-slate-800" />
+            <button onClick={() => setCurrentSlide(s => (s - 1 + slides.length) % slides.length)} className="absolute left-1.5 sm:left-4 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-8 sm:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
+              <ChevronLeft className="w-4 sm:w-6 h-4 sm:h-6 text-slate-800" />
             </button>
-            <button onClick={() => setCurrentSlide(s => (s + 1) % slides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
-              <ChevronRight className="w-6 h-6 text-slate-800" />
+            <button onClick={() => setCurrentSlide(s => (s + 1) % slides.length)} className="absolute right-1.5 sm:right-4 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-8 sm:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
+              <ChevronRight className="w-4 sm:w-6 h-4 sm:h-6 text-slate-800" />
             </button>
 
             {/* Dots */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+            <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 z-30">
               {slides.map((_, i) => (
-                <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2 rounded-full transition-all ${i === currentSlide ? 'bg-white w-8' : 'bg-white/50 w-2'}`} />
+                <button key={i} onClick={() => setCurrentSlide(i)} className={`h-1 sm:h-2 rounded-full transition-all ${i === currentSlide ? 'bg-white w-6 sm:w-8' : 'bg-white/50 w-1 sm:w-2'}`} />
               ))}
             </div>
           </div>
@@ -618,56 +658,62 @@ const Home = () => {
       </section>
 
       {/* ── Premium Category Showcase ── */}
-      <section className="bg-slate-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-extrabold text-slate-800">Shop by Category</h2>
-            <p className="text-slate-500 mt-2">Browse fresh produce curated directly from certified local farmlands.</p>
+      <section className="bg-slate-50 py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex items-center justify-between mb-6 sm:mb-10 gap-3">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">Shop by Category</h2>
+              <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-base">Browse fresh produce from local farms</p>
+            </div>
+            <Link to="/market" className="hidden sm:inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all whitespace-nowrap">
+              View All <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {categoryData.map((cat, i) => (
-              <div
+              <Link
+                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
                 key={i}
-                className="group relative rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] bg-white"
+                className="group relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white"
               >
                 {/* 2x2 Mosaic Image Grid */}
-                <Link to={`/products?category=${cat.categoryKey}`} className="block">
-                  <div className="grid grid-cols-2 grid-rows-2 h-56">
-                    {cat.mosaicImages.map((img, idx) => (
-                      <div key={idx} className="relative overflow-hidden">
-                        <img
-                          src={img}
-                          alt={`${cat.name} ${idx + 1}`}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </Link>
-
-                {/* Card Footer */}
-                <div className="p-5 flex items-center justify-between border-t border-slate-100">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 leading-tight">{cat.name}</h3>
-                    <p className="text-sm text-slate-500 mt-1">{cat.count} Items</p>
-                  </div>
-                  <Link
-                    to={`/products?category=${cat.categoryKey}`}
-                    className="flex items-center gap-2 text-emerald-600 font-semibold text-sm group-hover:text-emerald-700 transition-colors"
-                  >
-                    View All
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
+                <div className="grid grid-cols-2 grid-rows-2 h-36 sm:h-56">
+                  {cat.mosaicImages.map((img, idx) => (
+                    <div key={idx} className="relative overflow-hidden">
+                      <img
+                        src={img}
+                        alt={`${cat.name} ${idx + 1}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </div>
+                  ))}
                 </div>
-              </div>
+                
+                {/* Card Footer */}
+                <div className="p-2.5 sm:p-5 flex flex-col gap-1 border-t border-slate-100">
+                  <h3 className="text-xs sm:text-lg font-bold text-slate-800 leading-tight line-clamp-1">{cat.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] sm:text-sm text-slate-500">{cat.count} Items</p>
+                    <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-600" />
+                  </div>
+                </div>
+              </Link>
             ))}
+          </div>
+
+          {/* Mobile View All Button */}
+          <div className="mt-6 text-center sm:hidden">
+            <Link
+              to="/market"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-xs shadow-md"
+            >
+              View All Categories <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </section>
-
-
 
       {/* ── Footer ── */}
       <footer className="bg-slate-900 text-white mt-4">
@@ -675,6 +721,7 @@ const Home = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-xl">🌾</span>
               </div>
               <span className="text-lg font-extrabold">FarmConnect</span>
             </div>
@@ -684,13 +731,14 @@ const Home = () => {
           {[
             { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
             { title: 'For Vendors',  links: ['Start Selling', 'Vendor Dashboard', 'Pricing', 'Analytics'] },
+            { title: 'Company',      links: ['Careers', 'Blog', 'Contact'] },
             { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'FAQ'] },
-          ].map(col => (
-            <div key={col.title}>
+          ].map((col, index) => (
+            <div key={`footer-col-${index}-${col.title}`}>
               <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
               <ul className="space-y-2">
-                {col.links.map(link => (
-                  <li key={link}><a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">{link}</a></li>
+                {col.links.map((link, linkIndex) => (
+                  <li key={`${col.title}-link-${linkIndex}`}><a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">{link}</a></li>
                 ))}
               </ul>
             </div>

@@ -1,12 +1,8 @@
-require('dotenv').config(); // Trigger nodemon restart
+require('dotenv').config();
 const app = require('./src/app');
-const config = require('./src/config');
-const { PrismaClient } = require('@prisma/client');
 const { connectDB } = require('./src/db/connectDB');
 
-const PORT = config.PORT || 5000;
-
-// Initialize Prisma handled in connectDB
+const PORT = process.env.PORT || 5000;
 
 // Handle uncaught errors
 process.on('uncaughtException', (err) => {
@@ -24,7 +20,6 @@ connectDB()
   .then(() => {
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${config.NODE_ENV}`);
     });
 
     // Keep server alive

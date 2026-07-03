@@ -17,6 +17,7 @@ import Home from './pages/home/Home';
 import Contact from './pages/contact/Contact';
 import Favorites from './pages/favorites/Favorites';
 import Product from './pages/dashbord/customer/product/Product';
+import Market from './pages/market/Market';
 import { ROLES } from './context/roles';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/market" element={<Market />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/products" element={<Product />} />
@@ -89,7 +91,7 @@ function App() {
             path="/customer/products"
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
-                <Navigate to="/customer/dashboard/products" replace />
+                <Navigate to="/market" replace />
               </ProtectedRoute>
             }
           />

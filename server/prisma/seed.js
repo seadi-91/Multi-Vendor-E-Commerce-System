@@ -3,8 +3,12 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcrypt');
 
 async function main() {
-  const adminEmail = 'admin@farmconnect.com';
+  console.log('Seeding database...');
+  
+  try {
+    const adminEmail = 'admin@farmconnect.com';
 
+<<<<<<< Updated upstream
   // 1. መጀመሪያ ይህ ኢሜይል ዳታቤዙ ውስጥ መኖሩን ማረጋገጥ
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail }
@@ -21,16 +25,35 @@ async function main() {
         password: hashedPassword,
         role: 'ADMIN',
       },
+=======
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: adminEmail }
+>>>>>>> Stashed changes
     });
-    console.log('Default Admin created successfully:', admin);
-  } else {
-    console.log('Admin already exists in the database. Skipping...');
+
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+
+      const admin = await prisma.user.create({
+        data: {
+          name: 'Main Admin',
+          email: adminEmail,
+          password: hashedPassword,
+          role: 'ADMIN',
+        },
+      });
+      console.log('✅ Default Admin created successfully');
+    } else {
+      console.log('✅ Admin already exists');
+    }
+  } catch (error) {
+    console.error('❌ Seed error:', error.message);
   }
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('Seed failed:', e.message);
     process.exit(1);
   })
   .finally(async () => {

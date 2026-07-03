@@ -125,7 +125,7 @@ const Checkout = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <FiShoppingBag className="text-7xl text-gray-300 mx-auto mb-6" />
+          <ShoppingBag className="text-7xl text-gray-300 mx-auto mb-6" />
           <h2 className="text-3xl font-extrabold text-gray-800 mb-3">Your cart is empty</h2>
           <p className="text-gray-500 mb-8">Add some delicious items to proceed to checkout</p>
           <button
@@ -149,7 +149,7 @@ const Checkout = () => {
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white rounded-2xl p-10 text-center max-w-md mx-4 shadow-2xl">
                 <div className="w-20 h-20 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-6">
-                  <FiCheck className="text-4xl" />
+                  <Check className="text-4xl" />
                 </div>
                 <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Order Confirmed!</h2>
                 <p className="text-gray-600 mb-6">Thank you for your order. Your food is being prepared.</p>
@@ -181,7 +181,7 @@ const Checkout = () => {
               {/* Header Section */}
               <div className="mb-8">
                 <div className="flex items-center gap-2 text-2xl font-extrabold text-gray-900 mb-4">
-                  <FiShoppingBag className="text-emerald-600" />
+                  <ShoppingBag className="text-emerald-600" />
                   Checkout
                 </div>
                 <div className="flex items-center">
@@ -208,7 +208,7 @@ const Checkout = () => {
                   <form className="bg-white rounded-2xl shadow-xl p-8" onSubmit={handleSubmit}>
                     <div className="mb-10">
                       <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-5">
-                        <FiHome className="text-emerald-600" />
+                        <Home className="text-emerald-600" />
                         Order Information
                       </h3>
 
@@ -333,7 +333,7 @@ const Checkout = () => {
 
                     <div className="mb-10">
                       <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-5">
-                        <FiCreditCard className="text-emerald-600" />
+                        <CreditCard className="text-emerald-600" />
                         Payment Method
                       </h3>
                       <div className="grid grid-cols-1 gap-4">
@@ -354,9 +354,9 @@ const Checkout = () => {
                               className="w-5 h-5 text-emerald-600"
                             />
                             <div className="flex items-center gap-3">
-                              {method === 'cash' && <MdDeliveryDining className="text-2xl text-emerald-700" />}
-                              {method === 'card' && <FiCreditCard className="text-2xl text-emerald-700" />}
-                              {method === 'mobile' && <FiPhone className="text-2xl text-emerald-700" />}
+                              {method === 'cash' && <Truck className="text-2xl text-emerald-700" />}
+                              {method === 'card' && <CreditCard className="text-2xl text-emerald-700" />}
+                              {method === 'mobile' && <Phone className="text-2xl text-emerald-700" />}
                               <div>
                                 <h4 className="font-bold text-gray-800">
                                   {method === 'cash' ? 'Cash on Delivery' : method === 'card' ? 'Credit/Debit Card' : 'Mobile Payment'}
@@ -371,7 +371,7 @@ const Checkout = () => {
                       </div>
 
                       <div className="mt-5 flex items-center gap-2 text-sm text-gray-600">
-                        <FiLock className="text-emerald-600" />
+                        <Lock className="text-emerald-600" />
                         <span>Your payment information is secure and encrypted</span>
                       </div>
                     </div>
@@ -396,7 +396,7 @@ const Checkout = () => {
                           </>
                         ) : (
                           <>
-                            <MdPayment />
+                            <Wallet />
                             Place Order - {formatPrice(total)} ETB
                           </>
                         )}
@@ -451,7 +451,7 @@ const Checkout = () => {
                     <div className="flex items-center gap-3 py-4 border-t border-gray-200">
                       {formData.isDelivery ? (
                         <>
-                          <FiMapPin className="text-emerald-600 text-2xl" />
+                          <MapPin className="text-emerald-600 text-2xl" />
                           <div>
                             <h4 className="font-semibold text-gray-800">Delivery Estimate</h4>
                             <p className="text-sm text-gray-600">30-45 minutes to {formData.city || 'your city'}</p>
@@ -459,7 +459,7 @@ const Checkout = () => {
                         </>
                       ) : (
                         <>
-                          <FiShoppingBag className="text-emerald-600 text-2xl" />
+                          <ShoppingBag className="text-emerald-600 text-2xl" />
                           <div>
                             <h4 className="font-semibold text-gray-800">Pickup Time</h4>
                             <p className="text-sm text-gray-600">Ready in 15-20 minutes</p>
@@ -469,7 +469,7 @@ const Checkout = () => {
                     </div>
 
                     <div className="flex items-center gap-2 py-3 text-sm text-gray-700 border-t border-gray-200">
-                      <FiCheck className="text-emerald-600" />
+                      <Check className="text-emerald-600" />
                       <span>100% Quality & Satisfaction Guarantee</span>
                     </div>
                   </div>
