@@ -28,12 +28,12 @@ const Settings = () => {
   });
 
   const [addressData, setAddressData] = useState({
-    homeAddress: { city: '', subcity: '', fullAddress: '' },
+    homeAddress: { city: '', subcity: '' },
     otherAddresses: []
   });
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
-  const [addressForm, setAddressForm] = useState({ city: '', subcity: '', fullAddress: '' });
+  const [addressForm, setAddressForm] = useState({ city: '', subcity: '' });
   
   // Security form states
   const [passwordForm, setPasswordForm] = useState({
@@ -186,7 +186,7 @@ const Settings = () => {
 
   const handleOpenAddAddress = () => {
     setEditingAddress(null);
-    setAddressForm({ city: '', subcity: '', fullAddress: '' });
+    setAddressForm({ city: '', subcity: '' });
     setShowAddressModal(true);
   };
 
@@ -203,6 +203,13 @@ const Settings = () => {
 
   const handleSaveAddress = (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!addressForm.city || !addressForm.subcity) {
+      showError('City and Subcity are required');
+      return;
+    }
+    
     if (editingAddress) {
       if (editingAddress.type === 'home') {
         setAddressData(prev => ({ ...prev, homeAddress: addressForm }));
@@ -367,13 +374,19 @@ const Settings = () => {
             <input
               type={showPassword.current ? 'text' : 'password'}
               value={passwordForm.currentPassword}
-              onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${passwordErrors.currentPassword ? 'border-red-500' : 'border-gray-300'}`}
+              onChange={(e) => {
+                setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }));
+                if (passwordErrors.currentPassword) {
+                  setPasswordErrors(prev => ({ ...prev, currentPassword: '' }));
+                }
+              }}
+              className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none ${passwordErrors.currentPassword ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Enter current password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               {showPassword.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -389,13 +402,19 @@ const Settings = () => {
             <input
               type={showPassword.new ? 'text' : 'password'}
               value={passwordForm.newPassword}
-              onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${passwordErrors.newPassword ? 'border-red-500' : 'border-gray-300'}`}
+              onChange={(e) => {
+                setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }));
+                if (passwordErrors.newPassword) {
+                  setPasswordErrors(prev => ({ ...prev, newPassword: '' }));
+                }
+              }}
+              className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none ${passwordErrors.newPassword ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Enter new password (min 8 characters)"
             />
             <button
               type="button"
               onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               {showPassword.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -411,13 +430,19 @@ const Settings = () => {
             <input
               type={showPassword.confirm ? 'text' : 'password'}
               value={passwordForm.confirmPassword}
-              onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
+              onChange={(e) => {
+                setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }));
+                if (passwordErrors.confirmPassword) {
+                  setPasswordErrors(prev => ({ ...prev, confirmPassword: '' }));
+                }
+              }}
+              className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Re-enter new password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               {showPassword.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -558,11 +583,10 @@ const Settings = () => {
               <Edit2 className="w-4 h-4" />
             </button>
           </div>
-          {(addressData.homeAddress.city || addressData.homeAddress.subcity || addressData.homeAddress.fullAddress) ? (
+          {(addressData.homeAddress.city || addressData.homeAddress.subcity) ? (
             <div className="space-y-1 text-sm text-gray-700">
               {addressData.homeAddress.subcity && <p>{addressData.homeAddress.subcity}</p>}
               {addressData.homeAddress.city && <p>{addressData.homeAddress.city}</p>}
-              {addressData.homeAddress.fullAddress && <p>{addressData.homeAddress.fullAddress}</p>}
             </div>
           ) : (
             <p className="text-sm text-gray-500">No home address set</p>
@@ -598,7 +622,6 @@ const Settings = () => {
                 <div className="space-y-1 text-sm text-gray-700">
                   {addr.subcity && <p>{addr.subcity}</p>}
                   {addr.city && <p>{addr.city}</p>}
-                  {addr.fullAddress && <p>{addr.fullAddress}</p>}
                 </div>
               </div>
             ))}
@@ -616,11 +639,12 @@ const Settings = () => {
     >
       <form onSubmit={handleSaveAddress} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
           <select
             value={addressForm.city}
             onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
           >
             <option value="">Select City</option>
             <option value="Addis Ababa">Addis Ababa</option>
@@ -632,24 +656,14 @@ const Settings = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Subcity/Area</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Subcity/Area *</label>
           <input
             type="text"
             placeholder="e.g., Bole, Kirkos, Arada"
             value={addressForm.subcity}
             onChange={(e) => setAddressForm(prev => ({ ...prev, subcity: e.target.value }))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
-          <textarea
-            placeholder="House number, street, landmark, etc."
-            value={addressForm.fullAddress}
-            onChange={(e) => setAddressForm(prev => ({ ...prev, fullAddress: e.target.value }))}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
           />
         </div>
         
