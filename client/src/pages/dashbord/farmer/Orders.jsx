@@ -230,26 +230,27 @@ const FarmerOrders = () => {
   const completedCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-3 sm:space-y-4 w-full">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">Orders Management</h1>
-          <p className="text-xs text-slate-500 mt-1">Track, process, and fulfill your customer orders efficiently.</p>
+          <h1 className="text-base sm:text-lg font-semibold text-slate-900">Orders Management</h1>
+          <p className="text-[10px] sm:text-xs text-slate-500 mt-1">Track, process, and fulfill your customer orders efficiently.</p>
         </div>
         <Button
           onClick={fetchOrders}
           variant="outline"
-          className="gap-2 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 shadow-sm h-9 text-sm rounded-lg"
+          className="gap-2 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 shadow-sm h-8 sm:h-9 text-xs sm:text-sm rounded-lg"
           disabled={loading}
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Data
+          <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh Data</span>
+          <span className="sm:hidden">Refresh</span>
         </Button>
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <StatCard icon={ShoppingBag}    label="Total Orders"  value={orders.length}           color="bg-emerald-50 text-emerald-600" />
         <StatCard icon={Clock}          label="Pending"       value={pendingCount}             color="bg-amber-50 text-amber-600" />
         <StatCard icon={CheckCircle}    label="Completed"     value={completedCount}           color="bg-emerald-50 text-emerald-600" />
@@ -260,23 +261,23 @@ const FarmerOrders = () => {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
           {/* Tab Header */}
-          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 bg-slate-50/50">
-            <TabsList className="bg-white border border-slate-200 p-1 rounded-lg gap-1 shadow-sm h-auto flex-wrap">
-              <TabsTrigger value="all"        className="data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200">All Orders</TabsTrigger>
-              <TabsTrigger value="pending"    className="data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200">Pending</TabsTrigger>
-              <TabsTrigger value="processing" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200">Processing</TabsTrigger>
-              <TabsTrigger value="delivered"  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200">Delivered</TabsTrigger>
-              <TabsTrigger value="cancelled"  className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200">Cancelled</TabsTrigger>
+          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200 bg-slate-50/50">
+            <TabsList className="bg-white border border-slate-200 p-1 rounded-lg gap-1 shadow-sm h-auto flex-wrap w-full xl:w-auto">
+              <TabsTrigger value="all"        className="data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">All Orders</TabsTrigger>
+              <TabsTrigger value="pending"    className="data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Pending</TabsTrigger>
+              <TabsTrigger value="processing" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Processing</TabsTrigger>
+              <TabsTrigger value="delivered"  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Delivered</TabsTrigger>
+              <TabsTrigger value="cancelled"  className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Cancelled</TabsTrigger>
             </TabsList>
 
             <div className="relative w-full xl:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
               <Input
                 type="text"
                 placeholder="Search orders or customers..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 h-8 bg-white border-slate-200 shadow-sm focus-visible:ring-slate-500 text-sm rounded-md w-full"
+                className="pl-8 sm:pl-9 h-8 bg-white border-slate-200 shadow-sm focus-visible:ring-slate-500 text-xs sm:text-sm rounded-md w-full"
               />
             </div>
           </div>
@@ -317,34 +318,34 @@ const FarmerOrders = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-white border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="px-4 py-2.5">Order ID</th>
-                      <th className="px-4 py-2.5">Customer</th>
-                      <th className="px-4 py-2.5">Date</th>
-                      <th className="px-4 py-2.5">Total</th>
-                      <th className="px-4 py-2.5">Status</th>
-                      <th className="px-4 py-2.5 text-right">Actions</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5">Order ID</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5">Customer</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5 hidden sm:table-cell">Date</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5">Total</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5">Status</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-2.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredOrders.map(order => (
                       <tr key={order.id} className="hover:bg-slate-50/80 transition-colors group">
-                        <td className="px-4 py-2.5">
-                          <span className="font-mono font-semibold text-slate-700 text-xs">{order.orderNumber}</span>
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5">
+                          <span className="font-mono font-semibold text-slate-700 text-[10px] sm:text-xs">{order.orderNumber}</span>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0 shadow-sm text-white text-[10px] font-black">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0 shadow-sm text-white text-[9px] sm:text-[10px] font-black">
                               {(order.customer?.name || order.fullName || '?')[0].toUpperCase()}
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-semibold text-slate-900 text-xs leading-tight">{order.customer?.name || order.fullName}</span>
-                              <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1 mt-0.5">
-                                <Package className="w-3 h-3" /> {order.items?.length || 0} items
+                              <span className="font-semibold text-slate-900 text-[10px] sm:text-xs leading-tight truncate max-w-[100px] sm:max-w-none">{order.customer?.name || order.fullName}</span>
+                              <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+                                <Package className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {order.items?.length || 0} items
                               </span>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5 hidden sm:table-cell">
                           <div className="flex flex-col text-xs">
                             <span className="font-semibold text-slate-700">
                               {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -354,16 +355,16 @@ const FarmerOrders = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
-                          <div className="font-semibold text-slate-900 text-xs">
-                            {(order.total || 0).toFixed(2)} <span className="text-[10px] font-semibold text-slate-400">ETB</span>
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5">
+                          <div className="font-semibold text-slate-900 text-[10px] sm:text-xs">
+                            {(order.total || 0).toFixed(2)} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400">ETB</span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5">
                           <Select value={order.status} onValueChange={val => updateOrderStatus(order.id, val)}>
-                            <SelectTrigger className="h-7 w-32 border-0 shadow-none p-0 focus:ring-0 bg-transparent hover:bg-slate-50 rounded-md pl-1 transition-colors">
+                            <SelectTrigger className="h-6 sm:h-7 w-24 sm:w-32 border-0 shadow-none p-0 focus:ring-0 bg-transparent hover:bg-slate-50 rounded-md pl-1 transition-colors">
                               <StatusBadge status={order.status} />
-                              <ChevronDown className="w-3.5 h-3.5 ml-1.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-1.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </SelectTrigger>
                             <SelectContent className="z-[100] font-medium">
                               <SelectItem value="pending">Pending</SelectItem>
@@ -375,14 +376,14 @@ const FarmerOrders = () => {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5 text-right">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 gap-1.5 font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-all text-xs"
+                            className="h-6 sm:h-7 gap-1 sm:gap-1.5 font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-all text-[10px] sm:text-xs"
                             onClick={() => setSelectedOrder(order)}
                           >
-                            <Eye className="w-3.5 h-3.5" /> View
+                            <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">View</span>
                           </Button>
                         </td>
                       </tr>
@@ -396,7 +397,7 @@ const FarmerOrders = () => {
 
         {/* Footer summary */}
         {!loading && !error && filteredOrders.length > 0 && (
-          <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs font-medium text-slate-500">
+          <div className="px-3 sm:px-4 py-2 sm:py-3 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] sm:text-xs font-medium text-slate-500">
             <span>Showing {filteredOrders.length} of {orders.length} orders</span>
             <span>Filtered Total: <span className="font-semibold text-slate-900 ml-1">{filteredOrders.reduce((s, o) => s + (o.total || 0), 0).toFixed(2)} ETB</span></span>
           </div>

@@ -123,13 +123,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = () => {
     console.log('Logging out user');
-    // Note: Logout is client-side only since we use JWT tokens
     setUser(null);
     localStorage.removeItem('user');
-    localStorage.removeItem('token');         // ← always clear the token too
-    localStorage.removeItem('auth-storage');  // ← clear Zustand persist store
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth-storage');
+    // Force redirect to home page
+    window.location.href = '/';
   };
 
   return (

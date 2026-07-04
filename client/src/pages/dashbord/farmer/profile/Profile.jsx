@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Camera, Edit2, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
 const Profile = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: 'Mubarek Edris',
@@ -19,6 +23,8 @@ const Profile = () => {
     certifications: ['Organic Certified', 'Fair Trade'],
     languages: ['Amharic', 'English'],
   });
+
+  console.log('Profile component rendered, logout function:', typeof logout);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -34,6 +40,16 @@ const Profile = () => {
     // Reset logic here
   };
 
+  const handleLogout = () => {
+    console.log('Logout button clicked');
+    logout();
+  };
+
+  const handleProfileClick = () => {
+    // Already on profile page
+    console.log('Profile clicked');
+  };
+
   return (
     <div className="space-y-4 w-full">
       {/* Header */}
@@ -42,23 +58,25 @@ const Profile = () => {
           <h1 className="text-lg font-semibold text-slate-900">Farm Profile</h1>
           <p className="text-xs text-slate-500">Manage your farm information and personal details</p>
         </div>
-        {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)} className="bg-slate-900 hover:bg-slate-800 h-9 text-sm rounded-lg transition-all">
-            <Edit2 className="h-4 w-4 mr-2" />
-            Edit Profile
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button onClick={handleCancel} variant="outline" className="border-slate-200 h-9 text-sm rounded-lg">
-              <X className="h-4 w-4 mr-2" />
-              Cancel
+        <div className="flex items-center gap-2">
+          {!isEditing ? (
+            <Button onClick={() => setIsEditing(true)} className="bg-slate-900 hover:bg-slate-800 h-9 text-sm rounded-lg transition-all">
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit Profile
             </Button>
-            <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 h-9 text-sm rounded-lg transition-all">
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
-          </div>
-        )}
+          ) : (
+            <div className="flex gap-2">
+              <Button onClick={handleCancel} variant="outline" className="border-slate-200 h-9 text-sm rounded-lg">
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 h-9 text-sm rounded-lg transition-all">
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Profile Card */}

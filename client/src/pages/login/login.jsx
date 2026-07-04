@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ROUTES_BY_ROLE, ROLES } from '../../context/roles';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -40,10 +41,12 @@ const Login = () => {
       toast.success(`Welcome back, ${result.user.name || result.user.role}!`);
       setFormData(prev => ({ ...prev, password: '' }));
       
-      // Normalize role to lowercase for route lookup
+      // Determine redirect: use intended path if provided, else role-based default
       const userRole = result.user.role?.toLowerCase();
-      const redirectPath = ROUTES_BY_ROLE[userRole] || '/';
-      console.log('Login redirect:', { userRole, redirectPath });
+      const from = location.state?.from;
+      const defaultPath = ROUTES_BY_ROLE[userRole] || '/';
+      const redirectPath = from || defaultPath;
+      console.log('Login redirect:', { userRole, from, redirectPath });
       setTimeout(() => navigate(redirectPath), 800);
     } catch (err) {
       toast.dismiss();

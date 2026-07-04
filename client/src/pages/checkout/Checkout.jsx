@@ -47,12 +47,26 @@ const Checkout = () => {
     setError(null);
 
     try {
-      console.log('Starting order submission...');
-      console.log('Cart items:', cart);
-      console.log('Form data:', formData);
-      console.log('API URL:', api.defaults.baseURL);
-      
-      // Create order payload
+      // ── Chapa payment: initiate transaction and redirect ──────────────
+      if (formData.paymentMethod === 'chapa') {
+        const nameParts = formData.fullName.trim().split(' ');
+        const first_name = nameParts[0] || 'Customer';
+        const last_name = nameParts.slice(1).join(' ') || '';
+
+        const { data } = await api.post('/payments/chapa/initiate', {
+          amount: total,
+          email: formData.email,
+          first_name,
+          last_name,
+        });
+
+        // Redirect browser to Chapa checkout page
+        window.location.href = data.checkout_url;
+        return; // stop further execution
+      }
+
+      // subtotal, deliveryFee, and total are already computed at component scope
+
       const orderPayload = {
         customerId: user?.id || null,
         items: cart,
@@ -93,19 +107,14 @@ const Checkout = () => {
         navigate('/customer/dashboard', { state: { orderSuccess: true } });
       }, 3000);
     } catch (error) {
-      console.error('Order submission error:', error);
-      
-      const errorMessage = 'Order submitted locally. Backend integration pending.';
-      setError(errorMessage);
-      
-      // Still show success after 2 seconds
-      setTimeout(() => {
-        setOrderPlaced(true);
-        setTimeout(() => {
-          clearCart();
-          navigate('/customer/dashboard', { state: { orderSuccess: true } });
-        }, 3000);
-      }, 2000);
+      console.error('Order submission failed:', error);
+      const errMsg =
+        error?.response?.data?.chapaError?.message ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Order submission failed. Please try again.';
+      alert(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -274,31 +283,51 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    {/* Payment Card */}
-                    <div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-100 p-6 hover:shadow-2xl transition-shadow">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-                          <CreditCard className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-black text-gray-900">Payment Method</h3>
-                          <p className="text-xs text-gray-500">Select how you'd like to pay</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3 mb-5">
-                        {[
-                          { method: 'cash', icon: Truck, title: 'Cash on Delivery', desc: 'Pay when you receive' },
-                          { method: 'card', icon: CreditCard, title: 'Credit/Debit Card', desc: 'Secure online payment' },
-                          { method: 'mobile', icon: Phone, title: 'Mobile Payment', desc: 'CBE Birr, Telebirr' }
-                        ].map(({ method, icon: Icon, title, desc }) => (
-                          <label key={method} className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2 transform hover:scale-102 ${formData.paymentMethod === method ? 'border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-md' : 'border-gray-200 hover:border-emerald-300'}`}>
-                            <input type="radio" name="paymentMethod" value={method} checked={formData.paymentMethod === method} onChange={handleInputChange} className="w-4 h-4" />
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${formData.paymentMethod === method ? 'bg-emerald-200' : 'bg-gray-100'}`}>
-                              <Icon className={`w-4 h-4 ${formData.paymentMethod === method ? 'text-emerald-700' : 'text-gray-600'}`} />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs font-bold text-gray-900">{title}</p>
-                              <p className="text-xs text-gray-600">{desc}</p>
+                    <div className="mb-10">
+                      <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-5">
+                        <CreditCard className="text-emerald-600" />
+                        Payment Method
+                      </h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        {['cash', 'card', 'mobile', 'chapa'].map((method) => (
+                          <label
+                            key={method}
+                            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.paymentMethod === method
+                              ? 'border-emerald-500 bg-emerald-50'
+                              : 'border-gray-300 bg-white hover:border-emerald-300'
+                              }`}
+                          >
+                            <input
+                              type="radio"
+                              name="paymentMethod"
+                              value={method}
+                              checked={formData.paymentMethod === method}
+                              onChange={handleInputChange}
+                              className="w-5 h-5 text-emerald-600"
+                            />
+                            <div className="flex items-center gap-3">
+                              {method === 'cash' && <Truck className="text-2xl text-emerald-700" />}
+                              {method === 'card' && <CreditCard className="text-2xl text-emerald-700" />}
+                              {method === 'mobile' && <Phone className="text-2xl text-emerald-700" />}
+                              {method === 'chapa' && (
+                                <svg className="w-6 h-6 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                </svg>
+                              )}
+                              <div>
+                                <h4 className="font-bold text-gray-800">
+                                  {method === 'cash' ? 'Cash on Delivery'
+                                    : method === 'card' ? 'Credit/Debit Card'
+                                      : method === 'mobile' ? 'Mobile Payment'
+                                        : 'Pay with Chapa'}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {method === 'cash' ? 'Pay when you receive your order'
+                                    : method === 'card' ? 'Pay securely with your card'
+                                      : method === 'mobile' ? 'CBE Birr, Telebirr, etc.'
+                                        : 'Secure online payment via Chapa'}
+                                </p>
+                              </div>
                             </div>
                           </label>
                         ))}
@@ -317,8 +346,8 @@ const Checkout = () => {
                           </>
                         ) : (
                           <>
-                            <Wallet className="w-5 h-5" />
-                            Place Order
+                            <Wallet className="text-2xl" />
+                            Place Order - {formatPrice(total)} ETB
                           </>
                         )}
                       </button>

@@ -246,13 +246,7 @@ exports.getFarmerOrders = async (req, res) => {
     const orderItems = await prisma.orderItem.findMany({
       where: { farmerId },
       include: {
-        order: {
-          include: {
-            user: {
-              select: { name: true, email: true, phone: true }
-            }
-          }
-        },
+        order: true,
         product: {
           select: { name: true, image: true, unit: true }
         }
@@ -268,6 +262,7 @@ exports.getFarmerOrders = async (req, res) => {
       if (!ordersMap.has(item.orderId)) {
         ordersMap.set(item.orderId, {
           id: item.orderId,
+          orderNumber: `ORD-${String(item.orderId).padStart(6, '0')}`,
           total: item.order.total,
           status: item.order.status,
           customerName: item.order.customerName,
@@ -275,14 +270,18 @@ exports.getFarmerOrders = async (req, res) => {
           customerPhone: item.order.customerPhone,
           customerAddress: item.order.customerAddress,
           notes: item.order.notes,
+          specialInstructions: item.order.notes,
+          subtotal: item.order.total,
+          tax: 0,
+          deliveryFee: 0,
           createdAt: item.order.createdAt,
           items: []
         });
       }
       ordersMap.get(item.orderId).items.push({
         id: item.id,
-        productName: item.product.name,
-        productImage: item.product.image,
+        name: item.product.name,
+        image: item.product.image,
         quantity: item.quantity,
         price: item.price,
         unit: item.product.unit

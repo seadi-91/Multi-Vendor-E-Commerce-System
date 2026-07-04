@@ -5,7 +5,6 @@ import {
   Package,
   Settings,
   User,
-  LogOut,
   ShoppingBag,
   TrendingUp,
   BarChart3,
@@ -30,7 +29,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 
-const FarmerSidebar = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
+const FarmerSidebar = ({ user, isCollapsed, onToggleCollapse }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -174,39 +173,10 @@ const FarmerSidebar = ({ user, onLogout, isCollapsed, onToggleCollapse }) => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => handleNavigation('/farmer/profile')}
-                  isActive={isActive('/farmer/profile')}
-                >
-                  <User size={18} />
-                  {!isCollapsed && <span>Profile</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => handleNavigation('/farmer/settings')}
-                  isActive={isActive('/farmer/settings')}
-                >
-                  <Settings size={18} />
-                  {!isCollapsed && <span>Settings</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="p-4 border-t border-slate-200">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={onLogout} className="text-red-600 hover:text-red-700">
-              <LogOut size={18} />
-              {!isCollapsed && <span>Logout</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 };

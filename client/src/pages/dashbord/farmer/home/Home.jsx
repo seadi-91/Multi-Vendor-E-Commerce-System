@@ -117,38 +117,38 @@ const FarmerHome = () => {
   };
 
   return (
-    <div className="space-y-4 w-full animate-in fade-in duration-500">
+    <div className="space-y-3 sm:space-y-4 w-full px-2 sm:px-4 py-4 sm:py-6 animate-in fade-in duration-500">
       {loading ? (
         <>
           {/* Primary KPI Cards Skeleton */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
             {[...Array(4)].map((_, i) => (
               <LoadingSkeleton key={i} variant="card" />
             ))}
           </div>
 
           {/* Secondary KPI Cards Skeleton */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 w-full">
             {[...Array(6)].map((_, i) => (
               <LoadingSkeleton key={i} variant="card" />
             ))}
           </div>
 
           {/* Quick Actions Skeleton */}
-          <LoadingSkeleton variant="card" className="h-32 w-full" />
+          <LoadingSkeleton variant="card" className="h-24 sm:h-32 w-full" />
 
           {/* Chart and Products Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
-            <div className="lg:col-span-7">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 w-full">
+            <div className="lg:col-span-7 h-full min-h-[300px] sm:min-h-[350px]">
               <LoadingSkeleton variant="chart" />
             </div>
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-5 h-full min-h-[300px] sm:min-h-[350px]">
               <LoadingSkeleton variant="list" />
             </div>
           </div>
 
           {/* Orders and Tips Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
             <LoadingSkeleton variant="table" />
             <LoadingSkeleton variant="list" />
           </div>
@@ -156,7 +156,7 @@ const FarmerHome = () => {
       ) : (
         <>
           {/* Primary KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
             <StatCard
               title="Total Orders"
               value={stats.totalOrders}
@@ -201,7 +201,7 @@ const FarmerHome = () => {
           </div>
 
           {/* Secondary KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 w-full">
             <StatCard
               title="Pending Orders"
               value={stats.pendingOrders}
@@ -259,17 +259,17 @@ const FarmerHome = () => {
           </div>
 
           {/* First Row - Earnings Chart (7 cols) and Top Selling Products (5 cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
-            <div className="lg:col-span-7 h-full min-h-[350px]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 w-full">
+            <div className="lg:col-span-7 h-full min-h-[300px] sm:min-h-[350px]">
               <EarningsChart />
             </div>
-            <div className="lg:col-span-5 h-full min-h-[350px]">
+            <div className="lg:col-span-5 h-full min-h-[300px] sm:min-h-[350px]">
               <TopSellingProducts />
             </div>
           </div>
 
           {/* Second Row - Recent Orders (6 cols) and Farm Tips (6 cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
             <div className="h-full min-h-[300px]">
               <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
             </div>

@@ -26,19 +26,20 @@ export const CartProvider = ({ children }) => {
       ...product,
       description: product.description || '',
     };
+    const productId = product._id || product.id;
     setCart(prevCart => {
-      const existing = prevCart.find(item => item._id === product._id);
+      const existing = prevCart.find(item => (item._id || item.id) === productId);
       if (existing) {
         // Only add if not at stock limit
         if (existing.quantity < (product.stock || 99)) {
           return prevCart.map(item =>
-            item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+            (item._id || item.id) === productId ? { ...item, quantity: item.quantity + 1 } : item
           );
         } else {
           return prevCart;
         }
       } else {
-        return [...prevCart, { ...productWithDescription, quantity: 1 }];
+        return [...prevCart, { ...productWithDescription, quantity: 1, _id: productId }];
       }
     });
   };
@@ -46,7 +47,7 @@ export const CartProvider = ({ children }) => {
   // Increment quantity (max: stock)
   const incrementQuantity = (productId, stock = 99) => {
     setCart(prevCart => prevCart.map(item =>
-      item._id === productId && item.quantity < (item.stock || stock)
+      (item._id || item.id) === productId && item.quantity < (item.stock || stock)
         ? { ...item, quantity: item.quantity + 1 }
         : item
     ));
@@ -55,7 +56,7 @@ export const CartProvider = ({ children }) => {
   // Decrement quantity (min: 1)
   const decrementQuantity = (productId) => {
     setCart(prevCart => prevCart.map(item =>
-      item._id === productId && item.quantity > 1
+      (item._id || item.id) === productId && item.quantity > 1
         ? { ...item, quantity: item.quantity - 1 }
         : item
     ));
@@ -64,7 +65,7 @@ export const CartProvider = ({ children }) => {
 
   // Remove from cart handler
   const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item._id !== productId));
+    setCart(prevCart => prevCart.filter(item => (item._id || item.id) !== productId));
   };
 
   // Clear entire cart

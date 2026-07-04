@@ -245,17 +245,29 @@ const PublicHeader = ({ cartCount }) => {
 
 const Cart = () => {
   const { cart, removeFromCart, cartCount, incrementQuantity, decrementQuantity, clearCart } = useCart();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Show loading spinner while auth state is being resolved
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-xl font-semibold text-gray-700">Loading...</div>
+      </div>
+    );
+  }
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const favoritesCount = JSON.parse(localStorage.getItem('favorites') || '[]').length;
 
   const handleCheckout = () => {
+    if (loading) {
+      // Optionally show a spinner or prevent action until auth state is resolved
+      return;
+    }
     if (!user) {
-      navigate('/login');
+      navigate('/login', { replace: true, state: { from: '/customer/checkout' } });
       return;
     }
     navigate('/customer/checkout');

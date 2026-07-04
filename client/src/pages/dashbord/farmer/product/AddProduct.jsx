@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { CheckCircle2, X, Plus, Loader2, Image as ImageIcon, Trash2, Edit2, AlertCircle, Save, Calendar as CalendarIcon, TagIcon, Percent, ArrowLeft, TrendingUp, AlertTriangle, Search, Package } from 'lucide-react';
@@ -258,7 +257,7 @@ const ProductManagement = () => {
 
       {/* ── Add / Edit Form (Wizard) ── */}
       {showForm ? (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all duration-200">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all duration-200 relative z-10">
           {/* Wizard Progress */}
           <div className="bg-slate-50 border-b border-slate-200 p-3">
             <div className="flex items-center justify-between max-w-4xl mx-auto">
@@ -286,7 +285,7 @@ const ProductManagement = () => {
             </div>
           </div>
 
-          <div className="p-4 relative z-0 overflow-visible">
+          <div className="p-4 overflow-visible">
             <form id="product-form" onSubmit={handleSubmit} className="max-w-4xl">
               
               {/* Step 1: Basic Information */}
@@ -306,20 +305,43 @@ const ProductManagement = () => {
                       <div className="space-y-1.5">
                         <Label className="text-slate-700 font-medium text-xs">Category <span className="text-red-500">*</span></Label>
                         {formData.category === 'Others' ? (
-                          <Input name="customCategory" value={formData.customCategory} onChange={handleChange} placeholder="e.g., Spices, Herbs, Nuts" required className="h-9 bg-slate-50 text-sm rounded-md" />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none">📦</span>
+                            <Input
+                              name="customCategory"
+                              value={formData.customCategory}
+                              onChange={handleChange}
+                              placeholder="Type your category name..."
+                              required
+                              autoFocus
+                              className="h-9 bg-white text-sm rounded-md pl-9 border-emerald-400 ring-1 ring-emerald-300"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, category: 'Vegetables', customCategory: '' }))}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs underline"
+                            >
+                              ← back
+                            </button>
+                          </div>
                         ) : (
-                          <Select value={formData.category} onValueChange={(val) => handleSelectChange('category', val)} required>
-                            <SelectTrigger className="h-9 bg-slate-50 text-sm rounded-md">
-                              <SelectValue placeholder="Select Category" />
-                            </SelectTrigger>
-                            <SelectContent position="popper" className="z-[9999]">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base pointer-events-none">
+                              {CATEGORY_CONFIG[formData.category]?.icon || '📦'}
+                            </span>
+                            <select
+                              name="category"
+                              value={formData.category}
+                              onChange={handleChange}
+                              required
+                              className="h-9 w-full rounded-md border border-input bg-slate-50 pl-9 pr-8 text-sm text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
                               {Object.keys(CATEGORY_CONFIG).map(cat => (
-                                <SelectItem key={cat} value={cat}>
-                                  <div className="flex items-center gap-2 text-sm"><span>{CATEGORY_CONFIG[cat].icon}</span> {cat}</div>
-                                </SelectItem>
+                                <option key={cat} value={cat}>{cat}</option>
                               ))}
-                            </SelectContent>
-                          </Select>
+                            </select>
+                            <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -417,12 +439,19 @@ const ProductManagement = () => {
                         <Label className="text-slate-700 font-medium text-xs">Available Stock <span className="text-red-500">*</span></Label>
                         <div className="flex gap-2">
                           <Input name="stock" type="number" min="0" step="0.01" value={formData.stock} onChange={handleChange} required className="h-9 bg-slate-50 font-mono text-sm" placeholder="0" />
-                          <Select value={formData.unit} onValueChange={(val) => handleSelectChange('unit', val)}>
-                            <SelectTrigger className="w-[100px] h-9 bg-slate-50 font-medium text-sm"><SelectValue placeholder="Unit" /></SelectTrigger>
-                            <SelectContent position="popper" className="z-[9999]">
-                              {(CATEGORY_CONFIG[formData.category]?.units || ['kg']).map(u => (<SelectItem key={u} value={u}>{u}</SelectItem>))}
-                            </SelectContent>
-                          </Select>
+                          <div className="relative">
+                            <select
+                              name="unit"
+                              value={formData.unit}
+                              onChange={handleChange}
+                              className="h-9 w-[100px] rounded-md border border-input bg-slate-50 px-3 pr-7 text-sm font-medium text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
+                              {(CATEGORY_CONFIG[formData.category]?.units || ['kg']).map(u => (
+                                <option key={u} value={u}>{u}</option>
+                              ))}
+                            </select>
+                            <svg className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-1.5">

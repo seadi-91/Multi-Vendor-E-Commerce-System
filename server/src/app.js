@@ -58,13 +58,16 @@ const adminRouter = require('./router/adminRouter');
 const farmerRouter = require('./router/farmerRouter');
 const orderRouter = require('./router/orderRouter');
 const productsRouter = require('./router/productsRouter');
+const paymentRouter = require('./router/paymentRouter');
 
-app.use('/api/auth', authRouter);
-app.use('/api/projects', projectRouter);
-app.use('/api/admin', adminRouter);
-app.use('/api/farmer', farmerRouter);
-app.use('/api/orders', orderRouter);
-app.use('/api/products', productsRouter);
+// Apply rate limiting to routes
+app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/projects', apiLimiter, projectRouter);
+app.use('/api/admin', apiLimiter, adminRouter);
+app.use('/api/farmer', apiLimiter, farmerRouter);
+app.use('/api/orders', apiLimiter, orderRouter);
+app.use('/api/products', apiLimiter, productsRouter);
+app.use('/api/payments', apiLimiter, paymentRouter);
 
 // Health check
 app.get('/', (req, res) => {
