@@ -27,6 +27,7 @@ const AdminHeader = ({
   isSidebarOpen = true
 }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [navSearchTerm, setNavSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -185,6 +186,16 @@ const AdminHeader = ({
           </div>
 
           <nav className="header-navigation">
+            <div className="nav-search-container">
+              <input
+                type="search"
+                placeholder="Search..."
+                value={navSearchTerm}
+                onChange={(e) => setNavSearchTerm(e.target.value)}
+                className="nav-search-input"
+                aria-label="Search navigation"
+              />
+            </div>
             <div className="nav-scroll-container">
               {navItems.map(item => (
                 <button

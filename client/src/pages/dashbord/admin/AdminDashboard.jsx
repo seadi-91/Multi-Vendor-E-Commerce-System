@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminProfile from "./profile";
+import AdminSettings from "./settings";
 import api from "../../../api.js";
 import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "../../../components/ui/sidebar";
+import { Sheet, SheetContent, SheetTrigger } from "../../../components/ui/sheet";
 
 import {
   Users,
@@ -24,7 +27,13 @@ import {
   Check,
   X,
   FileText,
-  Bell
+  Bell,
+  User,
+  LogOut,
+  Settings,
+  MessageSquare,
+  Menu,
+  LayoutDashboard
 } from "lucide-react";
 
 const AdminDashboard = () => {
@@ -42,6 +51,21 @@ const AdminDashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Handle search functionality
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const query = searchTerm.trim().toLowerCase();
+    if (query) {
+      // Search is already handled by the filteredProducts, filteredUsers, etc. computed values
+      // Just ensure the search term is set
+      setSearchTerm(query);
+    }
+  };
+
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalFarmers: 0,
@@ -55,6 +79,16 @@ const AdminDashboard = () => {
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchDashboardStats = async () => {
     try {
@@ -143,7 +177,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (view !== "dashboard" && view !== "profile") {
+    if (view !== "profile") {
       fetchData();
     }
   }, [view]);
@@ -174,6 +208,22 @@ const AdminDashboard = () => {
         farmer.farmName?.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [pendingFarmers, searchTerm]);
+
+  const filteredPendingProducts = useMemo(() => {
+    return pendingProducts.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [pendingProducts, searchTerm]);
+
+  const filteredAllProducts = useMemo(() => {
+    return allProducts.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [allProducts, searchTerm]);
 
   const handleDelete = async (id, type) => {
     const confirmed = window.confirm(
@@ -230,7 +280,7 @@ const AdminDashboard = () => {
       await api.put(`/admin/farmers/${id}/reject`);
       setPendingFarmers(prev => prev.filter(f => f.id !== id));
       fetchDashboardStats();
-    } catch (err) {
+    } catch {
       alert("Failed to reject farmer.");
     }
   };
@@ -277,18 +327,6 @@ const AdminDashboard = () => {
         </div>
       );
 
-    if (data.length === 0)
-      return (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          {type === "pending-farmer" ? (
-             <Shield className="w-12 h-12 text-emerald-200 mb-4" />
-          ) : (
-             <Users className="w-8 h-8 text-slate-400 mb-4" />
-          )}
-          <p className="text-slate-500 font-medium text-lg">No {type.replace('-', ' ')}s found.</p>
-        </div>
-      );
-
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -320,7 +358,16 @@ const AdminDashboard = () => {
           </Button>
         </div>
 
-        {type === "pending-farmer" ? (
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+            {type === "pending-farmer" ? (
+               <Shield className="w-12 h-12 text-emerald-200 mb-4" />
+            ) : (
+               <Users className="w-8 h-8 text-slate-400 mb-4" />
+            )}
+            <p className="text-slate-500 font-medium text-lg">No {type.replace('-', ' ')}s found.</p>
+          </div>
+        ) : type === "pending-farmer" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.map((item) => (
               <div key={item.id} className="bg-white border border-amber-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
@@ -455,97 +502,206 @@ const AdminDashboard = () => {
   );
 
   return (
-    <SidebarProvider className="flex h-screen w-full overflow-hidden bg-slate-50/50">
-      <AdminSidebar
-        onLogout={logout}
-        activeTab={view}
-        onNav={setView}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebarCollapse}
-        pendingFarmersCount={stats.pendingFarmers}
-        pendingProductsCount={stats.pendingProducts}
-      />
-      <SidebarInset className="flex-1 h-full overflow-y-auto">
-        <div className="p-6 md:p-10 max-w-7xl mx-auto w-full">
-          <header className="mb-10">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="md:hidden">
-                <SidebarTrigger className="p-2" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1 capitalize">
-                  {view === 'dashboard' ? 'Overview' : view.replace('-', ' ')}
-                </h1>
-                <p className="text-sm text-slate-500">
-                  {view === 'dashboard'
-                    ? `Welcome back, ${user?.name}. Here's what's happening today.`
-                    : `Manage and monitor your platform's ${view.replace('-', ' ')}.`}
-                </p>
-              </div>
-            </div>
+    <SidebarProvider>
+      <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
+        {/* Desktop Sidebar */}
+        <div className={`hidden md:block ${isSidebarCollapsed ? 'w-28 flex-shrink-0 transition-all duration-300 ease-in-out' : 'w-64 flex-shrink-0 transition-all duration-300 ease-in-out'}`}>
+          <AdminSidebar
+            onLogout={logout}
+            activeTab={view}
+            onNav={setView}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebarCollapse}
+            pendingFarmersCount={stats.pendingFarmers}
+            pendingProductsCount={stats.pendingProducts}
+          />
+        </div>
 
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  <Bell className="w-5 h-5 text-slate-600" />
-                  {notifications.filter(n => !n.isRead).length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {notifications.filter(n => !n.isRead).length}
-                    </span>
-                  )}
+        {/* Mobile Sidebar Drawer */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden fixed top-4 left-4 z-[100] bg-white border border-slate-200 shadow-md">
+              <Menu className="h-5 w-5 text-slate-700" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0 z-[100] overflow-y-auto">
+            <div className="h-full flex flex-col bg-white">
+              {/* Mobile Header */}
+              <div className="bg-indigo-600 p-4 border-b border-indigo-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Admin Panel</h2>
+                    <p className="text-xs text-indigo-100">FarmConnect</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Navigation */}
+              <div className="flex-1 p-4 space-y-2">
+                <button onClick={() => { setView('dashboard'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <LayoutDashboard size={18} /> <span className="font-medium">Dashboard</span>
+                </button>
+                <button onClick={() => { setView('users'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'users' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <Users size={18} /> <span className="font-medium">Users</span>
+                </button>
+                <button onClick={() => { setView('farmers'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'farmers' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <UserCog size={18} /> <span className="font-medium">Farmers</span>
+                </button>
+                <button onClick={() => { setView('pending-farmers'); setMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${view === 'pending-farmers' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <div className="flex items-center gap-3"><UserCog size={18} className="text-amber-500" /> <span className="font-medium">Pending Farmers</span></div>
+                  {stats.pendingFarmers > 0 && <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{stats.pendingFarmers}</span>}
+                </button>
+                <button onClick={() => { setView('all-products'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'all-products' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <Package size={18} /> <span className="font-medium">All Products</span>
+                </button>
+                <button onClick={() => { setView('pending-products'); setMobileMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${view === 'pending-products' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <div className="flex items-center gap-3"><Package size={18} /> <span className="font-medium">Pending Products</span></div>
+                  {stats.pendingProducts > 0 && <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{stats.pendingProducts}</span>}
+                </button>
+                <button onClick={() => { setView('profile'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'profile' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <UserCog size={18} /> <span className="font-medium">Profile</span>
+                </button>
+                <button onClick={() => { setView('settings'); setMobileMenuOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${view === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'}`}>
+                  <Settings size={18} /> <span className="font-medium">Settings</span>
                 </button>
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-900">Notifications</h3>
-                      {notifications.filter(n => !n.isRead).length > 0 && (
-                        <button
-                          onClick={markAllAsRead}
-                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                        >
-                          Mark all as read
-                        </button>
-                      )}
-                    </div>
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-slate-500">
-                        <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm">No notifications</p>
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-slate-100">
-                        {notifications.map(notification => (
-                          <div
-                            key={notification.id}
-                            onClick={() => markAsRead(notification.id)}
-                            className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors ${!notification.isRead ? 'bg-emerald-50' : ''}`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={`w-2 h-2 rounded-full mt-2 ${!notification.isRead ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-slate-900">{notification.title}</p>
-                                <p className="text-xs text-slate-600 mt-1">{notification.message}</p>
-                                <p className="text-xs text-slate-400 mt-2">
-                                  {new Date(notification.createdAt).toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
-          </header>
+          </SheetContent>
+        </Sheet>
 
-          <main>
+        {/* Main Area */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+
+        {/* ── Header (matches Farmer Dashboard style) ── */}
+        <nav className="flex flex-row items-center justify-between w-full px-4 sm:px-6 py-4 bg-white border-b border-slate-200 flex-shrink-0 z-10">
+          {/* Left – Greeting */}
+          <div className="flex items-center shrink-0 gap-3">
+            <div>
+              <h1 className="text-base sm:text-lg font-semibold text-slate-900">
+                Welcome back, {user?.name || 'Admin'}.
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-600">
+                Here's what's happening on your platform.
+              </p>
+            </div>
+          </div>
+
+          {/* Middle – Search Bar */}
+          <form onSubmit={handleSearch} className="relative flex-grow max-w-md mx-2 sm:mx-4 hidden sm:block">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              type="search"
+              placeholder="Search users, farmers, products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-9 pl-10 bg-slate-50 border-slate-200 text-sm rounded-md"
+            />
+          </form>
+
+          {/* Right – Notifications + Profile */}
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+
+            {/* Notifications */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 rounded-lg"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-4 w-4 text-slate-700" />
+                {notifications.filter(n => !n.isRead).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+                )}
+              </Button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
+                  <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-900">Notifications</h3>
+                    {notifications.filter(n => !n.isRead).length > 0 && (
+                      <button onClick={markAllAsRead} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                      <p className="text-sm">No notifications</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {notifications.map(n => (
+                        <div
+                          key={n.id}
+                          onClick={() => markAsRead(n.id)}
+                          className={`p-4 hover:bg-slate-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-indigo-50' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${!n.isRead ? 'bg-indigo-500' : 'bg-slate-300'}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 truncate">{n.title}</p>
+                              <p className="text-xs text-slate-600 mt-1 line-clamp-2">{n.message}</p>
+                              <p className="text-xs text-slate-400 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Profile dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 h-8 px-2 rounded-lg"
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              >
+                <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-sm">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-xs font-medium text-slate-900">{user?.name || 'Admin'}</p>
+                  <p className="text-[10px] text-slate-600">Super Admin</p>
+                </div>
+              </Button>
+
+              {profileDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-900">My Account</p>
+                  </div>
+                  <button
+                    onClick={() => { setView('profile'); setProfileDropdownOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <User className="h-4 w-4" />
+                    Profile
+                  </button>
+                  <div className="border-t border-slate-100 my-2" />
+                  <button
+                    onClick={() => { logout(); setProfileDropdownOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        <div className="flex-1 overflow-y-auto">
+          <main className="p-6 md:p-10 max-w-7xl mx-auto w-full">
             {view === "dashboard" && (
               <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
@@ -631,15 +787,15 @@ const AdminDashboard = () => {
               <div className="animate-in fade-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                       <h2 className="text-xl font-bold text-slate-900">All Customers</h2>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <input
                           type="text"
                           placeholder="Search customers..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-64"
                         />
                       </div>
                     </div>
@@ -648,8 +804,10 @@ const AdminDashboard = () => {
                     <div className="p-8 text-center text-slate-500">Loading...</div>
                   ) : error ? (
                     <div className="p-8 text-center text-red-500">{error}</div>
-                  ) : users.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">No customers found</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      {searchTerm ? 'No customers match your search' : 'No customers found'}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -663,12 +821,7 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {users
-                            .filter(u =>
-                              u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              u.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((user) => (
+                          {filteredUsers.map((user) => (
                               <tr key={user.id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                   <div className="font-medium text-slate-900">{user.name}</div>
@@ -752,15 +905,15 @@ const AdminDashboard = () => {
               <div className="animate-in fade-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                       <h2 className="text-xl font-bold text-slate-900">Verified Farmers</h2>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <input
                           type="text"
                           placeholder="Search farmers..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-64"
                         />
                       </div>
                     </div>
@@ -769,8 +922,10 @@ const AdminDashboard = () => {
                     <div className="p-8 text-center text-slate-500">Loading...</div>
                   ) : error ? (
                     <div className="p-8 text-center text-red-500">{error}</div>
-                  ) : farmers.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">No verified farmers found</div>
+                  ) : filteredFarmers.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      {searchTerm ? 'No farmers match your search' : 'No verified farmers found'}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -784,12 +939,7 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {farmers
-                            .filter(f =>
-                              f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              f.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((farmer) => (
+                          {filteredFarmers.map((farmer) => (
                               <tr key={farmer.id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                   <div className="font-medium text-slate-900">{farmer.name}</div>
@@ -855,15 +1005,15 @@ const AdminDashboard = () => {
               <div className="animate-in fade-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                       <h2 className="text-xl font-bold text-slate-900">Pending Products</h2>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <input
                           type="text"
                           placeholder="Search products..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-64"
                         />
                       </div>
                     </div>
@@ -872,8 +1022,10 @@ const AdminDashboard = () => {
                     <div className="p-8 text-center text-slate-500">Loading...</div>
                   ) : error ? (
                     <div className="p-8 text-center text-red-500">{error}</div>
-                  ) : pendingProducts.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">No pending products</div>
+                  ) : filteredPendingProducts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      {searchTerm ? 'No products match your search' : 'No pending products'}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -889,12 +1041,7 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {pendingProducts
-                            .filter(p =>
-                              p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              p.category?.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((product) => (
+                          {filteredPendingProducts.map((product) => (
                               <tr key={product.id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                   <div className="flex items-center gap-3">
@@ -965,15 +1112,15 @@ const AdminDashboard = () => {
               <div className="animate-in fade-in duration-300">
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-slate-200">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                       <h2 className="text-xl font-bold text-slate-900">All Products</h2>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <input
                           type="text"
                           placeholder="Search products..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full sm:w-64"
                         />
                       </div>
                     </div>
@@ -982,8 +1129,10 @@ const AdminDashboard = () => {
                     <div className="p-8 text-center text-slate-500">Loading...</div>
                   ) : error ? (
                     <div className="p-8 text-center text-red-500">{error}</div>
-                  ) : allProducts.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500">No products found</div>
+                  ) : filteredAllProducts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      {searchTerm ? 'No products match your search' : 'No products found'}
+                    </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -999,12 +1148,7 @@ const AdminDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {allProducts
-                            .filter(p =>
-                              p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              p.category?.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((product) => (
+                          {filteredAllProducts.map((product) => (
                               <tr key={product.id} className="hover:bg-slate-50">
                                 <td className="px-6 py-4">
                                   <div className="flex items-center gap-3">
@@ -1098,9 +1242,16 @@ const AdminDashboard = () => {
                  <AdminProfile />
               </div>
             )}
+
+            {view === "settings" && (
+              <div className="animate-in fade-in duration-300">
+                 <AdminSettings />
+              </div>
+            )}
           </main>
         </div>
-      </SidebarInset>
+      </div>
+      </div>
     </SidebarProvider>
   );
 };

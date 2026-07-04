@@ -120,8 +120,8 @@ const Home = () => {
     const fetchProducts = async () => {
       try {
         console.log('=== Fetching Products from Home Page ===');
-        const response = await fetch('http://localhost:5000/api/projects');
-        const data = await response.json();
+        const response = await api.get('/products');
+        const data = response.data?.data || [];
         console.log('Products received:', data);
         console.log('Products count:', Array.isArray(data) ? data.length : 0);
 
@@ -471,7 +471,7 @@ const Home = () => {
 
             {/* Advanced Search Bar */}
             <div className="flex-1 hidden md:block">
-              <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-emerald-500 transition-colors shadow-sm">
+              <form onSubmit={(e) => { e.preventDefault(); if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`); }} className="flex rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-emerald-500 transition-colors shadow-sm">
                 <input
                   type="text"
                   placeholder="Search fresh vegetables, organic fruits, cereals..."
@@ -479,10 +479,10 @@ const Home = () => {
                   onChange={e => setSearchQuery(e.target.value)}
                   className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
                 />
-                <button className="px-6 bg-emerald-600 hover:bg-emerald-700 transition-colors">
+                <button type="submit" className="px-6 bg-emerald-600 hover:bg-emerald-700 transition-colors">
                   <Search className="w-5 h-5 text-white" />
                 </button>
-              </div>
+              </form>
             </div>
 
             {/* Action Controls */}
@@ -558,7 +558,7 @@ const Home = () => {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 px-4 py-4 bg-white">
             <div className="flex flex-col gap-4">
-              <div className="flex rounded-xl overflow-hidden border border-slate-200">
+              <form onSubmit={(e) => { e.preventDefault(); if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`); }} className="flex rounded-xl overflow-hidden border border-slate-200">
                 <input
                   type="text"
                   placeholder="Search products..."
@@ -566,10 +566,10 @@ const Home = () => {
                   onChange={e => setSearchQuery(e.target.value)}
                   className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
                 />
-                <button className="px-4 bg-emerald-600">
+                <button type="submit" className="px-4 bg-emerald-600">
                   <Search className="w-5 h-5 text-white" />
                 </button>
-              </div>
+              </form>
               <button
                 onClick={() => setLocationOpen(!locationOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200"

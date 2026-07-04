@@ -45,7 +45,7 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
   };
 
   return (
-    <Sidebar>
+    <Sidebar className={isCollapsed ? "w-28" : "w-64"} data-state={isCollapsed ? 'collapsed' : 'expanded'}>
       <SidebarHeader className="p-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
@@ -215,8 +215,17 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
                   onClick={() => handleNav('profile')}
                   isActive={activeTab === 'profile'}
                 >
-                  <Settings size={18} />
+                  <UserCog size={18} />
                   {!isCollapsed && <span>Profile</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => handleNav('settings')}
+                  isActive={activeTab === 'settings'}
+                >
+                  <Settings size={18} />
+                  {!isCollapsed && <span>Settings</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -224,16 +233,7 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-slate-200 dark:border-slate-800">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={onLogout} className="text-red-500 hover:text-red-600">
-              <LogOut size={18} />
-              {!isCollapsed && <span>Logout</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+
     </Sidebar>
   );
 };

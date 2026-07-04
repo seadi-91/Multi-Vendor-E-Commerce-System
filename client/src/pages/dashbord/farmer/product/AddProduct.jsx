@@ -82,7 +82,11 @@ const ProductManagement = () => {
 
   useEffect(() => {
     setShowForm(location.pathname.endsWith('/add'));
-  }, [location.pathname]);
+    // Check for search query from navigation state
+    if (location.state?.searchQuery) {
+      setSearchTerm(location.state.searchQuery);
+    }
+  }, [location.pathname, location.state]);
 
   const fetchProducts = async () => {
     setLoadingProducts(true);

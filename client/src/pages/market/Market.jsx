@@ -109,13 +109,22 @@ const Market = () => {
   const [sortBy, setSortBy] = useState('newest');
 
   const categoryParam = searchParams.get('cat');
+  const searchParam = searchParams.get('search');
+
+  // Set initial search query from URL
+  useEffect(() => {
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParam]);
 
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await api.get('/products');
-        setProducts(Array.isArray(response.data) ? response.data : []);
+        const data = response.data?.data || [];
+        setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching products:', error);
         setProducts([]);

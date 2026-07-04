@@ -5,7 +5,7 @@ exports.getProducts = async (req, res) => {
   try {
     const { category, search, skip = 0, limit = 20 } = req.query;
     
-    const where = { status: 'active' };
+    const where = { status: 'approved' };
     
     if (category) {
       where.category = { contains: category, mode: 'insensitive' };
@@ -153,7 +153,7 @@ exports.getProductsByCategory = async (req, res) => {
     
     const products = await prisma.product.findMany({
       where: {
-        status: 'active',
+        status: 'approved',
         category: { contains: category, mode: 'insensitive' }
       },
       take: parseInt(limit),

@@ -25,6 +25,16 @@ const FarmerDashboard = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = useRef(null);
 
+  // Handle search functionality
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      // Navigate to products page with search query
+      navigate('/farmer/products', { state: { searchQuery: query } });
+    }
+  };
+
   useEffect(() => {
     // Close mobile drawer on route change
     setIsOpen(false);
@@ -165,7 +175,7 @@ const FarmerDashboard = () => {
             </div>
 
             {/* Middle - Search Bar */}
-            <form className="relative flex-grow max-w-md mx-2 sm:mx-4 hidden sm:block">
+            <form onSubmit={handleSearch} className="relative flex-grow max-w-md mx-2 sm:mx-4 hidden sm:block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 type="search"

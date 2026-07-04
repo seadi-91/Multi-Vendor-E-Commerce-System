@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import './FarmerHeader.scss';
 
 const FarmerHeader = ({ user, onLogout }) => {
+  const [searchTerm, setSearchTerm] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,6 +68,7 @@ const FarmerHeader = ({ user, onLogout }) => {
 
         <div className="header-center">
           <div className="search-container">
+            <Search className="search-icon" />
             <input
               type="search"
               placeholder="Search products, orders, analytics..."
@@ -137,6 +140,16 @@ const FarmerHeader = ({ user, onLogout }) => {
 
       {/* Navigation Bar */}
       <nav className="header-nav" role="navigation" aria-label="Main navigation">
+        <div className="nav-search-container">
+          <input
+            type="search"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="nav-search-input"
+            aria-label="Search navigation"
+          />
+        </div>
         <div className="nav-container">
           <ul className="nav-list">
             {navLinks.map(link => {
@@ -162,6 +175,7 @@ const FarmerHeader = ({ user, onLogout }) => {
               );
             })}
           </ul>
+        </nav>
           
           {/* Quick Actions */}
           <div className="quick-actions">

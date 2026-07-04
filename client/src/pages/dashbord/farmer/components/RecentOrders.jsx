@@ -15,6 +15,8 @@ const RecentOrders = memo(({ orders = [], onViewAll }) => {
   const [error, setError] = useState(null);
   const itemsPerPage = 5;
 
+  console.log('RecentOrders rendered with', orders.length, 'orders');
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       (order.customer?.name || order.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,7 +71,7 @@ const RecentOrders = memo(({ orders = [], onViewAll }) => {
   const recentOrders = paginatedOrders.slice(0, 4);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
+    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col" style={{ minHeight: '300px' }}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Recent Orders</h3>
@@ -150,7 +152,7 @@ const RecentOrders = memo(({ orders = [], onViewAll }) => {
           </div>
 
           {/* Orders List */}
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-1 overflow-y-auto">
             {recentOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center flex-1 py-6 text-center">
                 <div className="w-10 h-10 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mb-2">
@@ -182,7 +184,7 @@ const RecentOrders = memo(({ orders = [], onViewAll }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
-                      {order.customer?.name || order.fullName}
+                      {order.customer?.name || order.fullName || order.customerName}
                     </p>
                     <p className="text-[10px] text-slate-500">{order.orderNumber}</p>
                   </div>

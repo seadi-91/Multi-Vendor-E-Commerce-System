@@ -51,6 +51,7 @@ const FarmerHome = () => {
 
       console.log('Products:', productsData.length);
       console.log('Orders:', ordersData.length);
+      console.log('Orders data:', ordersData);
       console.log('Stats:', statsData);
 
       setProductCount(productsData.length);
@@ -81,6 +82,8 @@ const FarmerHome = () => {
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('Could not load dashboard data.');
+      // Set empty orders array on error to prevent undefined errors
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -152,7 +155,7 @@ const FarmerHome = () => {
             <LoadingSkeleton variant="table" />
             <LoadingSkeleton variant="list" />
           </div>
-        </>
+</>
       ) : (
         <>
           {/* Primary KPI Cards */}
@@ -268,16 +271,25 @@ const FarmerHome = () => {
             </div>
           </div>
 
-          {/* Second Row - Recent Orders (6 cols) and Farm Tips (6 cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
-            <div className="h-full min-h-[300px]">
-              <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
-            </div>
-            <div className="h-full min-h-[300px]">
-              <FarmTipsAlerts />
-            </div>
-          </div>
-        </>
+
+
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
+  <div className="min-h-[300px] bg-white border border-slate-200 rounded-xl shadow-sm">
+    <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
+  </div>
+  <div className="min-h-[300px] bg-white border border-slate-200 rounded-xl shadow-sm">
+    <FarmTipsAlerts />
+  </div>
+</div>
+</>
+      )}
+
+      {/* Debug info */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          <p className="font-semibold">Error: {error}</p>
+          <p className="text-sm mt-1">Orders count: {orders.length}</p>
+        </div>
       )}
     </div>
   );
