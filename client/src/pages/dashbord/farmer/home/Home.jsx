@@ -37,6 +37,7 @@ const FarmerHome = () => {
 
   const fetchDashboardData = async () => {
     setLoading(true);
+    setError(null);
     try {
       console.log('=== Fetching Farmer Dashboard Data ===');
       const [productsRes, ordersRes, statsRes] = await Promise.all([
@@ -45,13 +46,12 @@ const FarmerHome = () => {
         api.get('/farmer/stats')
       ]);
 
-      const productsData = productsRes.data || [];
-      const ordersData = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+      const productsData = productsRes.data?.products || productsRes.data || [];
+      const ordersData = Array.isArray(ordersRes.data?.orders) ? ordersRes.data.orders : Array.isArray(ordersRes.data) ? ordersRes.data : [];
       const statsData = statsRes.data || {};
 
       console.log('Products:', productsData.length);
       console.log('Orders:', ordersData.length);
-      console.log('Orders data:', ordersData);
       console.log('Stats:', statsData);
 
       setProductCount(productsData.length);
@@ -64,7 +64,7 @@ const FarmerHome = () => {
       const cancelledOrders = statsData.cancelledOrders || ordersData.filter(o => o.status === 'cancelled' || o.status === 'rejected').length;
       const lowStockProducts = statsData.lowStockProducts || productsData.filter(p => p.stock < 10).length;
       const inventoryAlerts = statsData.inventoryAlerts || productsData.filter(p => p.stock === 0).length;
-      const pendingReviews = 5; // Mock data - would come from API
+      const pendingReviews = statsData.pendingReviews || 0;
 
       setStats(prev => ({
         ...prev,
@@ -81,9 +81,7 @@ const FarmerHome = () => {
       }));
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
-      setError('Could not load dashboard data.');
-      // Set empty orders array on error to prevent undefined errors
-      setOrders([]);
+      setError(err.response?.data?.error || 'Could not load dashboard data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -109,7 +107,7 @@ const FarmerHome = () => {
       });
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('Failed to update order status');
+      alert(err.response?.data?.error || 'Failed to update order status. Please try again.');
     }
   };
 
@@ -155,7 +153,7 @@ const FarmerHome = () => {
             <LoadingSkeleton variant="table" />
             <LoadingSkeleton variant="list" />
           </div>
-</>
+        </>
       ) : (
         <>
           {/* Primary KPI Cards */}
@@ -165,10 +163,6 @@ const FarmerHome = () => {
               value={stats.totalOrders}
               icon={ShoppingCart}
               color="green"
-              trend="+18% this week"
-              trendDirection="up"
-              comparison="vs last week"
-              sparklineData={[10, 12, 15, 14, 18, 20, 22]}
               loading={loading}
             />
             <StatCard
@@ -176,10 +170,6 @@ const FarmerHome = () => {
               value={`${stats.totalEarnings?.toLocaleString() || 0} ETB`}
               icon={DollarSign}
               color="mint"
-              trend="+22% this week"
-              trendDirection="up"
-              comparison="vs last week"
-              sparklineData={[5000, 6000, 5500, 7000, 7500, 8000, 8500]}
               loading={loading}
             />
             <StatCard
@@ -187,9 +177,6 @@ const FarmerHome = () => {
               value={stats.totalProducts}
               icon={Package}
               color="orange"
-              trend="+4 new this week"
-              trendDirection="up"
-              comparison="vs last week"
               loading={loading}
             />
             <StatCard
@@ -210,8 +197,6 @@ const FarmerHome = () => {
               value={stats.pendingOrders}
               icon={Clock}
               color="orange"
-              trend="Requires attention"
-              trendDirection="neutral"
               loading={loading}
             />
             <StatCard
@@ -219,8 +204,6 @@ const FarmerHome = () => {
               value={stats.completedOrders}
               icon={CheckCircle}
               color="green"
-              trend="+12% this week"
-              trendDirection="up"
               loading={loading}
             />
             <StatCard
@@ -228,8 +211,6 @@ const FarmerHome = () => {
               value={stats.cancelledOrders}
               icon={XCircle}
               color="red"
-              trend="-3% this week"
-              trendDirection="down"
               loading={loading}
             />
             <StatCard
@@ -237,8 +218,6 @@ const FarmerHome = () => {
               value={stats.lowStockProducts}
               icon={AlertTriangle}
               color="orange"
-              trend="Needs restock"
-              trendDirection="neutral"
               loading={loading}
             />
             <StatCard
@@ -246,8 +225,6 @@ const FarmerHome = () => {
               value={stats.inventoryAlerts}
               icon={AlertTriangle}
               color="red"
-              trend="Out of stock"
-              trendDirection="down"
               loading={loading}
             />
             <StatCard
@@ -255,8 +232,6 @@ const FarmerHome = () => {
               value={stats.pendingReviews}
               icon={MessageSquare}
               color="blue"
-              trend="Awaiting response"
-              trendDirection="neutral"
               loading={loading}
             />
           </div>
@@ -271,25 +246,16 @@ const FarmerHome = () => {
             </div>
           </div>
 
-
-
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
-  <div className="min-h-[300px] bg-white border border-slate-200 rounded-xl shadow-sm">
-    <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
-  </div>
-  <div className="min-h-[300px] bg-white border border-slate-200 rounded-xl shadow-sm">
-    <FarmTipsAlerts />
-  </div>
-</div>
-</>
-      )}
-
-      {/* Debug info */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-          <p className="font-semibold">Error: {error}</p>
-          <p className="text-sm mt-1">Orders count: {orders.length}</p>
-        </div>
+          {/* Second Row - Recent Orders (6 cols) and Farm Tips (6 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
+            <div className="h-full min-h-[300px]">
+              <RecentOrders orders={orders.slice(0, 5)} onViewAll={() => navigate('/farmer/orders')} />
+            </div>
+            <div className="h-full min-h-[300px]">
+              <FarmTipsAlerts />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, Clock, CheckCircle, Search, Loader2, AlertCircle,
   ShoppingBag, DollarSign, RefreshCw, ChevronDown,
-  User, MapPin, Phone, Calendar, Eye, X
+  User, MapPin, Phone, Calendar, Eye, X, MoreHorizontal
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import FilterBar from './components/FilterBar';
 import {
   Select,
   SelectContent,
@@ -14,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import EmptyState from './components/EmptyState';
 import api from '../../../api';
 
 const STATUS_CONFIG = {
@@ -175,8 +185,7 @@ const OrderModal = ({ order, onClose, onStatusChange }) => {
 };
 
 const FarmerOrders = () => {
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ category: 'All', status: 'All', search: '' });
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -212,22 +221,47 @@ const FarmerOrders = () => {
       if (selectedOrder?.id === orderId) setSelectedOrder(updated);
     } catch (err) {
       console.error('Error updating order status:', err);
+      alert(err.response?.data?.error || 'Failed to update order status. Please try again.');
     }
   };
+
+  // Debounced search handler
+  const handleSearchChange = useCallback((value) => {
+    setFilters(prev => ({ ...prev, search: value }));
+  }, []);
 
   const filteredOrders = orders.filter(order => {
     const customerName = order.customer?.name || order.fullName || '';
     const matchSearch =
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.orderNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchTab = activeTab === 'all' || order.status === activeTab;
-    return matchSearch && matchTab;
+      customerName.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (order.orderNumber || '').toLowerCase().includes(filters.search.toLowerCase());
+    const matchStatus = filters.status === 'All' || order.status === filters.status;
+    return matchSearch && matchStatus;
   });
 
   // Stats
   const totalRevenue = orders.reduce((s, o) => s + (o.total || 0), 0);
   const pendingCount = orders.filter(o => o.status === 'pending').length;
   const completedCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+
+  // Export configuration
+  const exportColumns = [
+    { key: 'orderNumber', header: 'Order ID' },
+    { key: 'customerName', header: 'Customer' },
+    { key: 'total', header: 'Total (ETB)' },
+    { key: 'status', header: 'Status' },
+    { key: 'createdAt', header: 'Order Date' },
+  ];
+
+  const getExportData = () => {
+    return filteredOrders.map(order => ({
+      orderNumber: order.orderNumber,
+      customerName: order.customer?.name || order.fullName || 'N/A',
+      total: order.total || 0,
+      status: order.status,
+      createdAt: new Date(order.createdAt).toLocaleString(),
+    }));
+  };
 
   return (
     <div className="space-y-3 sm:space-y-4 w-full">
@@ -259,31 +293,16 @@ const FarmerOrders = () => {
 
       {/* Main Table Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all duration-200">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
-          {/* Tab Header */}
-          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200 bg-slate-50/50">
-            <TabsList className="bg-white border border-slate-200 p-1 rounded-lg gap-1 shadow-sm h-auto flex-wrap w-full xl:w-auto">
-              <TabsTrigger value="all"        className="data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">All Orders</TabsTrigger>
-              <TabsTrigger value="pending"    className="data-[state=active]:bg-amber-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Pending</TabsTrigger>
-              <TabsTrigger value="processing" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Processing</TabsTrigger>
-              <TabsTrigger value="delivered"  className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Delivered</TabsTrigger>
-              <TabsTrigger value="cancelled"  className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium transition-all duration-200 flex-1 xl:flex-none">Cancelled</TabsTrigger>
-            </TabsList>
-
-            <div className="relative w-full xl:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search orders or customers..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-8 sm:pl-9 h-8 bg-white border-slate-200 shadow-sm focus-visible:ring-slate-500 text-xs sm:text-sm rounded-md w-full"
-              />
-            </div>
-          </div>
-
-          {/* Table Content */}
-          <TabsContent value={activeTab} className="mt-0 focus-visible:outline-none flex-1">
+        <FilterBar 
+          filters={filters} 
+          setFilters={setFilters} 
+          statuses={['pending', 'processing', 'on the way', 'delivered', 'completed', 'cancelled']} 
+          exportData={getExportData()}
+          exportColumns={exportColumns}
+          exportFilename="orders"
+          exportTitle="Orders Report"
+        />
+        <div className="flex-1 focus-visible:outline-none">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16 min-h-[300px]">
                 <Loader2 className="w-8 h-8 animate-spin text-slate-500 mb-3" />
@@ -299,20 +318,15 @@ const FarmerOrders = () => {
                 <Button onClick={fetchOrders} className="bg-slate-900 text-white hover:bg-slate-800 rounded-lg px-6 shadow-sm h-9 text-sm">Try Again</Button>
               </div>
             ) : filteredOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-6 min-h-[300px]">
-                <div className="w-16 h-16 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  <Package className="w-8 h-8 text-slate-300" />
-                </div>
-                <h3 className="text-sm font-semibold text-slate-900">No orders found</h3>
-                <p className="text-slate-500 text-xs mt-1">
-                  {searchTerm ? 'Try adjusting your search terms.' : 'Orders from customers will appear here.'}
-                </p>
-                {searchTerm && (
-                  <Button variant="ghost" onClick={() => setSearchTerm('')} className="mt-3 text-slate-600 hover:bg-slate-50 h-8 text-xs">
-                    Clear Search
-                  </Button>
-                )}
-              </div>
+              <EmptyState
+                icon={Package}
+                title="No orders found"
+                description={filters.search || filters.status !== 'All' ? 'Try adjusting your search terms.' : 'Orders from customers will appear here.'}
+                actionLabel="Clear Filters"
+                onAction={() => setFilters({ search: '', status: 'All' })}
+                secondaryActionLabel="Refresh"
+                onSecondaryAction={fetchOrders}
+              />
             ) : (
               <div className="overflow-x-auto min-h-[300px]">
                 <table className="w-full text-left border-collapse">
@@ -376,15 +390,22 @@ const FarmerOrders = () => {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="px-3 sm:px-4 py-2 sm:py-2.5 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 sm:h-7 gap-1 sm:gap-1.5 font-medium text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-all text-[10px] sm:text-xs"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">View</span>
-                          </Button>
+                        <td className="px-3 sm:px-4 py-2 sm:py-2.5">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
@@ -392,8 +413,7 @@ const FarmerOrders = () => {
                 </table>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* Footer summary */}
         {!loading && !error && filteredOrders.length > 0 && (

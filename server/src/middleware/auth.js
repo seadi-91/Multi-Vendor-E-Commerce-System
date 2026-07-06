@@ -36,6 +36,16 @@ exports.protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Not authorized, user not found' });
     }
 
+    // Check if user account is active
+    if (!user.isActive) {
+      return res.status(403).json({ message: 'Account is deactivated' });
+    }
+
+    // Check if farmer is verified (for farmer-specific routes)
+    if (user.role === 'FARMER' && !user.isVerified) {
+      return res.status(403).json({ message: 'Farmer account is not verified' });
+    }
+
     req.user = user;
     next();
   } catch (err) {

@@ -28,12 +28,20 @@ import {
   SidebarMenuSubItem,
   SidebarTrigger,
 } from '../../../components/ui/sidebar';
+
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../components/ui/collapsible';
 
-const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollapse, pendingFarmersCount = 0, pendingProductsCount = 0 }) => {
+const AdminSidebar = ({
+  onLogout,
+  activeTab,
+  onNav,
+  isCollapsed,
+  onToggleCollapse,
+  pendingFarmersCount = 0,
+  pendingProductsCount = 0,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
-
   const handleNav = (tab) => {
     console.log('=== Sidebar Navigation ===');
     console.log('Navigating to tab:', tab);
@@ -100,6 +108,8 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
                   {!isCollapsed && <span>Users</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Farmers */}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => handleNav('farmers')}
@@ -109,72 +119,16 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
                   {!isCollapsed && <span>Farmers</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Products */}
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  onClick={() => handleNav('pending-farmers')}
-                  isActive={activeTab === 'pending-farmers'}
-                  className="relative"
+                  onClick={() => handleNav('all-products')}
+                  isActive={activeTab === 'all-products'}
                 >
-                  <UserCog size={18} className="text-amber-500" />
-                  {!isCollapsed && (
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-amber-600 font-medium">Pending Farmers</span>
-                      {pendingFarmersCount > 0 && (
-                        <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {pendingFarmersCount}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {isCollapsed && pendingFarmersCount > 0 && (
-                    <span className="absolute top-1 right-1 bg-amber-500 w-2 h-2 rounded-full"></span>
-                  )}
+                  <Package size={18} />
+                  {!isCollapsed && <span>Products</span>}
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                {!isCollapsed ? (
-                  <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton isActive={activeTab === 'products'}>
-                        <Package size={18} />
-                        <span>Products</span>
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            onClick={() => handleNav('pending-products')}
-                            isActive={activeTab === 'pending-products'}
-                            className="flex items-center justify-between"
-                          >
-                            <span>Pending Approval</span>
-                            {pendingProductsCount > 0 && (
-                              <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                {pendingProductsCount}
-                              </span>
-                            )}
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton
-                            onClick={() => handleNav('all-products')}
-                            isActive={activeTab === 'all-products'}
-                          >
-                            <span>All Products</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuButton
-                    onClick={() => handleNav('products')}
-                    isActive={activeTab === 'products'}
-                  >
-                    <Package size={18} />
-                  </SidebarMenuButton>
-                )}
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
@@ -233,7 +187,17 @@ const AdminSidebar = ({ onLogout, activeTab, onNav, isCollapsed, onToggleCollaps
         </SidebarGroup>
       </SidebarContent>
 
-
+      {/* Optional Footer for logout */}
+      <SidebarFooter className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={onLogout}>
+              <LogOut size={18} />
+              {!isCollapsed && <span>Logout</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 };

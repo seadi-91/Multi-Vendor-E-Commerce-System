@@ -8,7 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { CheckCircle2, X, Plus, Loader2, Image as ImageIcon, Trash2, Edit2, AlertCircle, Save, Calendar as CalendarIcon, TagIcon, Percent, ArrowLeft, TrendingUp, AlertTriangle, Search, Package } from 'lucide-react';
+import { CheckCircle2, X, Plus, Loader2, Image as ImageIcon, Trash2, Edit2, AlertCircle, Save, Calendar as CalendarIcon, TagIcon, Percent, ArrowLeft, TrendingUp, AlertTriangle, Search, Package, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import FilterBar from '../components/FilterBar';
 
 const CATEGORY_CONFIG = {
   Vegetables: { icon: '🥦', units: ['kg', 'g', 'piece', 'bunch'] },
@@ -68,8 +77,7 @@ const ProductManagement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filters, setFilters] = useState({ category: 'All', status: 'All', search: '' });
   const [currentStep, setCurrentStep] = useState(1);
 
   const STEPS = [
@@ -84,7 +92,7 @@ const ProductManagement = () => {
     setShowForm(location.pathname.endsWith('/add'));
     // Check for search query from navigation state
     if (location.state?.searchQuery) {
-      setSearchTerm(location.state.searchQuery);
+      setFilters(prev => ({ ...prev, search: location.state.searchQuery }));
     }
   }, [location.pathname, location.state]);
 
@@ -204,9 +212,10 @@ const ProductManagement = () => {
   };
 
   const filteredProducts = products.filter(p => {
-    const matchSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCat = filterCategory === 'all' || p.category === filterCategory;
-    return matchSearch && matchCat;
+    const matchSearch = (p.name || '').toLowerCase().includes(filters.search.toLowerCase()) || (p.sku || '').toLowerCase().includes(filters.search.toLowerCase());
+    const matchCat = filters.category === 'All' || p.category === filters.category;
+    const matchStatus = filters.status === 'All' || p.status === filters.status;
+    return matchSearch && matchCat && matchStatus;
   });
 
   // Derived Stats
@@ -217,7 +226,7 @@ const ProductManagement = () => {
     <div className="min-h-screen bg-slate-50/50 pb-12 w-full space-y-4">
       
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 ${showForm ? 'max-w-3xl' : 'max-w-5xl'} mx-auto w-full`}>
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">
             {showForm ? (editingId ? 'Edit Product' : 'Add New Product') : 'Inventory Management'}
@@ -245,14 +254,14 @@ const ProductManagement = () => {
 
       {/* ── Alerts ── */}
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 text-red-700 p-3 rounded-lg border border-red-200 shadow-sm animate-in slide-in-from-top-2">
+        <div className={`flex items-center gap-3 bg-red-50 text-red-700 p-3 rounded-lg border border-red-200 shadow-sm animate-in slide-in-from-top-2 ${showForm ? 'max-w-3xl' : 'max-w-5xl'} mx-auto w-full`}>
           <AlertCircle className="w-4 h-4 shrink-0" />
           <p className="font-semibold text-xs flex-1">{error}</p>
           <button onClick={() => setError('')}><X className="w-3.5 h-3.5 hover:text-red-900" /></button>
         </div>
       )}
       {success && (
-        <div className="flex items-center gap-3 bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 shadow-sm animate-in slide-in-from-top-2">
+        <div className={`flex items-center gap-3 bg-emerald-50 text-emerald-800 p-3 rounded-lg border border-emerald-200 shadow-sm animate-in slide-in-from-top-2 ${showForm ? 'max-w-3xl' : 'max-w-5xl'} mx-auto w-full`}>
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <p className="font-semibold text-xs flex-1">{success}</p>
           <button onClick={() => setSuccess('')}><X className="w-3.5 h-3.5 hover:text-emerald-900" /></button>
@@ -261,10 +270,10 @@ const ProductManagement = () => {
 
       {/* ── Add / Edit Form (Wizard) ── */}
       {showForm ? (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all duration-200 relative z-10">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-visible animate-in fade-in zoom-in-95 duration-200 hover:shadow-md transition-all relative z-10 max-w-3xl mx-auto">
           {/* Wizard Progress */}
           <div className="bg-slate-50 border-b border-slate-200 p-3">
-            <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center justify-between max-w-3xl mx-auto">
               {STEPS.map((step, index) => (
                 <div key={step.id} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
@@ -290,7 +299,7 @@ const ProductManagement = () => {
           </div>
 
           <div className="p-4 overflow-visible">
-            <form id="product-form" onSubmit={handleSubmit} className="max-w-4xl">
+            <form id="product-form" onSubmit={handleSubmit} className="max-w-3xl mx-auto">
               
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
@@ -616,7 +625,7 @@ const ProductManagement = () => {
         </div>
       ) : (
         /* ── Inventory List View ── */
-        <div className="space-y-4 animate-in fade-in duration-300">
+        <div className="space-y-4 animate-in fade-in duration-300 max-w-5xl mx-auto w-full">
           
           {/* Stats Row */}
           {!loadingProducts && products.length > 0 && (
@@ -629,23 +638,12 @@ const ProductManagement = () => {
 
           {/* Table Container */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            {/* Filter Bar */}
-            <div className="p-3 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center justify-between">
-              <div className="relative w-full sm:max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input type="text" placeholder="Search by name or SKU..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 bg-white border-slate-200 h-9 w-full rounded-md text-sm" />
-              </div>
-              <div className="flex gap-2 overflow-x-auto w-full sm:w-auto scrollbar-hide pb-2 sm:pb-0">
-                <Button variant={filterCategory === 'all' ? 'default' : 'outline'} onClick={() => setFilterCategory('all')} className={filterCategory === 'all' ? 'bg-emerald-600 rounded-md' : 'rounded-md bg-white border-slate-200 hover:bg-emerald-50 transition-colors'} size="sm">
-                  All Products
-                </Button>
-                {Object.keys(CATEGORY_CONFIG).map(cat => (
-                  <Button key={cat} variant={filterCategory === cat ? 'default' : 'outline'} onClick={() => setFilterCategory(cat)} className={`whitespace-nowrap rounded-md text-sm transition-colors ${filterCategory === cat ? 'bg-emerald-600' : 'bg-white border-slate-200 hover:bg-emerald-50'}`} size="sm">
-                    {CATEGORY_CONFIG[cat].icon} {cat}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <FilterBar 
+              filters={filters} 
+              setFilters={setFilters} 
+              categories={Object.keys(CATEGORY_CONFIG)}
+              statuses={['pending', 'approved', 'rejected']} 
+            />
 
             {loadingProducts ? (
               <div className="flex flex-col items-center justify-center py-16">
@@ -659,9 +657,9 @@ const ProductManagement = () => {
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900">No products found</h3>
                 <p className="text-slate-500 font-medium text-xs mt-1 mb-4 max-w-sm">
-                  {searchTerm || filterCategory !== 'all' ? 'Try adjusting your filters.' : 'Your inventory is empty.'}
+                  {filters.search || filters.category !== 'All' || filters.status !== 'All' ? 'Try adjusting your filters.' : 'Your inventory is empty.'}
                 </p>
-                {!(searchTerm || filterCategory !== 'all') && (
+                {!(filters.search || filters.category !== 'All' || filters.status !== 'All') && (
                   <Button onClick={() => { resetForm(); navigate('/farmer/products/add'); }} className="gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg px-4 h-9 shadow-sm text-xs">
                     <Plus className="w-3.5 h-3.5" /> Add Your First Product
                   </Button>
@@ -725,15 +723,30 @@ const ProductManagement = () => {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="icon" onClick={() => handleEdit(product)} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md w-8 h-8">
-                                  <Edit2 className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md w-8 h-8">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
+                            <td className="px-4 py-3">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    Edit Product
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-red-600 focus:text-red-600"
+                                    onClick={() => handleDelete(product.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Product
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
                           </tr>
                         );

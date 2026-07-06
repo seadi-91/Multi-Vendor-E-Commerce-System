@@ -1,6 +1,6 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, Legend, ReferenceLine } from 'recharts';
-import { TrendingUp, TrendingDown, Download, Calendar, BarChart2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Download, Calendar, BarChart2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -11,65 +11,103 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import api from '../../../../api';
 
 const EarningsChart = memo(() => {
   const [timeframe, setTimeframe] = useState('week');
   const [showComparison, setShowComparison] = useState(false);
   const [showAverage, setShowAverage] = useState(true);
   const [showProjected, setShowProjected] = useState(false);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const data = {
-    day: [
-      { name: '6AM', earnings: 800, previous: 650, projected: 850 },
-      { name: '9AM', earnings: 1200, previous: 980, projected: 1300 },
-      { name: '12PM', earnings: 1500, previous: 1200, projected: 1600 },
-      { name: '3PM', earnings: 1100, previous: 900, projected: 1150 },
-      { name: '6PM', earnings: 900, previous: 750, projected: 950 },
-      { name: '9PM', earnings: 600, previous: 500, projected: 650 },
-    ],
-    week: [
-      { name: 'Mon', earnings: 4500, previous: 3800, projected: 4800 },
-      { name: 'Tue', earnings: 5200, previous: 4100, projected: 5500 },
-      { name: 'Wed', earnings: 4800, previous: 3900, projected: 5100 },
-      { name: 'Thu', earnings: 6100, previous: 5200, projected: 6500 },
-      { name: 'Fri', earnings: 5800, previous: 4900, projected: 6200 },
-      { name: 'Sat', earnings: 7200, previous: 6100, projected: 7500 },
-      { name: 'Sun', earnings: 6900, previous: 5800, projected: 7200 },
-    ],
-    month: [
-      { name: 'Week 1', earnings: 28000, previous: 24000, projected: 30000 },
-      { name: 'Week 2', earnings: 32000, previous: 27000, projected: 34000 },
-      { name: 'Week 3', earnings: 29000, previous: 25000, projected: 31000 },
-      { name: 'Week 4', earnings: 35000, previous: 29000, projected: 37000 },
-    ],
-    year: [
-      { name: 'Jan', earnings: 95000, previous: 80000, projected: 100000 },
-      { name: 'Feb', earnings: 88000, previous: 75000, projected: 92000 },
-      { name: 'Mar', earnings: 102000, previous: 85000, projected: 108000 },
-      { name: 'Apr', earnings: 95000, previous: 80000, projected: 100000 },
-      { name: 'May', earnings: 110000, previous: 92000, projected: 115000 },
-      { name: 'Jun', earnings: 105000, previous: 88000, projected: 110000 },
-      { name: 'Jul', earnings: 98000, previous: 82000, projected: 103000 },
-      { name: 'Aug', earnings: 92000, previous: 78000, projected: 97000 },
-      { name: 'Sep', earnings: 108000, previous: 90000, projected: 113000 },
-      { name: 'Oct', earnings: 115000, previous: 95000, projected: 120000 },
-      { name: 'Nov', earnings: 125000, previous: 105000, projected: 130000 },
-      { name: 'Dec', earnings: 130000, previous: 110000, projected: 135000 },
-    ],
-  };
+  useEffect(() => {
+    const fetchEarningsData = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/farmer/earnings/chart?timeframe=${timeframe}`);
+        setData(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch earnings chart data:', err);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const currentData = data[timeframe];
-  const totalEarnings = currentData.reduce((sum, item) => sum + item.earnings, 0);
+    fetchEarningsData();
+  }, [timeframe]);
+
+  const currentData = data;
+  const totalEarnings = currentData.reduce((sum, item) => sum + (item.earnings || 0), 0);
   const totalPrevious = currentData.reduce((sum, item) => sum + (item.previous || 0), 0);
   const totalProjected = currentData.reduce((sum, item) => sum + (item.projected || 0), 0);
-  const averageEarnings = totalEarnings / currentData.length;
-  const percentageChange = ((totalEarnings - totalPrevious) / totalPrevious * 100).toFixed(1);
+  const averageEarnings = currentData.length > 0 ? totalEarnings / currentData.length : 0;
+  const percentageChange = totalPrevious > 0 ? ((totalEarnings - totalPrevious) / totalPrevious * 100).toFixed(1) : '0.0';
   const isPositive = parseFloat(percentageChange) >= 0;
 
   const handleDownloadReport = () => {
     console.log('Downloading report for', timeframe);
     // Implement download functionality
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Earnings Overview</h3>
+            <p className="text-xs text-muted-foreground">Track your farm's revenue</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={timeframe} onValueChange={setTimeframe}>
+              <SelectTrigger className="w-32 h-8 text-sm rounded-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="year">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        </div>
+      </div>
+    );
+  }
+
+  if (currentData.length === 0) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Earnings Overview</h3>
+            <p className="text-xs text-muted-foreground">Track your farm's revenue</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={timeframe} onValueChange={setTimeframe}>
+              <SelectTrigger className="w-32 h-8 text-sm rounded-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Daily</SelectItem>
+                <SelectItem value="week">Weekly</SelectItem>
+                <SelectItem value="month">Monthly</SelectItem>
+                <SelectItem value="year">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+          No earnings data available yet.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">

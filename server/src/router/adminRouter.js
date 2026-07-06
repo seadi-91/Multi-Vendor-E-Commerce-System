@@ -24,8 +24,10 @@ router.put('/farmers/:id/reject', protect, adminOnly, adminController.rejectFarm
 // Product Management
 router.get('/products', protect, adminOnly, adminController.getAllProducts);
 router.get('/products/pending', protect, adminOnly, adminController.getPendingProducts);
+router.get('/products/:id', protect, adminOnly, adminController.getProductById);
 router.put('/products/:id/approve', protect, adminOnly, adminController.approveProduct);
 router.put('/products/:id/reject', protect, adminOnly, adminController.rejectProduct);
+router.patch('/products/:id/status', protect, adminOnly, adminController.updateProductStatus);
 router.delete('/products/:id', protect, adminOnly, adminController.deleteProduct);
 
 // Order Management
@@ -36,10 +38,19 @@ router.put('/orders/:id/status', protect, adminOnly, adminController.updateOrder
 // Analytics & Reports
 router.get('/reports', protect, adminOnly, adminController.getReports);
 router.get('/transactions', protect, adminOnly, adminController.getTransactions);
+router.get('/analytics/sales-trend', protect, adminOnly, adminController.getSalesTrend);
+router.get('/analytics/top-categories', protect, adminOnly, adminController.getTopCategories);
+router.get('/analytics/recent-activity', protect, adminOnly, adminController.getRecentActivity);
+router.get('/analytics/top-sellers', protect, adminOnly, adminController.getTopSellers);
 
 // Admin Profile
 router.get('/profile', protect, adminOnly, adminController.getAdminProfile);
 router.put('/profile', protect, adminOnly, adminController.updateAdminProfile);
+
+// Admin Settings
+router.get('/settings', protect, adminOnly, adminController.getAdminSettings);
+router.put('/settings', protect, adminOnly, adminController.updateAdminSettings);
+router.put('/settings/password', protect, adminOnly, adminController.changeAdminPassword);
 
 // Notifications
 router.get('/notifications', protect, adminOnly, adminController.getNotifications);

@@ -71,6 +71,15 @@ model User {
   // Relations
   products             Product[]
   orders               Order[]
+  sentMessages         Message[] @relation("SentMessages")
+  receivedMessages     Message[] @relation("ReceivedMessages")
+  notifications        Notification[]
+  withdrawalRequests   WithdrawalRequest[]
+  orderItems           OrderItem[]
+
+  @@index([role, isActive])
+  @@index([role, isVerified])
+  @@index([createdAt])
 }
 
 model Product {
@@ -87,6 +96,11 @@ model Product {
   farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+
+  @@index([farmerId, status])
+  @@index([status])
+  @@index([category])
 }
 
 model Order {
@@ -114,6 +128,11 @@ model Order {
   specialInstructions String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
+  orderItems          OrderItem[]
+
+  @@index([customerId, status])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -127,6 +146,10 @@ model OrderItem {
   farmerId    Int
   farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+
+  @@index([farmerId])
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Payment {
@@ -136,4 +159,39 @@ model Payment {
   amount    Float
   status    String   @default("pending")
   createdAt DateTime @default(now())
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String   @default("SYSTEM")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WithdrawalRequest {
+  id          Int       @id @default(autoincrement())
+  farmerId    Int
+  amount      Float
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  farmer      User      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 }

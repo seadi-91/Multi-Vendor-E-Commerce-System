@@ -13,6 +13,10 @@ import FarmerSidebar from './FarmerSidebar';
 import Profile from './profile/Profile';
 import Settings from './settings/Settings';
 import FarmerOrders from './Orders';
+import Earnings from './Earnings';
+import Analytics from './Analytics';
+import NotificationBell from '../../../components/NotificationBell';
+import { Toaster } from 'sonner';
 
 const FarmerDashboard = () => {
   const { user, logout } = useAuth();
@@ -61,8 +65,9 @@ const FarmerDashboard = () => {
   return (
     <SidebarProvider>
       <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
+        <Toaster position="top-right" richColors closeButton />
         {/* Desktop Sidebar */}
-        <div className={`hidden md:block ${isSidebarCollapsed ? 'w-28 flex-shrink-0 transition-all duration-300 ease-in-out' : 'w-64 flex-shrink-0 transition-all duration-300 ease-in-out'}`}>
+        <div className={`hidden lg:block ${isSidebarCollapsed ? 'w-28 flex-shrink-0 transition-all duration-300 ease-in-out' : 'w-64 flex-shrink-0 transition-all duration-300 ease-in-out'}`}>
           <FarmerSidebar
             user={user}
             isCollapsed={isSidebarCollapsed}
@@ -73,7 +78,7 @@ const FarmerDashboard = () => {
         {/* Mobile Sidebar Drawer */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden fixed top-4 left-4 z-[100] bg-white border border-slate-200 shadow-md">
+            <Button variant="ghost" size="icon" className="lg:hidden fixed top-4 left-4 z-[100] bg-white border border-slate-200 shadow-md">
               <Menu className="h-5 w-5 text-slate-700" />
             </Button>
           </SheetTrigger>
@@ -163,78 +168,82 @@ const FarmerDashboard = () => {
         </Sheet>
 
         {/* Main Area */}
-        <div className="flex-1 flex flex-col overflow-hidden px-4 relative">
+        <div className="flex-1 flex flex-col overflow-hidden px-2 sm:px-4 relative">
           {/* Header */}
-          <nav className="flex flex-row items-center justify-between w-full px-4 sm:px-6 py-4 bg-white border-b relative z-10">
-            {/* Left - Greeting */}
-            <div className="flex items-center shrink-0 gap-3">
-              <div>
-                <h1 className="text-base sm:text-lg font-semibold text-slate-900">Welcome back, {user?.name || 'test abebe'}.</h1>
-                <p className="text-xs sm:text-sm text-slate-600">Here's what's happening on your farm.</p>
+          <nav className="flex flex-row items-center justify-between w-full px-3 sm:px-4 py-3 sm:py-4 bg-white border-b relative z-10">
+            {/* Left - Logo on mobile, Greeting on desktop */}
+            <div className="flex items-center shrink-0 gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center sm:hidden">
+                  <Leaf className="h-5 w-5 text-white" />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Welcome back, {user?.name || 'Farmer'}.</h1>
+                  <p className="text-xs sm:text-sm text-slate-600 hidden sm:block">Here's what's happening on your farm.</p>
+                </div>
               </div>
             </div>
 
             {/* Middle - Search Bar */}
-            <form onSubmit={handleSearch} className="relative flex-grow max-w-md mx-2 sm:mx-4 hidden sm:block">
+            <form onSubmit={handleSearch} className="relative flex-grow max-w-sm sm:max-w-md mx-2 sm:mx-4 hidden sm:block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 type="search"
                 placeholder="Search products, orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-10 bg-slate-50 border-slate-200 text-sm rounded-md"
+                className="h-8 sm:h-9 pl-10 bg-slate-50 border-slate-200 text-sm rounded-md"
               />
             </form>
 
             {/* Right - Notifications, Messages, Profile */}
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg">
-                <MessageSquare className="h-4 w-4 text-slate-700" />
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4 shrink-0">
+              <Button variant="ghost" size="icon" className="relative h-7 w-7 sm:h-8 sm:w-8 rounded-lg hidden sm:block">
+                <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-700" />
                 <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </Button>
-              <Button variant="ghost" size="icon" className="relative h-8 w-8 rounded-lg">
-                <Bell className="h-4 w-4 text-slate-700" />
-                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" />
-              </Button>
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
               <div className="relative" ref={profileDropdownRef}>
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 h-8 px-2 rounded-lg"
+                  className="flex items-center gap-1 sm:gap-2 h-7 sm:h-8 px-1 sm:px-2 rounded-lg"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 >
-                  <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-semibold text-sm">
-                    {user?.name?.charAt(0) || 'T'}
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-semibold text-xs sm:text-sm">
+                    {user?.name?.charAt(0) || 'F'}
                   </div>
-                  <div className="hidden lg:block text-left">
-                    <p className="text-xs font-medium text-slate-900">{user?.name || 'Test Abebe'}</p>
-                    <p className="text-[10px] text-slate-600">{user?.farmName || 'Farm Owner'}</p>
+                  <div className="hidden md:block text-left">
+                    <p className="text-xs font-medium text-slate-900">{user?.name || 'Farmer'}</p>
+                    <p className="text-[10px] text-slate-600 hidden lg:block">{user?.farmName || 'Farm Owner'}</p>
                   </div>
                 </Button>
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-sm font-semibold text-slate-900">My Account</p>
+                  <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                    <div className="px-3 sm:px-4 py-2 border-b border-slate-100">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-900">My Account</p>
                     </div>
                     <button
                       onClick={() => { navigate('/farmer/profile'); setProfileDropdownOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
-                      <User className="h-4 w-4" />
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Profile
                     </button>
                     <button
                       onClick={() => { navigate('/farmer/settings'); setProfileDropdownOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
-                      <SettingsIcon className="h-4 w-4" />
+                      <SettingsIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Settings
                     </button>
                     <div className="border-t border-slate-100 my-2"></div>
                     <button
                       onClick={() => { logout(); setProfileDropdownOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       Logout
                     </button>
                   </div>
@@ -251,6 +260,8 @@ const FarmerDashboard = () => {
                 <Route path="/products" element={<AddProduct />} />
                 <Route path="/products/add" element={<AddProduct />} />
                 <Route path="/orders" element={<FarmerOrders />} />
+                <Route path="/earnings" element={<Earnings />} />
+                <Route path="/analytics" element={<Analytics />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>

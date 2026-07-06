@@ -12,8 +12,23 @@ cloudinary.config({
 exports.getDashboardStats = async (req, res) => {
   try {
     console.log('=== Fetching Farmer Dashboard Stats ===');
+    
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     console.log('Farmer ID:', farmerId);
+
+    // Verify farmer exists
+    const farmer = await prisma.user.findUnique({
+      where: { id: farmerId, role: 'FARMER' }
+    });
+    
+    if (!farmer) {
+      return res.status(404).json({ error: 'Farmer account not found' });
+    }
 
     const totalProducts = await prisma.product.count({ where: { farmerId } });
 
@@ -71,26 +86,59 @@ exports.getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching farmer dashboard stats:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch dashboard statistics. Please try again later.' });
   }
 };
 
 // Product Management
 exports.getFarmerProducts = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
+    
+    // Validate pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ error: 'Invalid pagination parameters' });
+    }
+    
     const products = await prisma.product.findMany({
       where: { farmerId },
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
-    res.json(products);
+    
+    const total = await prisma.product.count({ where: { farmerId } });
+    
+    res.json({
+      products,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching farmer products:', error);
+    res.status(500).json({ error: 'Failed to fetch products. Please try again later.' });
   }
 };
 
 exports.createProduct = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     console.log('=== Creating Product ===');
     console.log('Farmer ID:', farmerId);
@@ -102,20 +150,55 @@ exports.createProduct = async (req, res) => {
       sku, discountPrice, brand, tags, isOrganic, harvestDate, expiryDate
     } = req.body;
 
+    // Validate required fields
+    if (!name || !price || !stock || !category) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: name, price, stock, and category are required' 
+      });
+    }
+
+    // Validate price and stock are positive numbers
+    const numericPrice = Number(price);
+    const numericStock = Number(stock);
+    
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ error: 'Price must be a positive number' });
+    }
+    
+    if (isNaN(numericStock) || numericStock < 0) {
+      return res.status(400).json({ error: 'Stock must be a non-negative number' });
+    }
+
+    // Validate discount price if provided
+    if (discountPrice) {
+      const numericDiscountPrice = Number(discountPrice);
+      if (isNaN(numericDiscountPrice) || numericDiscountPrice <= 0) {
+        return res.status(400).json({ error: 'Discount price must be a positive number' });
+      }
+      if (numericDiscountPrice >= numericPrice) {
+        return res.status(400).json({ error: 'Discount price must be less than regular price' });
+      }
+    }
+
     let imageUrl = '';
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
-      imageUrl = result.secure_url;
-      console.log('Image uploaded:', imageUrl);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
+        imageUrl = result.secure_url;
+        console.log('Image uploaded:', imageUrl);
+      } catch (uploadError) {
+        console.error('Image upload failed:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload product image' });
+      }
     }
 
     const product = await prisma.product.create({
       data: {
-        name,
-        description,
-        price: Number(price) || 0,
-        stock: Number(stock) || 0,
-        totalStock: Number(totalStock) || Number(stock) || 0,
+        name: name.trim(),
+        description: description?.trim() || '',
+        price: numericPrice,
+        stock: numericStock,
+        totalStock: Number(totalStock) || numericStock,
         minOrderQuantity: Number(minOrderQuantity) || 1,
         unit,
         category,
@@ -125,8 +208,8 @@ exports.createProduct = async (req, res) => {
         isOrganic: isOrganic === 'true' || isOrganic === true,
         harvestDate: harvestDate ? new Date(harvestDate) : null,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
-        badges: badges ? badges.split(',') : [],
-        tags: tags ? tags.split(',') : [],
+        badges: badges ? badges.split(',').map(b => b.trim()).filter(Boolean) : [],
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         image: imageUrl,
         farmerId,
         status: 'pending',
@@ -136,35 +219,49 @@ exports.createProduct = async (req, res) => {
     console.log('Product created:', product);
 
     // Create notification for all admin users
-    const admins = await prisma.user.findMany({
-      where: { role: 'ADMIN' },
-      select: { id: true }
-    });
-
-    console.log('Admins found:', admins.length);
-
-    for (const admin of admins) {
-      await prisma.notification.create({
-        data: {
-          type: 'product_pending',
-          title: 'New Product Pending Approval',
-          message: `Farmer has submitted "${name}" for approval`,
-          userId: admin.id,
-          productId: product.id
-        }
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true }
       });
+
+      console.log('Admins found:', admins.length);
+
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            type: 'product_pending',
+            title: 'New Product Pending Approval',
+            message: `Farmer has submitted "${name}" for approval`,
+            userId: admin.id,
+            productId: product.id
+          }
+        });
+      }
+
+      console.log('Notifications created');
+    } catch (notificationError) {
+      console.error('Failed to create notifications:', notificationError);
+      // Don't fail the product creation if notifications fail
     }
 
-    console.log('Notifications created');
     res.status(201).json(product);
   } catch (error) {
     console.error('Error creating product:', error);
-    res.status(500).json({ error: error.message });
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A product with this SKU already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create product. Please try again later.' });
   }
 };
 
 exports.updateProduct = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const { 
       name, description, price, stock, totalStock, minOrderQuantity, unit, category, badges,
       sku, discountPrice, brand, tags, isOrganic, harvestDate, expiryDate
@@ -172,32 +269,70 @@ exports.updateProduct = async (req, res) => {
     const farmerId = req.user.id;
     const productId = parseInt(req.params.id);
 
+    // Validate product ID
+    if (!productId || isNaN(productId)) {
+      return res.status(400).json({ error: 'Invalid product ID' });
+    }
+
     // Verify ownership
     const existing = await prisma.product.findFirst({ where: { id: productId, farmerId } });
-    if (!existing) return res.status(404).json({ error: 'Product not found' });
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found or you do not have permission to update it' });
+    }
 
-    let updateData = {
-      name,
-      description,
-      price: Number(price) || 0,
-      stock: Number(stock) || 0,
-      totalStock: Number(totalStock) || Number(stock) || 0,
-      minOrderQuantity: Number(minOrderQuantity) || 1,
-      unit,
-      category,
-      brand,
-      sku,
-      discountPrice: discountPrice ? Number(discountPrice) : null,
-      isOrganic: isOrganic === 'true' || isOrganic === true,
-      harvestDate: harvestDate ? new Date(harvestDate) : null,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
-    };
-    if (badges) updateData.badges = badges.split(',');
-    if (tags) updateData.tags = tags.split(',');
+    // Validate price and stock if provided
+    if (price !== undefined) {
+      const numericPrice = Number(price);
+      if (isNaN(numericPrice) || numericPrice <= 0) {
+        return res.status(400).json({ error: 'Price must be a positive number' });
+      }
+    }
+
+    if (stock !== undefined) {
+      const numericStock = Number(stock);
+      if (isNaN(numericStock) || numericStock < 0) {
+        return res.status(400).json({ error: 'Stock must be a non-negative number' });
+      }
+    }
+
+    // Validate discount price if provided
+    if (discountPrice) {
+      const numericDiscountPrice = Number(discountPrice);
+      const currentPrice = Number(price) || existing.price;
+      if (isNaN(numericDiscountPrice) || numericDiscountPrice <= 0) {
+        return res.status(400).json({ error: 'Discount price must be a positive number' });
+      }
+      if (numericDiscountPrice >= currentPrice) {
+        return res.status(400).json({ error: 'Discount price must be less than regular price' });
+      }
+    }
+
+    let updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description?.trim() || '';
+    if (price !== undefined) updateData.price = Number(price);
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (totalStock !== undefined) updateData.totalStock = Number(totalStock) || Number(stock) || 0;
+    if (minOrderQuantity !== undefined) updateData.minOrderQuantity = Number(minOrderQuantity) || 1;
+    if (unit !== undefined) updateData.unit = unit;
+    if (category !== undefined) updateData.category = category;
+    if (brand !== undefined) updateData.brand = brand;
+    if (sku !== undefined) updateData.sku = sku;
+    if (discountPrice !== undefined) updateData.discountPrice = Number(discountPrice) || null;
+    if (isOrganic !== undefined) updateData.isOrganic = isOrganic === 'true' || isOrganic === true;
+    if (harvestDate !== undefined) updateData.harvestDate = harvestDate ? new Date(harvestDate) : null;
+    if (expiryDate !== undefined) updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
+    if (badges) updateData.badges = badges.split(',').map(b => b.trim()).filter(Boolean);
+    if (tags) updateData.tags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
-      updateData.image = result.secure_url;
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
+        updateData.image = result.secure_url;
+      } catch (uploadError) {
+        console.error('Image upload failed:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload product image' });
+      }
     }
 
     const product = await prisma.product.update({
@@ -207,23 +342,52 @@ exports.updateProduct = async (req, res) => {
 
     res.json(product);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error updating product:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'A product with this SKU already exists' });
+    }
+    res.status(500).json({ error: 'Failed to update product. Please try again later.' });
   }
 };
 
 exports.deleteProduct = async (req, res) => {
   try {
     console.log('=== Deleting Farmer Product ===');
+    
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     const productId = parseInt(req.params.id);
     console.log('Farmer ID:', farmerId);
     console.log('Product ID:', productId);
 
+    // Validate product ID
+    if (!productId || isNaN(productId)) {
+      return res.status(400).json({ error: 'Invalid product ID' });
+    }
+
     // Verify ownership
     const existing = await prisma.product.findFirst({ where: { id: productId, farmerId } });
     if (!existing) {
       console.log('Product not found or not owned by farmer');
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found or you do not have permission to delete it' });
+    }
+
+    // Check if product has active orders
+    const activeOrderItems = await prisma.orderItem.findMany({
+      where: { 
+        productId,
+        order: { status: { in: ['pending', 'processing', 'on the way'] } }
+      }
+    });
+
+    if (activeOrderItems.length > 0) {
+      return res.status(400).json({ 
+        error: 'Cannot delete product with active orders. Please cancel the orders first.' 
+      });
     }
 
     await prisma.product.delete({ where: { id: productId } });
@@ -231,20 +395,40 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to delete product. Please try again later.' });
   }
 };
 
 // Order Management
 exports.getFarmerOrders = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     console.log('=== Fetching Farmer Orders ===');
     console.log('Farmer ID:', farmerId);
 
+    // Validate pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const status = req.query.status;
+    
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ error: 'Invalid pagination parameters' });
+    }
+
+    // Build where clause
+    const whereClause = { farmerId };
+    if (status && ['pending', 'processing', 'on the way', 'delivered', 'completed', 'cancelled'].includes(status)) {
+      whereClause.order = { status };
+    }
+
     // Get all order items for this farmer's products
     const orderItems = await prisma.orderItem.findMany({
-      where: { farmerId },
+      where: whereClause,
       include: {
         order: true,
         product: {
@@ -291,15 +475,32 @@ exports.getFarmerOrders = async (req, res) => {
     const orders = Array.from(ordersMap.values());
     console.log('Orders:', orders);
 
-    res.json(orders);
+    // Apply pagination
+    const total = orders.length;
+    const paginatedOrders = orders.slice((page - 1) * limit, page * limit);
+
+    res.json({
+      orders: paginatedOrders,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching farmer orders:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch orders. Please try again later.' });
   }
 };
 
 exports.getPendingOrders = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     const orderItems = await prisma.orderItem.findMany({
       where: { farmerId },
@@ -347,12 +548,18 @@ exports.getPendingOrders = async (req, res) => {
 
     res.json(Array.from(ordersMap.values()));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching pending orders:', error);
+    res.status(500).json({ error: 'Failed to fetch pending orders. Please try again later.' });
   }
 };
 
 exports.getCompletedOrders = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     const orderItems = await prisma.orderItem.findMany({
       where: { farmerId },
@@ -400,26 +607,56 @@ exports.getCompletedOrders = async (req, res) => {
 
     res.json(Array.from(ordersMap.values()));
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching completed orders:', error);
+    res.status(500).json({ error: 'Failed to fetch completed orders. Please try again later.' });
   }
 };
 
 exports.completeOrder = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const orderId = parseInt(req.params.id);
+    
+    // Validate order ID
+    if (!orderId || isNaN(orderId)) {
+      return res.status(400).json({ error: 'Invalid order ID' });
+    }
+
+    // Verify order belongs to farmer
+    const orderItem = await prisma.orderItem.findFirst({
+      where: { 
+        orderId,
+        farmerId: req.user.id 
+      }
+    });
+
+    if (!orderItem) {
+      return res.status(404).json({ error: 'Order not found or you do not have permission to update it' });
+    }
+
     const order = await prisma.order.update({
       where: { id: orderId },
       data: { status: 'completed' }
     });
     res.json(order);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error completing order:', error);
+    res.status(500).json({ error: 'Failed to complete order. Please try again later.' });
   }
 };
 
 // Earnings
 exports.getEarnings = async (req, res) => {
   try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
     const farmerId = req.user.id;
     const orderItems = await prisma.orderItem.findMany({
       where: { farmerId },
@@ -440,7 +677,8 @@ exports.getEarnings = async (req, res) => {
       availableForWithdrawal: monthlyRevenue * 0.8 // 80% available for withdrawal
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching earnings:', error);
+    res.status(500).json({ error: 'Failed to fetch earnings. Please try again later.' });
   }
 };
 
@@ -477,8 +715,34 @@ exports.getEarningsReports = async (req, res) => {
 exports.requestWithdrawal = async (req, res) => {
   try {
     const { amount } = req.body;
-    // In a real app, this would create a withdrawal request
-    res.json({ message: 'Withdrawal request submitted', amount });
+    const farmerId = req.user.id;
+    // Compute available amount (same logic as getEarnings)
+    const orderItems = await prisma.orderItem.findMany({
+      where: { farmerId },
+      include: { order: true }
+    });
+    const completedOrderItems = orderItems.filter(item => item.order.status === 'completed');
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyOrderItems = completedOrderItems.filter(item => new Date(item.order.createdAt) >= startOfMonth);
+    const monthlyRevenue = monthlyOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const availableForWithdrawal = monthlyRevenue * 0.8; // 80% available
+
+    if (amount <= 0) {
+      return res.status(400).json({ error: 'Withdrawal amount must be greater than zero' });
+    }
+    if (amount > availableForWithdrawal) {
+      return res.status(400).json({ error: 'Requested amount exceeds available balance' });
+    }
+    // Create a withdrawal request record
+    const withdrawal = await prisma.withdrawalRequest.create({
+      data: {
+        farmerId,
+        amount,
+        status: 'PENDING'
+      }
+    });
+    res.json({ message: 'Withdrawal request submitted', withdrawal });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
