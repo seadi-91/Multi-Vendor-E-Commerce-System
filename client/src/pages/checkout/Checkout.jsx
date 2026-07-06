@@ -1,14 +1,51 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
-import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, Sun, Moon, Monitor, User, Settings, LogOut } from 'lucide-react';
+
+const ThemeToggle = ({ theme, setTheme }) => {
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const renderThemeIcon = () => {
+    if (theme === 'system') return <Monitor className="w-4.5 h-4.5" />;
+    return isDark ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />;
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100 text-amber-700 shadow-sm hover:bg-amber-200 transition-all" aria-label="Toggle Theme">
+          {renderThemeIcon()}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg dark:bg-slate-900 dark:border-slate-700">
+        <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
+          <Sun className="mr-2 h-4 w-4 text-amber-500" />
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
+          <Moon className="mr-2 h-4 w-4 text-amber-500" />
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
+          <Monitor className="mr-2 h-4 w-4 text-amber-500" />
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 const Checkout = () => {
   const { cart, cartCount, clearCart } = useCart();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const { theme, setTheme } = useTheme();
 
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -25,6 +62,37 @@ const Checkout = () => {
   const [error, setError] = useState(null);
 
   const formatPrice = (price) => Number(price || 0).toFixed(2);
+
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const pageContainerClass = theme === 'dark'
+    ? 'min-h-screen bg-black text-white'
+    : theme === 'light'
+      ? 'min-h-screen bg-white text-black'
+      : 'min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 text-slate-900';
+  const cardClass = theme === 'dark'
+    ? 'bg-slate-950 border-slate-800 text-white'
+    : 'bg-white border-gray-200 text-slate-900';
+  const inputClass = theme === 'dark'
+    ? 'bg-slate-900 text-white border-slate-700 placeholder:text-slate-400'
+    : 'bg-gray-50 text-slate-900 border-gray-200 placeholder:text-gray-400';
+  const labelClass = theme === 'dark'
+    ? 'text-slate-200'
+    : 'text-gray-700';
+  const subTextClass = theme === 'dark'
+    ? 'text-slate-400'
+    : 'text-gray-600';
+  const sectionTitleClass = theme === 'dark'
+    ? 'text-white'
+    : 'text-gray-900';
+  const summaryRowClass = theme === 'dark'
+    ? 'bg-slate-900 hover:bg-slate-800 text-white'
+    : 'bg-gray-50 hover:bg-gray-100 text-slate-900';
+  const summaryHeaderClass = theme === 'dark'
+    ? 'bg-slate-900 text-white'
+    : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white';
+  const totalBoxClass = theme === 'dark'
+    ? 'bg-slate-900'
+    : 'bg-gradient-to-br from-emerald-50 to-teal-50';
 
   const subtotalCents = cart.reduce((sum, item) => {
     const itemPrice = Number(item.price) || 0;
@@ -70,8 +138,8 @@ const Checkout = () => {
       const orderPayload = {
         customerId: user?.id || null,
         items: cart,
-        total: parseFloat(total.toFixed(2)), 
-        subtotal: parseFloat(subtotal.toFixed(2)), 
+        total: parseFloat(total.toFixed(2)),
+        subtotal: parseFloat(subtotal.toFixed(2)),
         deliveryFee: parseFloat(deliveryFee.toFixed(2)),
         tax: 0,
         status: 'processing',
@@ -88,24 +156,44 @@ const Checkout = () => {
 
       console.log('Order payload:', JSON.stringify(orderPayload, null, 2));
 
-      // Try to submit order to backend
-      try {
-        const response = await api.post('/orders', orderPayload);
-        console.log('Order response:', response.data);
-      } catch (apiError) {
-        console.error('API Error:', apiError);
-        console.error('API Error response:', apiError.response);
-        // Continue anyway to show success for now
-        console.log('Continuing despite API error for testing...');
-      }
-      
-      // Show success modal
+      let response = null;
+
+      response = await api.post('/orders', orderPayload);
+
+      const createdOrder = {
+        ...response?.data,
+        id: response?.data?.id || Date.now(),
+        orderNumber: response?.data?.orderCode || `ORD-${String(response?.data?.id || Date.now()).padStart(5, '0')}`,
+        orderCode: response?.data?.orderCode || `ORD-${String(response?.data?.id || Date.now()).padStart(5, '0')}`,
+        date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        timestamp: new Date().toISOString(),
+        status: response?.data?.status || 'processing',
+        paymentStatus: response?.data?.paymentStatus || (formData.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
+        paymentMethod: response?.data?.paymentMethod || formData.paymentMethod || 'cash',
+        fullName: response?.data?.fullName || formData.fullName || 'Customer',
+        email: response?.data?.email || formData.email || '',
+        phone: response?.data?.phone || formData.phone || '',
+        city: response?.data?.city || formData.city || '',
+        address: response?.data?.address || formData.address || '',
+        additionalInfo: response?.data?.additionalInfo || formData.address || '',
+        estimatedDelivery: response?.data?.estimatedDelivery || '30-45 minutes',
+        items: cart.map(item => ({ ...item, name: item.name || item.productName || 'Product', price: Number(item.price || 0), quantity: Number(item.quantity || 1), image: item.image || '🛒' })),
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        deliveryFee: parseFloat(deliveryFee.toFixed(2)),
+        tax: 0,
+        total: parseFloat(total.toFixed(2)),
+      };
+
+      const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      const nextOrders = [createdOrder, ...savedOrders.filter((entry) => String(entry.id) !== String(createdOrder.id))];
+      localStorage.setItem('orders', JSON.stringify(nextOrders));
+
       setOrderPlaced(true);
 
       setTimeout(() => {
         clearCart();
-        navigate('/customer/dashboard', { state: { orderSuccess: true } });
-      }, 3000);
+        navigate('/customer/orders', { state: { orderSuccess: true, latestOrder: createdOrder } });
+      }, 2500);
     } catch (error) {
       console.error('Order submission failed:', error);
       const errMsg =
@@ -142,7 +230,7 @@ const Checkout = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 py-12 px-4 lg:px-8">
+      <div className={`${pageContainerClass} py-12 px-4 lg:px-8`}>
         <div className="max-w-7xl mx-auto">
           {orderPlaced ? (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
@@ -173,9 +261,39 @@ const Checkout = () => {
             </div>
           ) : (
             <>
-              <div className="mb-10 text-center">
-                <h1 className="text-5xl font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">Checkout</h1>
-                <p className="text-gray-600">Complete your order in a few simple steps</p>
+              <div className="mb-10 grid gap-4 md:flex md:items-center md:justify-between">
+                <div className="flex items-center gap-4 justify-start">
+                  <ThemeToggle theme={theme} setTheme={setTheme} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all text-[var(--foreground)]">
+                        <span className="font-semibold">Me</span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="bottom" sideOffset={6} className="min-w-[180px] p-1.5 bg-[var(--card)] border-[var(--border)]">
+                      <DropdownMenuItem onClick={() => navigate('/customer/profile')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                        <User className="w-4 h-4 mr-2" />
+                        Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/customer/dashboard/orders')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                        <Package className="w-4 h-4 mr-2" />
+                        My Orders
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/customer/settings')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => logout()} className="flex items-center justify-start cursor-pointer text-[var(--destructive)] hover:bg-[var(--destructive)/10]">
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="text-left">
+                    <h1 className="text-5xl font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">Checkout</h1>
+                    <p className={`${subTextClass}`}>Complete your order in a few simple steps</p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -183,53 +301,53 @@ const Checkout = () => {
                 <div className="lg:col-span-2 space-y-6 max-w-2xl">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Combined Personal Info & Delivery Card */}
-                    <div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-100 p-8 hover:shadow-2xl transition-shadow">
+                    <div className={`${cardClass} rounded-3xl shadow-xl border-2 p-8 hover:shadow-2xl transition-shadow ${theme === 'dark' ? 'border-slate-800' : 'border-emerald-100'}`}>
                       <div className="flex items-center gap-4 mb-8">
-                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-                          <Home className="w-7 h-7 text-white" />
+                        <div className={`w-14 h-14 ${theme === 'dark' ? 'bg-slate-800' : 'bg-gradient-to-br from-emerald-500 to-teal-600'} rounded-2xl flex items-center justify-center shadow-lg`}>
+                          <Home className={`w-7 h-7 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
                         </div>
                         <div>
-                          <h3 className="text-2xl font-black text-gray-900">Contact & Delivery</h3>
-                          <p className="text-sm text-gray-500">Your information and delivery preferences</p>
+                          <h3 className={`text-2xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
+                          <p className={`text-sm ${subTextClass}`}>Your information and delivery preferences</p>
                         </div>
                       </div>
 
                       <div className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                           <div>
-                            <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Full Name *</label>
+                            <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Full Name *</label>
                             <input
                               type="text"
                               name="fullName"
                               value={formData.fullName}
                               onChange={handleInputChange}
                               required
-                              className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all bg-gray-50 hover:bg-white"
+                              className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
                               placeholder="John Doe"
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Phone Number *</label>
+                            <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Phone Number *</label>
                             <input
                               type="tel"
                               name="phone"
                               value={formData.phone}
                               onChange={handleInputChange}
                               required
-                              className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all bg-gray-50 hover:bg-white"
+                              className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
                               placeholder="+251 9XX XXX XXX"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Email Address</label>
+                          <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Email Address</label>
                           <input
                             type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleInputChange}
-                            className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all bg-gray-50 hover:bg-white"
+                            className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
                             placeholder="john@example.com"
                           />
                         </div>
@@ -237,12 +355,12 @@ const Checkout = () => {
                         {/* Delivery Checkbox - Small */}
                         <div className="pt-4 border-t-2 border-gray-100">
                           <label className="flex items-center gap-3 cursor-pointer group">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               name="isDelivery"
-                              checked={formData.isDelivery} 
-                              onChange={(e) => setFormData({...formData, isDelivery: e.target.checked})} 
-                              className="w-5 h-5 rounded border-2 border-gray-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                              checked={formData.isDelivery}
+                              onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
+                              className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
                             />
                             <div className="flex items-center gap-2">
                               <Truck className="w-5 h-5 text-emerald-600" />
@@ -263,8 +381,8 @@ const Checkout = () => {
                           <div className="space-y-5 pt-2 animate-in slide-in-from-top duration-300">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">City *</label>
-                                <select name="city" value={formData.city} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium bg-gray-50 hover:bg-white transition-all">
+                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>City *</label>
+                                <select name="city" value={formData.city} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
                                   <option value="">Select City</option>
                                   <option value="addis-ababa">Addis Ababa</option>
                                   <option value="adama">Adama</option>
@@ -275,7 +393,7 @@ const Checkout = () => {
                               </div>
                               <div>
                                 <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Subcity *</label>
-                                <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium bg-gray-50 hover:bg-white transition-all" placeholder="e.g., Bole" />
+                                <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`} placeholder="e.g., Bole" />
                               </div>
                             </div>
                           </div>
@@ -284,7 +402,7 @@ const Checkout = () => {
                     </div>
 
                     <div className="mb-10">
-                      <h3 className="flex items-center gap-2 text-xl font-bold text-gray-800 mb-5">
+                      <h3 className={`flex items-center gap-2 text-xl font-bold mb-5 ${sectionTitleClass}`}>
                         <CreditCard className="text-emerald-600" />
                         Payment Method
                       </h3>
@@ -294,7 +412,7 @@ const Checkout = () => {
                             key={method}
                             className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.paymentMethod === method
                               ? 'border-emerald-500 bg-emerald-50'
-                              : 'border-gray-300 bg-white hover:border-emerald-300'
+                              : `${theme === 'dark' ? 'border-slate-700 bg-slate-950 hover:border-slate-600' : 'border-gray-300 bg-white hover:border-emerald-300'}`
                               }`}
                           >
                             <input
@@ -335,7 +453,7 @@ const Checkout = () => {
                     </div>
 
                     <div className="flex gap-4">
-                      <button type="button" onClick={() => navigate(-1)} className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all">
+                      <button type="button" onClick={() => navigate(-1)} className={`flex-1 px-8 py-4 border-2 rounded-2xl font-bold transition-all ${theme === 'dark' ? 'border-slate-700 text-white hover:bg-slate-900' : 'border-gray-300 text-gray-900 hover:bg-gray-100'}`}>
                         Back
                       </button>
                       <button type="submit" disabled={isSubmitting} className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100">
@@ -355,7 +473,7 @@ const Checkout = () => {
 
                     {/* Error Message */}
                     {error && (
-                      <div className="mt-4 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300">
+                      <div className={`mt-4 p-4 border-2 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300 ${theme === 'dark' ? 'bg-slate-950 border-red-800' : 'bg-red-50 border-red-200'}`}>
                         <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                           <span className="text-white text-sm font-bold">!</span>
                         </div>
@@ -363,8 +481,8 @@ const Checkout = () => {
                           <h4 className="text-sm font-bold text-red-900 mb-1">Order Failed</h4>
                           <p className="text-sm text-red-700">{error}</p>
                         </div>
-                        <button 
-                          onClick={() => setError(null)} 
+                        <button
+                          onClick={() => setError(null)}
                           className="text-red-400 hover:text-red-600 text-xl font-bold leading-none"
                         >
                           ×
@@ -376,15 +494,16 @@ const Checkout = () => {
 
                 {/* Order Summary */}
                 <div className="lg:col-span-1">
-                  <div className="sticky top-8 bg-white rounded-3xl shadow-2xl border-2 border-emerald-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-8 text-white">
+                  <div className={`sticky top-8 rounded-3xl shadow-2xl border-2 overflow-hidden ${cardClass} ${theme === 'dark' ? 'border-slate-800' : 'border-emerald-100'}`}>
+                    <div className={`${summaryHeaderClass} p-8`}
+                    >
                       <h3 className="text-2xl font-black mb-1">Order Summary</h3>
                       <p className="text-emerald-100 text-sm">{cart.length} {cart.length === 1 ? 'item' : 'items'} in cart</p>
                     </div>
 
-                    <div className="p-6 space-y-4 border-b-2 border-gray-100 max-h-80 overflow-y-auto">
+                    <div className={`p-6 space-y-4 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'} max-h-80 overflow-y-auto`}>
                       {cart.map(item => (
-                        <div key={item._id} className="flex justify-between items-start p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-xl transition-colors`}>
                           <div className="flex-1">
                             <p className="font-bold text-sm text-gray-900">{item.name}</p>
                             <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
@@ -394,20 +513,20 @@ const Checkout = () => {
                       ))}
                     </div>
                     <div className="p-6 space-y-3 border-b-2 border-gray-100">
-                      <div className="flex justify-between text-sm text-gray-600">
+                      <div className={`flex justify-between text-sm ${subTextClass}`}>
                         <span>Subtotal</span>
                         <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600">
+                      <div className={`flex justify-between text-sm ${subTextClass}`}>
                         <span>Delivery</span>
                         <span className="font-semibold">{formatPrice(deliveryFee)} ETB</span>
                       </div>
                     </div>
 
-                    <div className="p-8 bg-gradient-to-br from-emerald-50 to-teal-50">
+                    <div className={`p-8 ${totalBoxClass}`}>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-900 font-black text-lg">Total</span>
-                        <span className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{formatPrice(total)} ETB</span>
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-lg`}>Total</span>
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-3xl font-black`}>{formatPrice(total)} ETB</span>
                       </div>
                     </div>
                   </div>

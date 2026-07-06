@@ -56,6 +56,21 @@ export const customerAPI = {
   updateProfile: (data) => api.put('/customer/profile', data),
   updatePhone: (data) => api.put('/customer/phone', data),
   changePassword: (data) => api.put('/customer/password', data),
+  getSettings: () => api.get('/customer/settings'),
+  updateSettings: (data) => api.put('/customer/settings', data),
+  uploadProfileImage: (imageUrl) => api.post('/customer/settings/profile-image', { imageUrl }),
+  getAddresses: () => api.get('/customer/addresses').catch((error) => {
+    if (error.response?.status === 404) {
+      return { data: { addresses: [] } };
+    }
+    throw error;
+  }),
+  addAddress: (address) => api.post('/customer/addresses', address),
+  updateAddress: (id, address) => api.put(`/customer/addresses/${id}`, address),
+  deleteAddress: (id) => api.delete(`/customer/addresses/${id}`),
+  getSessions: () => api.get('/customer/sessions'),
+  revokeSession: (sessionId) => api.delete(`/customer/sessions/${sessionId}`),
+  deactivateAccount: () => api.post('/customer/deactivate'),
   deleteAccount: () => api.delete('/customer/account'),
 };
 

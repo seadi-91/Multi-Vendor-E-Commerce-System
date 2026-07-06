@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { ROUTES_BY_ROLE } from './roles';
+import { ROLES, ROUTES_BY_ROLE } from './roles';
 
 const GuestRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -18,12 +18,19 @@ const GuestRoute = ({ children }) => {
     );
   }
 
-  // If user is already authenticated, redirect to their dashboard
+  // If user is already authenticated, redirect to the appropriate dashboard
   if (user) {
-    const userRole = user.role?.toLowerCase();
-    const redirectPath = ROUTES_BY_ROLE[userRole] || '/';
-    console.log('GuestRoute: User already authenticated, redirecting to:', redirectPath);
-    return <Navigate to={redirectPath} replace />;
+    const role = user.role?.toUpperCase?.() || '';
+    const targetRoute = role === ROLES.ADMIN
+      ? ROUTES_BY_ROLE.admin
+      : role === ROLES.FARMER
+        ? ROUTES_BY_ROLE.farmer
+        : role === ROLES.CUSTOMER
+          ? ROUTES_BY_ROLE.customer
+          : '/';
+
+    console.log('GuestRoute: User already authenticated, redirecting to', targetRoute);
+    return <Navigate to={targetRoute} replace />;
   }
 
   // User is not authenticated, allow access to the page

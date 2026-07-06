@@ -1,51 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import CustomerFooter from '../dashbord/customer/footer/Footer';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, NavLink, Link } from 'react-router-dom';
-import { Heart, Star, ShoppingCart, Package, ChevronLeft, BadgeCheck } from 'lucide-react';
+import { Heart, Star, ShoppingCart, Package, ChevronLeft, BadgeCheck, Sparkles, Sun, Moon, Monitor } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
-  const baseMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl text-gray-600 font-medium transition-all hover:bg-gray-50 hover:text-green-600 group";
-  const activeMenuClass = "flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all bg-green-50 text-green-600";
+  const baseMenuClass = "group flex items-center justify-between rounded-2xl border border-transparent px-4 py-3 text-[var(--sidebar-foreground)] font-medium shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sidebar-primary)]/20 hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-primary)]";
+  const activeMenuClass = "group flex items-center justify-between rounded-2xl border border-[var(--sidebar-primary)]/20 bg-[var(--sidebar-accent)] px-4 py-3 font-medium text-[var(--sidebar-primary)] shadow-[0_10px_25px_-12px_rgba(5,150,105,0.45)]";
 
   return (
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
-      
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out h-full ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 rounded-r-[32px] border border-[var(--sidebar-border)] bg-[linear-gradient(180deg,var(--sidebar)_0%,var(--sidebar-accent)_100%)] p-5 shadow-xl backdrop-blur-xl flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out h-full ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div>
           {/* Brand Logo */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
+          <div className="mb-6 rounded-[24px] border border-[var(--border)] bg-[var(--card)]/80 p-3 shadow-sm">
+            <div className="flex items-center justify-between">
               <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center shadow-md">
-                  <span className="text-white text-xl">🌾</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--primary)] shadow-md">
+                  <span className="text-xl text-[var(--primary-foreground)]">🌾</span>
                 </div>
-                <h1 className="text-lg font-extrabold flex items-center">
-                  <span className="text-green-600">Farm</span>
-                  <span className="text-gray-800">Connect</span>
+                <h1 className="flex items-center text-lg font-extrabold">
+                  <span className="text-[var(--primary)]">Farm</span>
+                  <span className="text-[var(--foreground)]">Connect</span>
                 </h1>
               </Link>
+              <button
+                onClick={onClose}
+                className="rounded-full p-2 text-[var(--muted-foreground)] transition-colors hover:bg-[var(--secondary)] hover:text-[var(--foreground)] lg:hidden"
+              >
+                ✕
+              </button>
             </div>
-            <button 
-              onClick={onClose}
-              className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
+            <div className="mt-3 inline-flex items-center rounded-full bg-[var(--secondary)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--muted-foreground)]">
+              Fresh from Farm to You
+            </div>
           </div>
-          <p className="text-xs text-gray-400 font-medium mb-8 pl-1">Fresh from Farm to You</p>
 
           {/* Core Shopping Sidebar Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-2">
             <NavLink to="/customer/dashboard" end className={({ isActive }) => isActive ? activeMenuClass : baseMenuClass} onClick={onClose}>
               <div className="flex items-center gap-3">
                 <span className="text-lg">🏠</span> <span>Dashboard</span>
@@ -69,7 +73,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
                 <span className="text-lg">🤍</span> <span>Wishlist</span>
               </div>
               {favoritesCount > 0 && (
-                <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
+                <span className="bg-[var(--primary)] text-[var(--primary-foreground)] text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
               )}
             </NavLink>
 
@@ -77,21 +81,24 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
               <div className="flex items-center gap-3">
                 <span className="text-lg">🛒</span> <span>Cart</span>
               </div>
-              <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 0}</span>
+              <span className="bg-[var(--primary)] text-[var(--primary-foreground)] text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 0}</span>
             </NavLink>
           </nav>
         </div>
 
         {/* Sidebar Promo Card */}
-        <div className="bg-green-50 rounded-2xl p-4 mt-6 relative overflow-hidden group">
+        <div className="relative mt-6 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[linear-gradient(135deg,var(--primary)/15,var(--secondary))] p-4 shadow-inner">
           <div className="relative z-10">
-            <h3 className="text-green-800 font-bold text-base mb-1">Fresh Deals!</h3>
-            <p className="text-xs text-gray-600 mb-3 max-w-[120px]">Get up to 20% off on selected products</p>
-            <Link to="/" className="bg-green-600 hover:bg-green-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+            <div className="mb-2 inline-flex rounded-full bg-[var(--card)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--primary)]">
+              Fresh Deals
+            </div>
+            <h3 className="mb-1 text-base font-bold text-[var(--foreground)]">Save more on seasonal picks</h3>
+            <p className="mb-3 max-w-[140px] text-xs text-[var(--muted-foreground)]">Enjoy handpicked farm favorites at special prices.</p>
+            <Link to="/" className="inline-flex rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--ring)]">
               Shop Now
             </Link>
           </div>
-          <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform">🧺</span>
+          <span className="pointer-events-none absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 transition-transform group-hover:scale-110">🧺</span>
         </div>
       </aside>
     </>
@@ -99,89 +106,112 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
 };
 
 // ─── Dashboard Header ───────────────────────────────────────────────────────
-const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount }) => {
+const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount, theme, setTheme }) => {
   const navigate = useNavigate();
+  const menuRef = React.useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const cycleTheme = () => {
+    if (theme === 'light') setTheme('dark');
+    else if (theme === 'dark') setTheme('system');
+    else setTheme('light');
+  };
 
   return (
-    <header className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-4 text-[var(--foreground)] sm:px-8">
       {/* Mobile Menu Toggle */}
-      <button 
+      <button
         onClick={onMenuToggle}
-        className="lg:hidden p-2 text-gray-600 hover:text-green-600 mr-2"
+        className="mr-2 p-2 text-[var(--foreground)] hover:text-[var(--primary)] lg:hidden"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
       </button>
 
       {/* Universal Search Bar */}
-      <div className="flex items-center w-full max-w-xl bg-gray-50 border border-gray-200 rounded-xl overflow-hidden px-4 py-1.5 focus-within:border-green-500 transition-colors">
+      <div className="flex w-full max-w-xl items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-1.5 transition-colors focus-within:border-[var(--primary)]">
         <input
           type="text"
           placeholder="Search for products or sellers..."
-          className="bg-transparent w-full text-sm text-gray-700 placeholder-gray-400 outline-none py-1"
+          className="w-full bg-transparent py-1 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
         />
-        <button className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <button className="rounded-lg bg-[var(--primary)] p-2 text-[var(--primary-foreground)] transition-colors hover:bg-[var(--ring)]">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
         </button>
       </div>
 
       {/* Global Action Icons */}
-      <div className="flex items-center gap-4 sm:gap-6">
-        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+      <div className="ml-4 flex items-center gap-3 sm:gap-5">
+        <button
+          onClick={cycleTheme}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)] transition-all hover:bg-[var(--muted)]"
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+        </button>
+
+        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
           <span className="text-xl">🔔</span>
-          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-[var(--primary-foreground)]">3</span>
         </div>
-        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
           <span className="text-xl">🤍</span>
           {favoritesCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{favoritesCount}</span>
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-white">{favoritesCount}</span>
           )}
         </div>
-        <div onClick={() => navigate('/customer/cart')} className="relative cursor-pointer p-1 text-gray-600 hover:text-green-600">
+        <Link to="/customer/cart" className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
           <span className="text-xl">🛒</span>
-          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount || 0}</span>
-        </div>
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-[var(--primary-foreground)]">{cartCount || 0}</span>
+        </Link>
 
-        {/* User Interactive Menu Context */}
-        <div className="flex items-center gap-3 border-l pl-4 sm:pl-6 border-gray-200 relative group">
-          <img
-            src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
-            alt="User profile"
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100"
-          />
-          <div className="text-left hidden md:block">
-            <p className="text-sm font-semibold text-gray-800 flex items-center gap-1 cursor-default">
-              Hi, {user?.name || "Selam!"}
-            </p>
-          </div>
-
-          <button className="text-gray-400 hover:text-gray-700 font-bold px-1 text-xl transition-colors ml-1 focus:outline-none">
-            &#8942;
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(prev => !prev)}
+            className="rounded-full border border-[var(--border)] bg-[var(--secondary)] p-1 shadow-sm transition hover:ring-2 hover:ring-[var(--primary)]/20"
+          >
+            <img
+              src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop'}
+              alt="User profile"
+              className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"
+            />
           </button>
 
-          {/* 3-Dot Dropdown Actions Panel */}
-          <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-xl py-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
-
-            <button onClick={() => navigate('/customer/dashboard/notifications')} className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
-              <div className="flex items-center gap-3">
-                <span>🔔</span> Notifications
-              </div>
-              <span className="bg-green-50 text-green-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
-            </button>
-            <button onClick={() => navigate('/customer/dashboard/reviews')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
-              <span>⭐</span> My Reviews
-            </button>
-            <button onClick={() => navigate('/customer/dashboard/settings')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 font-medium text-left">
-              <span>⚙️</span> Settings
-            </button>
-            <hr className="my-1 border-gray-100" />
-            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium text-left">
-              <span>📤</span> Logout
-            </button>
-          </div>
+          {menuOpen && (
+            <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 shadow-xl">
+              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                Profile
+              </button>
+              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/orders'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                My Orders
+              </button>
+              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/reviews'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                My Reviews
+              </button>
+              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/settings'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                Settings
+              </button>
+              <div className="my-1 h-px bg-[var(--border)]" />
+              <button onClick={() => { setMenuOpen(false); onLogout(); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--destructive)] hover:bg-[var(--destructive)/10]">
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -189,10 +219,10 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
 };
 
 // ─── Public Header ───────────────────────────────────────────────────────────
-const PublicHeader = ({ cartCount }) => {
+const PublicHeader = ({ cartCount, theme, setTheme }) => {
   const navigate = useNavigate();
   return (
-    <header className="bg-white text-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-200">
+    <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
         {/* Logo — left */}
         <Link to="/" className="flex items-center gap-2 flex-shrink-0">
@@ -205,7 +235,7 @@ const PublicHeader = ({ cartCount }) => {
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm font-medium">Back</span>
@@ -214,20 +244,28 @@ const PublicHeader = ({ cartCount }) => {
         {/* Right actions */}
         <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
           {/* Favorites */}
+          <ThemeToggle theme={theme} setTheme={setTheme} />
           <Link
             to="/favorites"
-            className="flex items-center gap-1.5 text-gray-600 hover:text-emerald-600 transition-colors relative"
+            className="flex items-center gap-2 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors relative"
           >
-            <div className="relative">
-              <Heart className="w-5 h-5" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">
+              {theme === 'system' ? (
+                <Monitor className="w-4 h-4" />
+              ) : theme === 'dark' ? (
+                <Moon className="w-4 h-4" />
+              ) : (
+                <Sun className="w-4 h-4" />
+              )}
             </div>
-            <span className="text-sm font-medium hidden sm:inline">Favorites</span>
+            <Heart className="w-5 h-5" />
+
           </Link>
 
           {/* Cart */}
           <Link
             to="/customer/cart"
-            className="flex items-center gap-1.5 text-gray-600 hover:text-emerald-600 transition-colors relative"
+            className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors relative"
           >
             <div className="relative">
               <ShoppingCart className="w-5 h-5" />
@@ -235,15 +273,178 @@ const PublicHeader = ({ cartCount }) => {
                 <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
               )}
             </div>
-            <span className="text-sm font-medium hidden sm:inline">Cart</span>
+
           </Link>
+
         </div>
       </div>
     </header>
   );
 };
 
+const ThemeToggle = ({ theme, setTheme }) => {
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const renderThemeIcon = () => {
+    if (theme === 'system') return <Monitor className="w-4.5 h-4.5" />;
+    return isDark ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />;
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25 transition-all" aria-label="Toggle Theme">
+          {renderThemeIcon()}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
+        <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 const Cart = () => {
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    const applyThemeStyles = currentTheme => {
+      root.classList.remove('light', 'dark');
+      if (currentTheme === 'dark') {
+        root.style.setProperty('--background', 'oklch(0.25 0 0)');
+        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--card', 'oklch(0.30 0 0)');
+        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--popover', 'oklch(0.30 0 0)');
+        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--primary', '#059669');
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
+        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--muted', 'oklch(0.35 0 0)');
+        root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
+        root.style.setProperty('--accent', 'oklch(0.35 0 0)');
+        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
+        root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
+        root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
+        root.style.setProperty('--ring', '#059669');
+        root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
+        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-primary', '#059669');
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
+        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
+        root.style.setProperty('--sidebar-ring', '#059669');
+      } else if (currentTheme === 'light') {
+        root.style.setProperty('--background', '#ffffff');
+        root.style.setProperty('--foreground', '#000000');
+        root.style.setProperty('--card', '#ffffff');
+        root.style.setProperty('--card-foreground', '#000000');
+        root.style.setProperty('--popover', '#ffffff');
+        root.style.setProperty('--popover-foreground', '#000000');
+        root.style.setProperty('--primary', '#059669');
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', '#f3f4f6');
+        root.style.setProperty('--secondary-foreground', '#000000');
+        root.style.setProperty('--muted', '#f3f4f6');
+        root.style.setProperty('--muted-foreground', '#6b7280');
+        root.style.setProperty('--accent', '#f3f4f6');
+        root.style.setProperty('--accent-foreground', '#000000');
+        root.style.setProperty('--destructive', '#dc2626');
+        root.style.setProperty('--border', '#e5e7eb');
+        root.style.setProperty('--input', '#e5e7eb');
+        root.style.setProperty('--ring', '#059669');
+        root.style.setProperty('--sidebar', '#ffffff');
+        root.style.setProperty('--sidebar-foreground', '#000000');
+        root.style.setProperty('--sidebar-primary', '#059669');
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', '#f3f4f6');
+        root.style.setProperty('--sidebar-accent-foreground', '#000000');
+        root.style.setProperty('--sidebar-border', '#e5e7eb');
+        root.style.setProperty('--sidebar-ring', '#059669');
+      } else {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (systemTheme === 'dark') {
+          root.style.setProperty('--background', 'oklch(0.145 0 0)');
+          root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--card', 'oklch(0.205 0 0)');
+          root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--popover', 'oklch(0.205 0 0)');
+          root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--primary', '#059669');
+          root.style.setProperty('--primary-foreground', '#ffffff');
+          root.style.setProperty('--secondary', 'oklch(0.269 0 0)');
+          root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--muted', 'oklch(0.269 0 0)');
+          root.style.setProperty('--muted-foreground', 'oklch(0.708 0 0)');
+          root.style.setProperty('--accent', 'oklch(0.269 0 0)');
+          root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
+          root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
+          root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
+          root.style.setProperty('--ring', '#059669');
+          root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
+          root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--sidebar-primary', '#059669');
+          root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+          root.style.setProperty('--sidebar-accent', 'oklch(0.269 0 0)');
+          root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+          root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
+          root.style.setProperty('--sidebar-ring', '#059669');
+        } else {
+          root.style.setProperty('--background', 'oklch(1 0 0)');
+          root.style.setProperty('--foreground', 'oklch(0.145 0 0)');
+          root.style.setProperty('--card', 'oklch(1 0 0)');
+          root.style.setProperty('--card-foreground', 'oklch(0.145 0 0)');
+          root.style.setProperty('--popover', 'oklch(1 0 0)');
+          root.style.setProperty('--popover-foreground', 'oklch(0.145 0 0)');
+          root.style.setProperty('--primary', '#059669');
+          root.style.setProperty('--primary-foreground', '#ffffff');
+          root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
+          root.style.setProperty('--secondary-foreground', 'oklch(0.205 0 0)');
+          root.style.setProperty('--muted', 'oklch(0.97 0 0)');
+          root.style.setProperty('--muted-foreground', 'oklch(0.556 0 0)');
+          root.style.setProperty('--accent', 'oklch(0.97 0 0)');
+          root.style.setProperty('--accent-foreground', 'oklch(0.205 0 0)');
+          root.style.setProperty('--destructive', 'oklch(0.577 0.245 27.325)');
+          root.style.setProperty('--border', 'oklch(0.922 0 0)');
+          root.style.setProperty('--input', 'oklch(0.922 0 0)');
+          root.style.setProperty('--ring', '#059669');
+          root.style.setProperty('--sidebar', 'oklch(0.985 0 0)');
+          root.style.setProperty('--sidebar-foreground', 'oklch(0.145 0 0)');
+          root.style.setProperty('--sidebar-primary', '#059669');
+          root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+          root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
+          root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.205 0 0)');
+          root.style.setProperty('--sidebar-border', 'oklch(0.922 0 0)');
+          root.style.setProperty('--sidebar-ring', '#059669');
+        }
+      }
+    };
+
+    applyThemeStyles(theme);
+    localStorage.setItem('theme', theme);
+
+    if (theme !== 'system') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemChange = () => applyThemeStyles('system');
+    mediaQuery.addEventListener?.('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener?.('change', handleSystemChange);
+  }, [theme]);
+
   const { cart, removeFromCart, cartCount, incrementQuantity, decrementQuantity, clearCart } = useCart();
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
@@ -252,8 +453,8 @@ const Cart = () => {
   // Show loading spinner while auth state is being resolved
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-xl font-semibold text-gray-700">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[var(--background)]">
+        <div className="text-xl font-semibold text-[var(--foreground)]">Loading...</div>
       </div>
     );
   }
@@ -275,23 +476,37 @@ const Cart = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <PublicHeader cartCount={cartCount} />
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm p-4 md:p-6 text-gray-800 mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto">
-          <div className="text-center mb-6 pb-3 border-b border-gray-100">
-            <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-1">Your Shopping Cart</h1>
-            {cart.length > 0 && (
-              <p className="text-sm text-gray-500 font-medium">{itemCount} item{itemCount !== 1 ? 's' : ''} in your cart</p>
-            )}
+      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+        <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
+        <div className="max-w-4xl mx-auto bg-[var(--card)]/95 rounded-3xl shadow-xl border border-[var(--border)] p-4 md:p-6 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto overflow-hidden">
+          <div className="relative rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-500 p-6 shadow-2xl overflow-hidden mb-6">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.4),_transparent_35%)] opacity-80" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[var(--secondary)]/20 text-[var(--primary)] shadow-lg">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-foreground)] font-semibold">Bright Cart</p>
+                  <h1 className="text-2xl md:text-3xl font-black text-[var(--foreground)]">Light up your order experience</h1>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-[var(--secondary)]/15 border border-[var(--border)] px-4 py-3 text-[var(--foreground)] shadow-sm">
+                <p className="text-xs uppercase tracking-[0.25em] text-[var(--muted-foreground)]">Items in cart</p>
+                <p className="text-xl font-black mt-1">{itemCount}</p>
+              </div>
+            </div>
           </div>
 
           {cart.length === 0 ? (
-            <div className="text-center py-12 text-gray-900">
-              <div className="text-4xl mb-4 opacity-50">🛒</div>
-              <h2 className="text-xl font-bold mb-2 text-gray-900">Your cart is empty</h2>
-              <p className="text-sm text-gray-500 mb-6">Add some delicious items to get started!</p>
+            <div className="text-center py-12 text-[var(--foreground)]">
+              <div className="inline-flex items-center justify-center mx-auto mb-4 h-20 w-20 rounded-3xl bg-[var(--secondary)] text-[var(--primary)] shadow-sm">
+                <Sparkles className="w-10 h-10" />
+              </div>
+              <h2 className="text-xl font-bold mb-2 text-[var(--foreground)]">Your cart is empty</h2>
+              <p className="text-sm text-[var(--muted-foreground)] mb-6">Add some delicious items to get started!</p>
               <button
-                className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all"
+                className="bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-[var(--ring)] transition-all"
                 onClick={() => navigate('/')}
               >
                 Continue Shopping
@@ -302,18 +517,18 @@ const Cart = () => {
               <div className="flex flex-col gap-4">
                 {cart.map(item => (
                   <div
-                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-white rounded-lg border border-gray-200 relative"
+                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm relative"
                     key={item._id}
                   >
-                    <div className="w-16 h-16 md:w-16 md:h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 mx-auto md:mx-0">
+                    <div className="w-16 h-16 md:w-16 md:h-16 rounded-3xl overflow-hidden bg-[var(--secondary)]/80 flex-shrink-0 mx-auto md:mx-0 shadow-lg ring-1 ring-[var(--border)] transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.03]">
                       {item.image ? (
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover animate-cart-float"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl bg-green-100 text-green-600">
+                        <div className="w-full h-full flex items-center justify-center text-3xl bg-[var(--secondary)] text-[var(--primary)]">
                           🍕
                         </div>
                       )}
@@ -321,28 +536,28 @@ const Cart = () => {
 
                     <div className="flex flex-col text-center md:text-left">
                       <div className="flex flex-col md:flex-row items-center md:items-start gap-1 md:gap-3 mb-1">
-                        <h3 className="text-sm font-bold text-gray-900">{item.name}</h3>
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <h3 className="text-sm font-bold text-[var(--foreground)]">{item.name}</h3>
+                        <span className="bg-[var(--secondary)] text-[var(--primary)] px-2 py-0.5 rounded-full text-xs font-medium">
                           {item.category}
                         </span>
                       </div>
-                      <p className="text-gray-500 mb-2 text-xs">
+                      <p className="text-[var(--muted-foreground)] mb-2 text-xs">
                         {item.description || 'Delicious item waiting for you!'}
                       </p>
 
                       <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-                        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-1.5 py-0.5">
+                        <div className="flex items-center gap-2 bg-[var(--secondary)] rounded-full px-1.5 py-0.5">
                           <button
-                            className="w-6 h-6 rounded-full bg-white text-gray-900 text-sm cursor-pointer flex items-center justify-center hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
+                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-all disabled:opacity-50"
                             onClick={() => decrementQuantity(item._id)}
                             aria-label="Decrease quantity"
                             disabled={item.quantity <= 1}
                           >
                             −
                           </button>
-                          <span className="font-bold text-gray-900 min-w-[24px] text-center text-sm">{item.quantity}</span>
+                          <span className="font-bold text-[var(--foreground)] min-w-[24px] text-center text-sm">{item.quantity}</span>
                           <button
-                            className="w-6 h-6 rounded-full bg-white text-gray-900 text-sm cursor-pointer flex items-center justify-center hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
+                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-all disabled:opacity-50"
                             onClick={() => incrementQuantity(item._id, item.stock || 99)}
                             aria-label="Increase quantity"
                             disabled={item.quantity >= (item.stock || 99)}
@@ -351,14 +566,14 @@ const Cart = () => {
                           </button>
                         </div>
                         <div className="flex flex-col items-center md:items-end">
-                          <span className="text-xs text-gray-500">{item.price} ETB</span>
-                          <span className="text-sm font-extrabold text-gray-900">{item.price * item.quantity} ETB</span>
+                          <span className="text-xs text-[var(--muted-foreground)]">{item.price} ETB</span>
+                          <span className="text-sm font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
                         </div>
                       </div>
                     </div>
 
                     <button
-                      className="bg-transparent text-red-500 border-none w-7 h-7 rounded-full text-lg cursor-pointer hover:bg-red-50 transition-all flex items-center justify-center absolute top-2 right-2 md:static"
+                      className="bg-transparent text-[var(--destructive)] border-none w-7 h-7 rounded-full text-lg cursor-pointer hover:bg-[var(--destructive)/10] transition-all flex items-center justify-center absolute top-2 right-2 md:static"
                       onClick={() => removeFromCart(item._id)}
                       aria-label={`Remove ${item.name} from cart`}
                     >
@@ -369,40 +584,48 @@ const Cart = () => {
               </div>
 
               <div className="sticky top-5">
-                <div className="bg-white border border-gray-200 rounded-lg p-5 text-gray-900">
-                  <h3 className="text-base font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100">Order Summary</h3>
-
-                  <div className="flex justify-between mb-3 text-gray-900">
-                    <span className="text-gray-500 text-xs">Subtotal ({itemCount} items)</span>
-                    <span className="font-semibold text-gray-900 text-sm">{total} ETB</span>
+                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm p-5 text-[var(--foreground)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted-foreground)] font-semibold">Order Summary</p>
+                      <h3 className="text-2xl font-black text-[var(--foreground)]">Checkout Ready</h3>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[var(--secondary)] text-[var(--primary)] shadow-sm">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
                   </div>
 
-                  <div className="flex justify-between mb-3 text-gray-900">
-                    <span className="text-gray-500 text-xs">Delivery Fee</span>
-                    <span className="font-semibold text-gray-900 text-sm">50 ETB</span>
+                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
+                    <span className="text-[var(--muted-foreground)] text-xs">Subtotal ({itemCount} items)</span>
+                    <span className="font-semibold text-[var(--foreground)] text-sm">{total} ETB</span>
                   </div>
 
-                  <div className="flex justify-between mb-3 text-gray-900">
-                    <span className="text-gray-500 text-xs">Tax</span>
-                    <span className="font-semibold text-gray-900 text-sm">{(total * 0.15).toFixed(2)} ETB</span>
+                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
+                    <span className="text-[var(--muted-foreground)] text-xs">Delivery Fee</span>
+                    <span className="font-semibold text-[var(--foreground)] text-sm">50 ETB</span>
                   </div>
-                  <div className="h-px bg-gray-200 my-3"></div>
+
+                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
+                    <span className="text-[var(--muted-foreground)] text-xs">Tax</span>
+                    <span className="font-semibold text-[var(--foreground)] text-sm">{(total * 0.15).toFixed(2)} ETB</span>
+                  </div>
+                  <div className="h-px bg-[var(--border)] my-3"></div>
 
                   <div className="flex justify-between items-center my-4">
-                    <span className="text-sm font-bold text-gray-900">Total</span>
-                    <span className="text-xl font-black text-green-600">
+                    <span className="text-sm font-bold text-[var(--foreground)]">Total</span>
+                    <span className="text-xl font-black text-[var(--primary)]">
                       {(total + 50 + total * 0.15).toFixed(2)} ETB
                     </span>
                   </div>
                   <button
-                    className="w-full bg-green-600 text-white border-none py-2.5 rounded-lg text-sm font-bold cursor-pointer hover:bg-green-700 transition-all mb-3"
+                    className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-3 rounded-3xl text-sm font-bold hover:bg-[var(--ring)] transition-all mb-3 shadow-lg shadow-[var(--primary)/30]"
                     onClick={handleCheckout}
                   >
                     Proceed to Checkout
                   </button>
 
                   <button
-                    className="w-full bg-transparent text-red-500 border border-red-500 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-red-50 transition-all"
+                    className="w-full bg-transparent text-[var(--destructive)] border border-[var(--destructive)] py-2.5 rounded-3xl text-xs font-semibold hover:bg-[var(--destructive)/10] transition-all"
                     onClick={clearCart}
                   >
                     Clear Cart
@@ -417,168 +640,155 @@ const Cart = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/50 text-gray-800 antialiased font-sans">
-      <div className="flex flex-1">
-        <Sidebar 
-          cartCount={cartCount} 
-          favoritesCount={favoritesCount}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+    <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] antialiased font-sans">
+      <DashboardHeader
+        user={user}
+        cartCount={cartCount}
+        onLogout={logout}
+        onMenuToggle={() => setSidebarOpen(true)}
+        favoritesCount={favoritesCount}
+        theme={theme}
+        setTheme={setTheme}
+      />
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <DashboardHeader 
-            user={user} 
-            cartCount={cartCount} 
-            onLogout={logout} 
-            onMenuToggle={() => setSidebarOpen(true)}
-            favoritesCount={favoritesCount}
-          />
+      <main className="flex-1 overflow-y-auto">
+        <section className="px-6 py-6">
+          <div className="mx-auto max-w-4xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-[var(--foreground)] shadow-sm md:p-6">
+            <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
+              <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
+              {cart.length > 0 && (
+                <p className="text-sm font-medium text-[var(--muted-foreground)]">
+                  {itemCount} item{itemCount !== 1 ? 's' : ''} in your cart
+                </p>
+              )}
+            </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <main className="flex-1">
-              <section className="px-6 py-6">
-                <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm p-4 md:p-6 text-gray-800">
-                  <div className="text-center mb-6 pb-3 border-b border-gray-100">
-                    <h1 className="text-xl md:text-2xl font-extrabold text-gray-900 mb-1">Your Shopping Cart</h1>
-                    {cart.length > 0 && (
-                      <p className="text-sm text-gray-500 font-medium">{itemCount} item{itemCount !== 1 ? 's' : ''} in your cart</p>
-                    )}
-                  </div>
+            {cart.length === 0 ? (
+              <div className="py-12 text-center text-[var(--foreground)]">
+                <div className="mb-4 text-4xl opacity-50">🛒</div>
+                <h2 className="mb-2 text-xl font-bold text-[var(--foreground)]">Your cart is empty</h2>
+                <p className="mb-6 text-sm text-[var(--muted-foreground)]">Add some delicious items to get started!</p>
+                <button
+                  className="rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:bg-[var(--ring)]"
+                  onClick={() => navigate('/')}
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+                <div className="flex flex-col gap-4">
+                  {cart.map(item => (
+                    <div
+                      className="relative grid grid-cols-[auto_1fr_auto] gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg md:grid-cols-[auto_1fr_auto]"
+                      key={item._id}
+                    >
+                      <div className="mx-auto h-16 w-16 flex-shrink-0 overflow-hidden rounded-3xl bg-[var(--secondary)] shadow-lg ring-1 ring-[var(--border)] transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.03] md:h-16 md:w-16">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="h-full w-full object-cover animate-cart-float" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[var(--secondary)] text-3xl text-[var(--primary)]">
+                            🍕
+                          </div>
+                        )}
+                      </div>
 
-                  {cart.length === 0 ? (
-                    <div className="text-center py-12 text-gray-900">
-                      <div className="text-4xl mb-4 opacity-50">🛒</div>
-                      <h2 className="text-xl font-bold mb-2 text-gray-900">Your cart is empty</h2>
-                      <p className="text-sm text-gray-500 mb-6">Add some delicious items to get started!</p>
-                      <button
-                        className="bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700 transition-all"
-                        onClick={() => navigate('/')}
-                      >
-                        Continue Shopping
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-                      <div className="flex flex-col gap-4">
-                        {cart.map(item => (
-                          <div
-                            className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-white rounded-lg border border-gray-200 relative"
-                            key={item._id}
-                          >
-                            <div className="w-16 h-16 md:w-16 md:h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 mx-auto md:mx-0">
-                              {item.image ? (
-                                <img
-                                  src={item.image}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-3xl bg-green-100 text-green-600">
-                                  🍕
-                                </div>
-                              )}
-                            </div>
+                      <div className="flex flex-col text-center md:text-left">
+                        <div className="mb-1 flex flex-col items-center gap-1 md:flex-row md:items-start md:gap-3">
+                          <h3 className="text-sm font-bold text-[var(--foreground)]">{item.name}</h3>
+                          <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs font-medium text-[var(--primary)]">
+                            {item.category}
+                          </span>
+                        </div>
+                        <p className="mb-2 text-xs text-[var(--muted-foreground)]">
+                          {item.description || 'Delicious item waiting for you!'}
+                        </p>
 
-                            <div className="flex flex-col text-center md:text-left">
-                              <div className="flex flex-col md:flex-row items-center md:items-start gap-1 md:gap-3 mb-1">
-                                <h3 className="text-sm font-bold text-gray-900">{item.name}</h3>
-                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                                  {item.category}
-                                </span>
-                              </div>
-                              <p className="text-gray-500 mb-2 text-xs">
-                                {item.description || 'Delicious item waiting for you!'}
-                              </p>
-
-                              <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-                                <div className="flex items-center gap-2 bg-gray-100 rounded-full px-1.5 py-0.5">
-                                  <button
-                                    className="w-6 h-6 rounded-full bg-white text-gray-900 text-sm cursor-pointer flex items-center justify-center hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
-                                    onClick={() => decrementQuantity(item._id)}
-                                    aria-label="Decrease quantity"
-                                    disabled={item.quantity <= 1}
-                                  >
-                                    −
-                                  </button>
-                                  <span className="font-bold text-gray-900 min-w-[24px] text-center text-sm">{item.quantity}</span>
-                                  <button
-                                    className="w-6 h-6 rounded-full bg-white text-gray-900 text-sm cursor-pointer flex items-center justify-center hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
-                                    onClick={() => incrementQuantity(item._id, item.stock || 99)}
-                                    aria-label="Increase quantity"
-                                    disabled={item.quantity >= (item.stock || 99)}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <div className="flex flex-col items-center md:items-end">
-                                  <span className="text-xs text-gray-500">{item.price} ETB</span>
-                                  <span className="text-sm font-extrabold text-gray-900">{item.price * item.quantity} ETB</span>
-                                </div>
-                              </div>
-                            </div>
-
+                        <div className="flex flex-col items-center gap-3 md:flex-row md:justify-between">
+                          <div className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-1.5 py-0.5">
                             <button
-                              className="bg-transparent text-red-500 border-none w-7 h-7 rounded-full text-lg cursor-pointer hover:bg-red-50 transition-all flex items-center justify-center absolute top-2 right-2 md:static"
-                              onClick={() => removeFromCart(item._id)}
-                              aria-label={`Remove ${item.name} from cart`}
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] transition-all hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] disabled:opacity-50"
+                              onClick={() => decrementQuantity(item._id)}
+                              aria-label="Decrease quantity"
+                              disabled={item.quantity <= 1}
                             >
-                              ×
+                              −
+                            </button>
+                            <span className="min-w-[24px] text-center text-sm font-bold text-[var(--foreground)]">{item.quantity}</span>
+                            <button
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] transition-all hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] disabled:opacity-50"
+                              onClick={() => incrementQuantity(item._id, item.stock || 99)}
+                              aria-label="Increase quantity"
+                              disabled={item.quantity >= (item.stock || 99)}
+                            >
+                              +
                             </button>
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="sticky top-5">
-                        <div className="bg-white border border-gray-200 rounded-lg p-5 text-gray-900">
-                          <h3 className="text-base font-extrabold text-gray-900 mb-4 pb-2 border-b border-gray-100">Order Summary</h3>
-
-                          <div className="flex justify-between mb-3 text-gray-900">
-                            <span className="text-gray-500 text-xs">Subtotal ({itemCount} items)</span>
-                            <span className="font-semibold text-gray-900 text-sm">{total} ETB</span>
+                          <div className="flex flex-col items-center md:items-end">
+                            <span className="text-xs text-[var(--muted-foreground)]">{item.price} ETB</span>
+                            <span className="text-sm font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
                           </div>
-
-                          <div className="flex justify-between mb-3 text-gray-900">
-                            <span className="text-gray-500 text-xs">Delivery Fee</span>
-                            <span className="font-semibold text-gray-900 text-sm">50 ETB</span>
-                          </div>
-
-                          <div className="flex justify-between mb-3 text-gray-900">
-                            <span className="text-gray-500 text-xs">Tax</span>
-                            <span className="font-semibold text-gray-900 text-sm">{(total * 0.15).toFixed(2)} ETB</span>
-                          </div>
-                          <div className="h-px bg-gray-200 my-3"></div>
-
-                          <div className="flex justify-between items-center my-4">
-                            <span className="text-sm font-bold text-gray-900">Total</span>
-                            <span className="text-xl font-black text-green-600">
-                              {(total + 50 + total * 0.15).toFixed(2)} ETB
-                            </span>
-                          </div>
-                          <button
-                            className="w-full bg-green-600 text-white border-none py-2.5 rounded-lg text-sm font-bold cursor-pointer hover:bg-green-700 transition-all mb-3"
-                            onClick={handleCheckout}
-                          >
-                            Proceed to Checkout
-                          </button>
-
-                          <button
-                            className="w-full bg-transparent text-red-500 border border-red-500 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-red-50 transition-all"
-                            onClick={clearCart}
-                          >
-                            Clear Cart
-                          </button>
                         </div>
                       </div>
+
+                      <button
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-none bg-transparent text-lg text-[var(--destructive)] transition-all hover:bg-[var(--destructive)/10] md:static"
+                        onClick={() => removeFromCart(item._id)}
+                        aria-label={`Remove ${item.name} from cart`}
+                      >
+                        ×
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
-              </section>
-            </main>
+
+                <div className="sticky top-5">
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 text-[var(--foreground)]">
+                    <h3 className="mb-4 border-b border-[var(--border)] pb-2 text-base font-extrabold text-[var(--foreground)]">Order Summary</h3>
+
+                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
+                      <span className="text-xs text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
+                      <span className="text-sm font-semibold text-[var(--foreground)]">{total} ETB</span>
+                    </div>
+
+                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
+                      <span className="text-xs text-[var(--muted-foreground)]">Delivery Fee</span>
+                      <span className="text-sm font-semibold text-[var(--foreground)]">50 ETB</span>
+                    </div>
+
+                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
+                      <span className="text-xs text-[var(--muted-foreground)]">Tax</span>
+                      <span className="text-sm font-semibold text-[var(--foreground)]">{(total * 0.15).toFixed(2)} ETB</span>
+                    </div>
+                    <div className="my-3 h-px bg-[var(--border)]"></div>
+
+                    <div className="my-4 flex items-center justify-between">
+                      <span className="text-sm font-bold text-[var(--foreground)]">Total</span>
+                      <span className="text-xl font-black text-[var(--primary)]">
+                        {(total + 50 + total * 0.15).toFixed(2)} ETB
+                      </span>
+                    </div>
+                    <button
+                      className="mb-3 w-full rounded-lg border-none bg-[var(--primary)] py-2.5 text-sm font-bold text-[var(--primary-foreground)] transition-all hover:bg-[var(--ring)]"
+                      onClick={handleCheckout}
+                    >
+                      Proceed to Checkout
+                    </button>
+
+                    <button
+                      className="w-full rounded-lg border border-[var(--destructive)] bg-transparent py-2 text-xs font-semibold text-[var(--destructive)] transition-all hover:bg-[var(--destructive)/10]"
+                      onClick={clearCart}
+                    >
+                      Clear Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-      
+        </section>
+      </main>
+
       <CustomerFooter />
     </div>
   );

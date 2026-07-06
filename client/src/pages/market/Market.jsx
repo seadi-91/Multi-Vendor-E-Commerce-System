@@ -1,105 +1,126 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
 import { toast } from 'react-hot-toast';
-import { Heart, Star, ShoppingCart, ChevronLeft, Search, Filter, MapPin, ChevronDown } from 'lucide-react';
+import { Heart, Star, ShoppingCart, ChevronLeft, Search, Sun, Moon, Monitor } from 'lucide-react';
+import { Card, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
-const fmt = (n) => Number(n).toFixed(2);
+const fmt = (n) => {
+  const value = Number(n);
+  if (!Number.isFinite(value)) return '0.00';
+  return value.toFixed(2);
+};
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
 
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => {
   const {
     id, name, price, rating = 4.5, vendor = 'Fresh Vendor', vendorVerified = true,
-    image, reviewsCount = 120, discountPercent = 0, unit = 'kg', badge, description,
+    image, reviewsCount = 0, discountPercent = 0, unit = 'kg', badge, description,
   } = product;
 
+  const safePrice = Number(price) || 0;
+  const safeRating = Number(rating) || 0;
+  const safeReviewsCount = Number(reviewsCount) || 0;
+  const safeDiscountPercent = Number(discountPercent) || 0;
+
   return (
-    <div className="group bg-white rounded-xl sm:rounded-2xl border border-slate-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
-      {/* Image */}
-      <div className="relative w-full overflow-hidden bg-slate-100" style={{ height: '160px' }}>
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.parentNode.style.background = '#f0fdf4';
-          }}
-        />
+    <Link to={`/product/${id}`} className="block">
+      <Card className="group bg-[var(--card)] rounded-xl sm:rounded-2xl border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden">
+        <CardContent className="p-0">
+          {/* Image */}
+          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '160px' }}>
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentNode.style.background = 'var(--secondary)';
+              }}
+            />
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {discountPercent > 0 && (
-            <span className="bg-emerald-600 text-white text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
-              {discountPercent}% OFF
-            </span>
-          )}
-          {badge && (
-            <span className="bg-amber-400 text-amber-900 text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
-              {badge}
-            </span>
-          )}
-        </div>
+            {/* Badges */}
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+              {safeDiscountPercent > 0 && (
+                <Badge variant="destructive" className="text-[10px] font-extrabold px-2.5 py-1">
+                  {safeDiscountPercent}% OFF
+                </Badge>
+              )}
+              {badge && (
+                <Badge variant="secondary" className="text-[10px] font-extrabold px-2.5 py-1">
+                  {badge}
+                </Badge>
+              )}
+            </div>
 
-        {/* Favorite */}
-        <button
-          onClick={(e) => { e.preventDefault(); onToggleFavorite(id); }}
-          className="absolute top-2 right-2 w-8 sm:w-9 h-8 sm:h-9 bg-white/95 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-        >
-          <Heart className={`w-4 sm:w-5 h-4 sm:h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 flex flex-col p-3 sm:p-5">
-        <h3 className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-emerald-700 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
-          {name}
-        </h3>
-
-        {description && (
-          <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 line-clamp-1">{description}</p>
-        )}
-
-        {/* Rating */}
-        <div className="flex items-center mt-2 sm:mt-3 gap-1">
-          <div className="flex gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`w-3 sm:w-4 h-3 sm:h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
-            ))}
+            {/* Favorite */}
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
+              className="absolute top-3 right-3 w-9 h-9 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+            >
+              <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
+            </button>
           </div>
-          <span className="text-[9px] sm:text-xs text-slate-400">({(reviewsCount / 100 | 0)})</span>
-        </div>
+        </CardContent>
 
-        {/* Price */}
-        <div className="mt-2 sm:mt-4 flex items-baseline gap-1 sm:gap-2">
-          <span className="text-base sm:text-lg font-extrabold text-emerald-700">{fmt(price)}</span>
-          {discountPercent > 0 && (
-            <span className="text-xs text-slate-400 line-through">{calcOriginal(price, discountPercent)}</span>
+        <CardContent className="flex-1 flex flex-col p-3 sm:p-5">
+          <h3 className="text-sm sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1 leading-snug line-clamp-2">
+            {name}
+          </h3>
+
+          {description && (
+            <p className="text-[10px] sm:text-xs text-[var(--muted-foreground)] mt-1 line-clamp-1">{description}</p>
           )}
-          <span className="text-[9px] sm:text-xs text-slate-400">/{unit}</span>
-        </div>
 
-        <button
-          onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-          className="w-full mt-2 sm:mt-4 py-2 sm:py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 shadow-md hover:shadow-lg"
-        >
-          <ShoppingCart className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-          <span className="hidden sm:inline">Add to Cart</span>
-          <span className="sm:hidden">Add</span>
-        </button>
-      </div>
-    </div>
+          {/* Rating */}
+          <div className="flex items-center mt-3 gap-1.5">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-3.5 h-3.5 ${i < Math.floor(safeRating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
+              ))}
+            </div>
+            <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)] font-medium">({safeReviewsCount})</span>
+          </div>
+
+          {/* Price */}
+          <div className="mt-auto pt-4 flex items-center justify-between gap-2 border-t border-[var(--border)]">
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <span className="text-base sm:text-lg font-extrabold text-[var(--primary)]">{fmt(safePrice)}</span>
+              {safeDiscountPercent > 0 && (
+                <span className="text-xs text-[var(--muted-foreground)] line-through">{calcOriginal(safePrice, safeDiscountPercent)}</span>
+              )}
+              <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">/{unit}</span>
+            </div>
+            <Button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+              size="sm"
+              className="h-8 px-3"
+            >
+              <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+              <span className="text-xs">Add</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 
 const Market = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
   const { user } = useAuth();
-  
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -107,9 +128,138 @@ const Market = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const { theme, setTheme } = useTheme();
+
+  // Define available categories
+  const categories = ['All', 'Vegetables', 'Fruits', 'Coffee', 'Legumes', 'Other'];
 
   const categoryParam = searchParams.get('cat');
   const searchParam = searchParams.get('search');
+
+  // Apply theme
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'dark') {
+      root.style.setProperty('--background', 'oklch(0.25 0 0)');
+      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--card', 'oklch(0.30 0 0)');
+      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--popover', 'oklch(0.30 0 0)');
+      root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--primary', '#059669');
+      root.style.setProperty('--primary-foreground', '#ffffff');
+      root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
+      root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--muted', 'oklch(0.35 0 0)');
+      root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
+      root.style.setProperty('--accent', 'oklch(0.35 0 0)');
+      root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
+      root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
+      root.style.setProperty('--ring', '#059669');
+      root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
+      root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--sidebar-primary', '#059669');
+      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+      root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
+      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--sidebar-ring', '#059669');
+    } else if (theme === 'light') {
+      root.style.setProperty('--background', 'oklch(1 0 0)');
+      root.style.setProperty('--foreground', 'oklch(0.12 0 0)');
+      root.style.setProperty('--card', 'oklch(0.995 0 0)');
+      root.style.setProperty('--card-foreground', 'oklch(0.12 0 0)');
+      root.style.setProperty('--popover', 'oklch(0.995 0 0)');
+      root.style.setProperty('--popover-foreground', 'oklch(0.12 0 0)');
+      root.style.setProperty('--primary', '#059669');
+      root.style.setProperty('--primary-foreground', '#ffffff');
+      root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
+      root.style.setProperty('--secondary-foreground', 'oklch(0.18 0 0)');
+      root.style.setProperty('--muted', 'oklch(0.97 0 0)');
+      root.style.setProperty('--muted-foreground', 'oklch(0.55 0 0)');
+      root.style.setProperty('--accent', 'oklch(0.97 0 0)');
+      root.style.setProperty('--accent-foreground', 'oklch(0.18 0 0)');
+      root.style.setProperty('--destructive', 'oklch(0.6 0.22 25)');
+      root.style.setProperty('--border', 'oklch(0.92 0 0)');
+      root.style.setProperty('--input', 'oklch(0.92 0 0)');
+      root.style.setProperty('--ring', '#059669');
+      root.style.setProperty('--sidebar', 'oklch(0.995 0 0)');
+      root.style.setProperty('--sidebar-foreground', 'oklch(0.12 0 0)');
+      root.style.setProperty('--sidebar-primary', '#059669');
+      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+      root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
+      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.18 0 0)');
+      root.style.setProperty('--sidebar-border', 'oklch(0.92 0 0)');
+      root.style.setProperty('--sidebar-ring', '#059669');
+    } else {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (systemTheme === 'dark') {
+        root.style.setProperty('--background', 'oklch(0.145 0 0)');
+        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--card', 'oklch(0.205 0 0)');
+        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--popover', 'oklch(0.205 0 0)');
+        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--primary', '#059669');
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', 'oklch(0.25 0 0)');
+        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--muted', 'oklch(0.25 0 0)');
+        root.style.setProperty('--muted-foreground', 'oklch(0.75 0 0)');
+        root.style.setProperty('--accent', 'oklch(0.25 0 0)');
+        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--destructive', 'oklch(0.628 0.258 25.331)');
+        root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
+        root.style.setProperty('--ring', '#059669');
+        root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
+        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-primary', '#059669');
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', 'oklch(0.25 0 0)');
+        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--sidebar-ring', '#059669');
+      } else {
+        root.style.setProperty('--background', 'oklch(1 0 0)');
+        root.style.setProperty('--foreground', 'oklch(0.12 0 0)');
+        root.style.setProperty('--card', 'oklch(0.995 0 0)');
+        root.style.setProperty('--card-foreground', 'oklch(0.12 0 0)');
+        root.style.setProperty('--popover', 'oklch(0.995 0 0)');
+        root.style.setProperty('--popover-foreground', 'oklch(0.12 0 0)');
+        root.style.setProperty('--primary', '#059669');
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
+        root.style.setProperty('--secondary-foreground', 'oklch(0.18 0 0)');
+        root.style.setProperty('--muted', 'oklch(0.97 0 0)');
+        root.style.setProperty('--muted-foreground', 'oklch(0.55 0 0)');
+        root.style.setProperty('--accent', 'oklch(0.97 0 0)');
+        root.style.setProperty('--accent-foreground', 'oklch(0.18 0 0)');
+        root.style.setProperty('--destructive', 'oklch(0.6 0.22 25)');
+        root.style.setProperty('--border', 'oklch(0.92 0 0)');
+        root.style.setProperty('--input', 'oklch(0.92 0 0)');
+        root.style.setProperty('--ring', '#059669');
+        root.style.setProperty('--sidebar', 'oklch(0.995 0 0)');
+        root.style.setProperty('--sidebar-foreground', 'oklch(0.12 0 0)');
+        root.style.setProperty('--sidebar-primary', '#059669');
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
+        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.18 0 0)');
+        root.style.setProperty('--sidebar-border', 'oklch(0.92 0 0)');
+        root.style.setProperty('--sidebar-ring', '#059669');
+      }
+    }
+  }, [theme]);
+
+  // Save theme to localStorage
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Set initial search query from URL
   useEffect(() => {
@@ -122,9 +272,25 @@ const Market = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await api.get('/products');
-        const data = response.data?.data || [];
-        setProducts(Array.isArray(data) ? data : []);
+        const response = await api.get('/products', {
+          params: {
+            search: searchQuery || undefined,
+            category: selectedCategory && selectedCategory !== 'All' ? selectedCategory : undefined,
+            sortBy,
+            limit: 50
+          }
+        });
+        const payload = response.data;
+        const productsData = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+        const mappedProducts = productsData.map((product) => ({
+          ...product,
+          id: product.id ?? product._id,
+          price: Number(product.price) || 0,
+          rating: Number(product.rating) || 0,
+          reviewsCount: Number(product.reviewsCount) || 0,
+          discountPercent: Number(product.discountPercent) || 0,
+        }));
+        setProducts(mappedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
         setProducts([]);
@@ -134,7 +300,7 @@ const Market = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   // Load favorites
   useEffect(() => {
@@ -156,18 +322,20 @@ const Market = () => {
     let filtered = products;
 
     // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter(p => 
-        p.category && p.category.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
+    if (selectedCategory && selectedCategory !== 'All') {
+      filtered = filtered.filter((p) => {
+        const category = p.category || '';
+        return category.toLowerCase() === selectedCategory.toLowerCase();
+      });
     }
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter((p) => {
+        const name = p.name || '';
+        const description = p.description || '';
+        return name.toLowerCase().includes(searchQuery.toLowerCase()) || description.toLowerCase().includes(searchQuery.toLowerCase());
+      });
     }
 
     // Sort
@@ -203,109 +371,163 @@ const Market = () => {
     toast.success(`${product.name} added to cart!`);
   };
 
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
-          <p className="text-slate-600">Loading products...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary)] mb-4"></div>
+          <p className="text-[var(--foreground)]">Loading products...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
-      <header className="bg-white sticky top-0 z-40 shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <button onClick={() => navigate(-1)} className="text-slate-700 hover:text-emerald-600 transition-colors">
+      <header className="bg-[var(--card)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
+            <button onClick={() => navigate(-1)} className="text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
               <ChevronLeft className="w-5 sm:w-6 h-5 sm:h-6" />
             </button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">
-                {selectedCategory ? `${selectedCategory}` : 'All Products'}
+
+            {/* Search Bar - Minimized Width */}
+            <div className="flex-1 max-w-xs min-w-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-3 py-2 text-xs sm:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              {/* Theme Toggle */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl transition-all text-[var(--foreground)]">
+                    {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
+                      <Moon className="w-4 h-4" />
+                    ) : (
+                      <Sun className="w-4 h-4" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
+                  <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Monitor className="w-4 h-4 mr-2" />
+                    System
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Favorites */}
+              <Link
+                to="/favorites"
+                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+              >
+                <Heart className="w-4 h-4 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
+                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
+                  </span>
+                )}
+              </Link>
+
+              {/* Cart */}
+              <Link
+                to="/customer/cart"
+                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+              >
+                <ShoppingCart className="w-4 h-4 text-[var(--foreground)]" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
+
+          {/* Sort Dropdown and Title/Count */}
+          <div className="mt-3 sm:mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-lg sm:text-2xl font-bold text-[var(--foreground)]">
+                {selectedCategory && selectedCategory !== 'All' ? `${selectedCategory}` : 'All Products'}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{filteredProducts.length} products found</p>
+              <p className="text-xs sm:text-sm text-[var(--muted-foreground)] mt-0.5">{filteredProducts.length} products found</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {/* Category Dropdown */}
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-[120px] sm:w-[140px] bg-[var(--secondary)] hover:bg-[var(--secondary)] border-[var(--border)]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--card)] border-[var(--border)]">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat} className="text-[var(--foreground)]">{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[120px] sm:w-[140px] bg-[var(--secondary)] hover:bg-[var(--secondary)] border-[var(--border)]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--card)] border-[var(--border)]">
+                  <SelectItem value="newest" className="text-[var(--foreground)]">Newest</SelectItem>
+                  <SelectItem value="price-low" className="text-[var(--foreground)]">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high" className="text-[var(--foreground)]">Price: High to Low</SelectItem>
+                  <SelectItem value="rating" className="text-[var(--foreground)]">Top Rated</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
-          {/* Sidebar Filters */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-6 sticky top-20">
-              {/* Search */}
-              <div>
-                <label className="text-sm font-semibold text-slate-800 mb-2 block">Search Products</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                  />
-                </div>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <label className="text-sm font-semibold text-slate-800 mb-2 block">Sort By</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                >
-                  <option value="newest">Newest</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Top Rated</option>
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSortBy('newest');
-                  setSelectedCategory('');
-                }}
-                className="w-full px-4 py-2 text-xs sm:text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Products Grid */}
-          <div className="lg:col-span-4">
+          <div className="col-span-1">
             {filteredProducts.length === 0 ? (
-              <div className="bg-white rounded-lg sm:rounded-xl p-8 sm:p-12 text-center">
+              <div className="bg-[var(--card)] rounded-xl p-8 sm:p-12 text-center border border-[var(--border)]">
                 <div className="text-4xl mb-4">🔍</div>
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-2">No products found</h3>
-                <p className="text-slate-600 text-xs sm:text-sm mb-4">Try adjusting your filters or search terms</p>
+                <h3 className="text-lg sm:text-xl font-bold text-[var(--foreground)] mb-2">No products found</h3>
+                <p className="text-[var(--muted-foreground)] text-xs sm:text-sm mb-4">Try adjusting your filters or search terms</p>
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedCategory('');
                   }}
-                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs sm:text-sm transition-colors"
+                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-bold rounded-lg text-xs sm:text-sm transition-colors"
                 >
                   View All Products
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                {filteredProducts.map(product => (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                {filteredProducts.map((product) => (
                   <ProductCard
-                    key={product._id || product.id}
-                    product={{ ...product, id: product._id || product.id }}
-                    isFavorite={favorites.includes(product._id || product.id)}
+                    key={product.id}
+                    product={{ ...product, id: product.id }}
+                    isFavorite={favorites.includes(product.id)}
                     onToggleFavorite={toggleFavorite}
                     onAddToCart={handleAddToCart}
                   />

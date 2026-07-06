@@ -33,7 +33,7 @@ function buildCustomerRegistrationData({
   if (profileImage && typeof profileImage === 'string' && profileImage.trim()) userData.profileImage = profileImage.trim();
   if (nationalId && typeof nationalId === 'string' && nationalId.trim()) userData.nationalId = nationalId.trim();
   if (landMapFile && typeof landMapFile === 'string' && landMapFile.trim()) userData.landMapFile = landMapFile.trim();
-  
+
   // Farmer-specific fields
   if (normalizedRole === 'farmer') {
     if (farmName && typeof farmName === 'string' && farmName.trim()) userData.farmName = farmName.trim();
@@ -50,17 +50,39 @@ exports.register = async (req, res) => {
   try {
     console.log('Register request body:', req.body);
 
-    // Extract all fields that exist in Prisma schema
-    const { name, email, password, role, address, phone, profileImage, nationalId, tinNumber, landMapFile, farmName, farmSize, bio } = req.body;
+    const body = req.body || {};
+    const {
+      name,
+      email,
+      password,
+      role,
+      address,
+      phone,
+      profileImage,
+      nationalId,
+      tinNumber,
+      landMapFile,
+      farmName,
+      farmSize,
+      bio,
+      city,
+    } = body;
     const normalizedRole = String(role || 'customer').toLowerCase();
 
-    if (!name || !email || !password) {
-      console.log('Missing required fields');
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ message: 'Name is required' });
     }
-    if (normalizedRole === 'farmer' && !address) {
-      console.log('Missing address for farmer');
-      return res.status(400).json({ message: 'Address is required for farmers' });
+    if (!email || !String(email).trim()) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+    if (!password || !String(password).trim()) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+    if (!phone || !String(phone).trim()) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+    if (normalizedRole === 'farmer' && (!address || !String(address).trim()) && (!city || !String(city).trim())) {
+      return res.status(400).json({ message: 'Address or city is required for farmers' });
     }
 
     console.log('Register attempt:', { name, email, role: normalizedRole });
@@ -95,12 +117,12 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userData = buildCustomerRegistrationData({
-      name,
-      email,
+      name: String(name).trim(),
+      email: String(email).trim(),
       password: hashedPassword,
       role: normalizedRole,
-      address,
-      phone,
+      address: address || city || null,
+      phone: String(phone).trim(),
       profileImage,
       nationalId,
       tinNumber,
@@ -185,10 +207,10 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { 
-        id: user.id, 
-        name: user.name, 
-        email: user.email, 
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
         role: user.role  // This will be CUSTOMER, FARMER, or ADMIN from the enum
       }
     });

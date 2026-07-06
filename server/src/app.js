@@ -9,6 +9,16 @@ const { apiLimiter, authLimiter, uploadLimiter } = require('./middleware/rateLim
 
 const app = express();
 
+const allowedOrigins = [
+  ...(process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean) || []),
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+];
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -35,11 +45,14 @@ app.use(sanitizeInput);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175'
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'User-Agent', 'DNT', 'Cache-Control', 'X-Mx-ReqToken', 'Keep-Alive', 'X-Requested-With', 'If-Modified-Since', 'X-CSRF-Token'],
@@ -56,6 +69,7 @@ const authRouter = require('./router/authRouter');
 const projectRouter = require('./router/projectRouter');
 const adminRouter = require('./router/adminRouter');
 const farmerRouter = require('./router/farmerRouter');
+const customerRouter = require('./router/customerRouter');
 const orderRouter = require('./router/orderRouter');
 const productsRouter = require('./router/productsRouter');
 const paymentRouter = require('./router/paymentRouter');
@@ -65,13 +79,14 @@ app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/projects', apiLimiter, projectRouter);
 app.use('/api/admin', apiLimiter, adminRouter);
 app.use('/api/farmer', apiLimiter, farmerRouter);
+app.use('/api/customer', apiLimiter, customerRouter);
 app.use('/api/orders', apiLimiter, orderRouter);
 app.use('/api/products', apiLimiter, productsRouter);
 app.use('/api/payments', apiLimiter, paymentRouter);
 
 // Health check
 app.get('/', (req, res) => {
-	res.send('API is running...');
+  res.send('API is running...');
 });
 
 // Error handling middleware

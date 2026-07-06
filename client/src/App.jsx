@@ -5,7 +5,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import ProtectedRoute from './context/ProtectedRoute';
 import GuestRoute from './context/GuestRoute';
 import AdminDashboard from './pages/dashbord/admin/AdminDashboard';
-import CustomerDashboard from './pages/dashbord/customer/customer';
 import FarmerDashboard from './pages/dashbord/farmer/farmer';
 import Login from './pages/login/login';
 import Register from './pages/regsiter/Register';
@@ -18,6 +17,9 @@ import Contact from './pages/contact/Contact';
 import Favorites from './pages/favorites/Favorites';
 import Product from './pages/dashbord/customer/product/Product';
 import Market from './pages/market/Market';
+import ProductDetail from './pages/product/ProductDetail';
+import Receipt from './pages/orders/Receipt';
+import CustomerProfile from './pages/dashbord/customer/profile';
 import { ROLES } from './context/roles';
 
 function App() {
@@ -33,6 +35,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/products" element={<Product />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
 
           {/* Guest Routes - Only accessible when not authenticated */}
           <Route
@@ -83,7 +86,7 @@ function App() {
             path="/customer/dashboard/*"
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
-                <CustomerDashboard />
+                <Navigate to="/customer/orders" replace />
               </ProtectedRoute>
             }
           />
@@ -100,6 +103,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
                 <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/orders/receipt/:id"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+                <Receipt />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/profile"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+                <CustomerProfile />
               </ProtectedRoute>
             }
           />

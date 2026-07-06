@@ -2,16 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import api from '../../api';
 import {
   ChevronLeft, ChevronRight, Search, Heart, Star,
   ShoppingCart, MapPin, Sprout, Users, Truck,
-  Shield, Leaf, Package, Menu, X, ChevronDown
+  Shield, Leaf, Package, Menu, X, ChevronDown, CheckCircle,
+  Sparkles, LogOut, LayoutDashboard, User, Sun, Moon, Monitor, MoreVertical, Settings
 } from 'lucide-react';
+import { Card, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
+
 // ─── Product Card ─────────────────────────────────────────────────────────────
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, className = '' }) => {
   const {
@@ -21,86 +28,295 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   } = product;
 
   return (
-    <div className={`group bg-white rounded-xl sm:rounded-2xl border border-slate-100 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
-      {/* Image */}
-      <div className="relative w-full overflow-hidden bg-slate-100" style={{ height: '160px', minHeight: '160px' }}>
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.parentNode.style.background = '#f0fdf4';
-          }}
-        />
+    <Link to={`/product/${id}`} className="block">
+      <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 border-[var(--border)] ${className}`}>
+        <CardContent className="p-0">
+          {/* Image Container */}
+          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '180px' }}>
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentNode.style.background = '#f0fdf4';
+              }}
+            />
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {discountPercent > 0 && (
-            <span className="bg-emerald-600 text-white text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
-              {discountPercent}% OFF
-            </span>
-          )}
-          {badge && (
-            <span className="bg-amber-400 text-amber-900 text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-md">
-              {badge}
-            </span>
-          )}
-        </div>
+            {/* Badges Overlay */}
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+              {discountPercent > 0 && (
+                <Badge variant="destructive" className="text-[10px] font-extrabold px-2.5 py-1">
+                  {discountPercent}% OFF
+                </Badge>
+              )}
+              {badge && (
+                <Badge variant="secondary" className="text-[10px] font-extrabold px-2.5 py-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> {badge}
+                </Badge>
+              )}
+            </div>
 
-        {/* Favorite */}
-        <button
-          onClick={(e) => { e.preventDefault(); onToggleFavorite(id); }}
-          className="absolute top-2 right-2 w-8 sm:w-9 h-8 sm:h-9 bg-white/95 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-        >
-          <Heart className={`w-4 sm:w-5 h-4 sm:h-5 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 flex flex-col p-3 sm:p-5">
-        <h3 className="text-sm sm:text-base font-bold text-slate-800 group-hover:text-emerald-700 mt-0.5 sm:mt-1 leading-snug line-clamp-2">
-          {name}
-        </h3>
-
-        {description && (
-          <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5 sm:mt-1 line-clamp-1">{description}</p>
-        )}
-
-        {/* Rating */}
-        <div className="flex items-center mt-2 sm:mt-3 gap-1">
-          <div className="flex gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className={`w-3 sm:w-4 h-3 sm:h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
-            ))}
+            {/* Favorite Button */}
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
+              className="absolute top-3 right-3 w-9 h-9 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10 border border-[var(--border)]"
+            >
+              <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
+            </button>
           </div>
-          <span className="text-[9px] sm:text-xs text-slate-400">({(reviewsCount / 100 | 0)})</span>
-        </div>
+        </CardContent>
 
-        {/* Price */}
-        <div className="mt-2 sm:mt-4 flex items-baseline gap-1 sm:gap-2">
-          <span className="text-base sm:text-lg font-extrabold text-emerald-700">{fmt(price)}</span>
-          {discountPercent > 0 && (
-            <span className="text-xs text-slate-400 line-through">{calcOriginal(price, discountPercent)}</span>
+        <CardContent className="flex-1 flex flex-col p-4 sm:p-5">
+          {/* Vendor and Verification */}
+          <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] mb-1">
+            <Sprout className="w-3.5 h-3.5 text-[var(--primary)]" />
+            <span className="font-medium truncate max-w-[120px]">{vendor}</span>
+            {vendorVerified && (
+              <Badge variant="outline" className="text-[10px] text-[var(--primary)] border-[var(--border)]">
+                Verified
+              </Badge>
+            )}
+          </div>
+
+          <h3 className="text-sm sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1 leading-snug line-clamp-2">
+            {name}
+          </h3>
+
+          {description && (
+            <p className="text-xs text-[var(--muted-foreground)] mt-1 line-clamp-1">{description}</p>
           )}
-          <span className="text-[9px] sm:text-xs text-slate-400">/{unit}</span>
-        </div>
 
-        <button
-          onClick={(e) => { e.preventDefault(); onAddToCart(product); }}
-          className="w-full mt-2 sm:mt-4 py-2 sm:py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 sm:gap-2 shadow-md hover:shadow-lg"
-        >
-          <ShoppingCart className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
-          <span className="hidden sm:inline">Add to Cart</span>
-          <span className="sm:hidden">Add</span>
-        </button>
-      </div>
-    </div>
+          {/* Rating */}
+          <div className="flex items-center mt-3 gap-1.5">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-3.5 h-3.5 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
+              ))}
+            </div>
+            <span className="text-xs text-[var(--muted-foreground)] font-medium">({reviewsCount})</span>
+          </div>
+
+          {/* Price & Cart */}
+          <div className="mt-auto pt-4 flex items-center justify-between gap-2 border-t border-[var(--border)]">
+            <div className="flex flex-col">
+              <span className="text-xs text-[var(--muted-foreground)]">Price</span>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-base sm:text-lg font-black text-[var(--primary)]">{fmt(price)}</span>
+                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold">Birr/{unit}</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+              size="sm"
+              className="px-3 sm:px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90"
+            >
+              <ShoppingCart className="w-4 h-4 mr-1.5" />
+              Add to Cart
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 
+// ─── CAROUSEL SLIDES DATA ───────────────────────────────────────────────────
+const farmerSlides = [
+  {
+    id: 1,
+    bgImage: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=1920&q=80',
+    tag: 'HEALTHY & DELICIOUS',
+    title: 'Colorful Fruits',
+    story: 'Indulge in nature\'s sweetest treats! Our fresh fruits are sourced daily from trusted growers, ensuring you get the juiciest, most flavorful selection all year round.',
+    productName: 'Seasonal Fruit Basket',
+    productPrice: '50.00',
+    productUnit: 'basket',
+    productImage: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400&q=80',
+    categoryKey: 'fruits',
+    rating: '4.8',
+    badge: 'Fresh Daily'
+  },
+  {
+    id: 2,
+    bgImage: 'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=1920&q=80',
+    tag: 'WHOLE GRAINS',
+    title: 'Nutritious Grains',
+    story: 'Stock your pantry with our premium selection of whole grains, pulses, and cereals. From teff to quinoa, we have everything you need for healthy, delicious meals.',
+    productName: 'Organic Teff Grain',
+    productPrice: '40.00',
+    productUnit: 'kg',
+    productImage: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=80',
+    categoryKey: 'grains',
+    rating: '4.7',
+    badge: 'Gluten Free'
+  },
+  {
+    id: 3,
+    bgImage: 'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=1920&q=80',
+    tag: 'PREMIUM COFFEE',
+    title: 'Ethiopian Coffee',
+    story: 'Experience the birthplace of coffee! Our single-origin Ethiopian coffees are carefully roasted to perfection, bringing out unique flavors and rich aromas.',
+    productName: 'Yirgacheffe Coffee',
+    productPrice: '75.00',
+    productUnit: 'kg',
+    productImage: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80',
+    categoryKey: 'coffee',
+    rating: '5.0',
+    badge: 'Premium Quality'
+  },
+  {
+    id: 4,
+    bgImage: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1920&q=80',
+    tag: 'HERBS & SPICES',
+    title: 'Fresh Herbs & Spices',
+    story: 'Elevate your cooking with aromatic herbs and spices sourced directly from local farms.',
+    categoryKey: 'herbs'
+  },
+  {
+    id: 5,
+    bgImage: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=1920&q=80',
+    tag: 'NUTS & SEEDS',
+    title: 'Premium Nuts & Seeds',
+    story: 'Discover our selection of fresh, premium nuts and seeds perfect for snacking and baking.',
+    categoryKey: 'nuts'
+  }
+];
+
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Home = () => {
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+
+    // First remove all classes
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'dark') {
+      // Bright dark theme colors
+      root.style.setProperty('--background', 'oklch(0.25 0 0)');
+      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--card', 'oklch(0.30 0 0)');
+      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--popover', 'oklch(0.30 0 0)');
+      root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--primary', '#059669'); // Emerald green
+      root.style.setProperty('--primary-foreground', '#ffffff');
+      root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
+      root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--muted', 'oklch(0.35 0 0)');
+      root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
+      root.style.setProperty('--accent', 'oklch(0.35 0 0)');
+      root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
+      root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
+      root.style.setProperty('--ring', '#059669'); // Emerald green
+      root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
+      root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
+      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+      root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
+      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+      root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
+    } else if (theme === 'light') {
+      // Light theme colors
+      root.style.setProperty('--background', '#ffffff');
+      root.style.setProperty('--foreground', '#000000');
+      root.style.setProperty('--card', '#ffffff');
+      root.style.setProperty('--card-foreground', '#000000');
+      root.style.setProperty('--popover', '#ffffff');
+      root.style.setProperty('--popover-foreground', '#000000');
+      root.style.setProperty('--primary', '#059669'); // Emerald green
+      root.style.setProperty('--primary-foreground', '#ffffff');
+      root.style.setProperty('--secondary', '#f3f4f6');
+      root.style.setProperty('--secondary-foreground', '#000000');
+      root.style.setProperty('--muted', '#f3f4f6');
+      root.style.setProperty('--muted-foreground', '#6b7280');
+      root.style.setProperty('--accent', '#f3f4f6');
+      root.style.setProperty('--accent-foreground', '#000000');
+      root.style.setProperty('--destructive', '#dc2626');
+      root.style.setProperty('--border', '#e5e7eb');
+      root.style.setProperty('--input', '#e5e7eb');
+      root.style.setProperty('--ring', '#059669'); // Emerald green
+      root.style.setProperty('--sidebar', '#ffffff');
+      root.style.setProperty('--sidebar-foreground', '#000000');
+      root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
+      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+      root.style.setProperty('--sidebar-accent', '#f3f4f6');
+      root.style.setProperty('--sidebar-accent-foreground', '#000000');
+      root.style.setProperty('--sidebar-border', '#e5e7eb');
+      root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
+    } else {
+      // For system mode, use original bright oklch colors
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+      // Apply original oklch colors based on system preference
+      if (systemTheme === 'dark') {
+        // Original dark oklch colors
+        root.style.setProperty('--background', 'oklch(0.145 0 0)');
+        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--card', 'oklch(0.205 0 0)');
+        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--popover', 'oklch(0.205 0 0)');
+        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--primary', '#059669'); // Emerald green
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', 'oklch(0.269 0 0)');
+        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--muted', 'oklch(0.269 0 0)');
+        root.style.setProperty('--muted-foreground', 'oklch(0.708 0 0)');
+        root.style.setProperty('--accent', 'oklch(0.269 0 0)');
+        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
+        root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
+        root.style.setProperty('--ring', '#059669'); // Emerald green
+        root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
+        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', 'oklch(0.269 0 0)');
+        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
+      } else {
+        // Original light oklch colors
+        root.style.setProperty('--background', 'oklch(1 0 0)');
+        root.style.setProperty('--foreground', 'oklch(0.145 0 0)');
+        root.style.setProperty('--card', 'oklch(1 0 0)');
+        root.style.setProperty('--card-foreground', 'oklch(0.145 0 0)');
+        root.style.setProperty('--popover', 'oklch(1 0 0)');
+        root.style.setProperty('--popover-foreground', 'oklch(0.145 0 0)');
+        root.style.setProperty('--primary', '#059669'); // Emerald green
+        root.style.setProperty('--primary-foreground', '#ffffff');
+        root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
+        root.style.setProperty('--secondary-foreground', 'oklch(0.205 0 0)');
+        root.style.setProperty('--muted', 'oklch(0.97 0 0)');
+        root.style.setProperty('--muted-foreground', 'oklch(0.556 0 0)');
+        root.style.setProperty('--accent', 'oklch(0.97 0 0)');
+        root.style.setProperty('--accent-foreground', 'oklch(0.205 0 0)');
+        root.style.setProperty('--destructive', 'oklch(0.577 0.245 27.325)');
+        root.style.setProperty('--border', 'oklch(0.922 0 0)');
+        root.style.setProperty('--input', 'oklch(0.922 0 0)');
+        root.style.setProperty('--ring', '#059669'); // Emerald green
+        root.style.setProperty('--sidebar', 'oklch(0.985 0 0)');
+        root.style.setProperty('--sidebar-foreground', 'oklch(0.145 0 0)');
+        root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
+        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
+        root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
+        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.205 0 0)');
+        root.style.setProperty('--sidebar-border', 'oklch(0.922 0 0)');
+        root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
+      }
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
@@ -109,6 +325,8 @@ const Home = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('All');
+
   const { user, logout } = useAuth();
   const { addToCart, cart } = useCart();
   const navigate = useNavigate();
@@ -119,56 +337,50 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        console.log('=== Fetching Products from Home Page ===');
-        const response = await api.get('/products');
+        const response = await api.get('/products', { params: { limit: 8 } });
         const data = response.data?.data || [];
-        console.log('Products received:', data);
-        console.log('Products count:', Array.isArray(data) ? data.length : 0);
 
-        // Map API response to ProductCard format
-        const mappedProducts = Array.isArray(data) ? data.map(product => ({
+        const mappedProducts = Array.isArray(data) ? data.map((product) => ({
           id: product.id,
           name: product.name,
           price: product.price,
           image: product.image,
           description: product.description,
           unit: product.unit,
-          discountPercent: product.discountPrice ? Math.round((1 - product.discountPrice / product.price) * 100) : 0,
-          vendor: product.farmer?.name || 'Unknown Farmer',
-          vendorVerified: true,
-          rating: 4.5,
-          reviewsCount: Math.floor(Math.random() * 100) + 10,
+          discountPercent: product.discountPercent || 0,
+          vendor: product.vendor || product.farmer?.name || 'Fresh Vendor',
+          vendorVerified: product.vendorVerified || true,
+          rating: product.rating || 4.5,
+          reviewsCount: product.reviewsCount || 120,
           badge: product.isOrganic ? 'Organic' : null,
           freeShipping: false,
           category: product.category,
           stock: product.stock
         })) : [];
 
-        console.log('Mapped products:', mappedProducts);
         setProducts(mappedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
         setProducts([]);
+        toast.error('Unable to load products right now.');
       } finally {
         setLoading(false);
       }
     };
 
-    // Always fetch products on mount
     fetchProducts();
 
-    // Listen for product addition events
     const handleProductUpdate = () => {
       fetchProducts();
     };
 
     window.addEventListener('product-added', handleProductUpdate);
-
     return () => {
       window.removeEventListener('product-added', handleProductUpdate);
     };
   }, []);
 
+  // Sync Favorites
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favorites');
     if (savedFavorites) {
@@ -192,6 +404,14 @@ const Home = () => {
     localStorage.setItem('favorites', JSON.stringify(favorites));
   }, [favorites]);
 
+  // Slideshow interval for smooth transitions
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % farmerSlides.length);
+    }, 5000); // 5 seconds per slide
+    return () => clearInterval(timer);
+  }, []);
+
   const locations = [
     { name: 'Addis Ababa', code: 'AA' },
     { name: 'Gondar', code: 'GD' },
@@ -204,20 +424,18 @@ const Home = () => {
   const categories = [
     {
       name: 'Legumes & Pulses',
-      count: 48,
       icon: '🫘',
       image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&q=80',
       categoryKey: 'legumes',
       mosaicImages: [
-        'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80',
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
-        'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=300&q=80',
+        'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80',
+        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
+        'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80',
         'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80',
       ]
     },
     {
       name: 'Vegetables',
-      count: 110,
       icon: '🥦',
       image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=80',
       categoryKey: 'vegetable',
@@ -230,7 +448,6 @@ const Home = () => {
     },
     {
       name: 'Fruits',
-      count: 85,
       icon: '🍎',
       image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&q=80',
       categoryKey: 'fruit',
@@ -243,132 +460,32 @@ const Home = () => {
     },
     {
       name: 'Coffee',
-      count: 15,
       icon: '☕',
       image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&q=80',
       categoryKey: 'coffee',
       mosaicImages: [
         'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&q=80',
-        'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80',
-        'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80',
-        'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&q=80'
-      ]
-    },
-    {
-      name: 'Grains & Cereals',
-      count: 62,
-      icon: '🌾',
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80',
-      categoryKey: 'grains',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80'
-      ]
-    },
-    {
-      name: 'Nuts & Seeds',
-      count: 34,
-      icon: '🌰',
-      image: 'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=600&q=80',
-      categoryKey: 'nuts',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80',
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
-        'https://images.unsplash.com/photo-1604881988758-f76ad2f7aac1?w=300&q=80',
-        'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80'
-      ]
-    },
-    {
-      name: 'Herbs & Spices',
-      count: 28,
-      icon: '🌿',
-      image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=600&q=80',
-      categoryKey: 'herbs',
-      mosaicImages: [
         'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=400&q=80',
         'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=400&q=80'
+        'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&amp;q=80'
       ]
     },
-    {
-      name: 'Livestock',
-      count: 12,
-      icon: '🐄',
-      image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=600&q=80',
-      categoryKey: 'livestock',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&q=80',
-        'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=400&q=80',
-        'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=400&q=80',
-        'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&q=80'
-      ]
-    },
+
+
   ];
 
-  // Group products by category and calculate counts
   const categoryData = categories.map(cat => {
-    const categoryProducts = products.filter(p => 
-      p.category && p.category.toLowerCase() === cat.name.toLowerCase()
+    const categoryProducts = products.filter(p =>
+      p.category && p.category.toLowerCase().trim() === cat.name.toLowerCase().trim()
     );
     const mosaicImages = categoryProducts.slice(0, 4).map(p => p.image || cat.mosaicImages[0]);
-    
+
     return {
       ...cat,
-      count: categoryProducts.length || cat.count,
+      count: categoryProducts.length || Math.floor(Math.random() * 20) + 12,
       mosaicImages: mosaicImages.length >= 4 ? mosaicImages : cat.mosaicImages
     };
   });
-
-  const slides = [
-    {
-      id: 1,
-      title: 'Premium Organic Produce',
-      subtitle: 'Certified organic vegetables and fruits grown with care by local farmers. Connecting local growers directly to your table.',
-      ctaPrimary: 'Shop Organic',
-      ctaSecondary: 'Learn More',
-      tag: '100% ORGANIC',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=1400&q=80'
-    },
-    {
-      id: 2,
-      title: 'Farm Fresh Fruits & Vegetables',
-      subtitle: 'Direct from local farms to your doorstep. Guaranteed freshness with 100% middleman-free trade.',
-      ctaPrimary: 'Shop Fresh Harvest',
-      ctaSecondary: 'Explore Organic Farms',
-      tag: 'FARM TO TABLE',
-      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1400&q=80'
-    },
-    {
-      id: 3,
-      title: 'Freshly Harvested Grains',
-      subtitle: 'Premium quality grains and cereals sourced directly from Ethiopian farmers.',
-      ctaPrimary: 'Browse Grains',
-      ctaSecondary: 'View All',
-      tag: 'PURE QUALITY',
-      image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&q=80'
-    },
-    {
-      id: 4,
-      title: 'Premium Ethiopian Coffee',
-      subtitle: 'World-renowned coffee beans from the birthplace of coffee. Experience the rich flavors of Ethiopian heritage.',
-      ctaPrimary: 'Shop Coffee',
-      ctaSecondary: 'Learn More',
-      tag: 'PREMIUM COFFEE',
-      image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1400&q=80'
-    },
-    {
-      id: 5,
-      title: 'Fresh Legumes & Pulses',
-      subtitle: 'Nutritious legumes and pulses packed with protein. Essential staples for healthy living.',
-      ctaPrimary: 'Shop Legumes',
-      ctaSecondary: 'View All',
-      tag: 'PROTEIN RICH',
-      image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80'
-    },
-  ];
 
   const toggleFavorite = (id) => {
     const isFav = favorites.includes(id);
@@ -385,34 +502,18 @@ const Home = () => {
   };
 
   const handleDashboardRedirect = () => {
-    console.log('🔵 Account button CLICKED!');
-    console.log('📍 User object:', user);
-    console.log('📍 User role:', user?.role);
-    
     if (!user) {
-      console.warn('❌ No user found');
       navigate('/login');
       return;
     }
-    
-    const routes = { 
-      CUSTOMER: '/customer/dashboard', 
-      FARMER: '/farmer/dashboard', 
-      ADMIN: '/admin/dashboard' 
+    const routes = {
+      CUSTOMER: '/customer/dashboard',
+      FARMER: '/farmer/dashboard',
+      ADMIN: '/admin/dashboard'
     };
-    
     const userRole = user.role?.toUpperCase();
     const targetRoute = routes[userRole] || '/customer/dashboard';
-    
-    console.log('✅ Attempting navigation to:', targetRoute);
-    console.log('   with role:', userRole);
-    
-    try {
-      navigate(targetRoute);
-      console.log('✅ Navigation successful!');
-    } catch (error) {
-      console.error('❌ Navigation error:', error);
-    }
+    navigate(targetRoute);
   };
 
   const handleLogout = () => {
@@ -420,341 +521,508 @@ const Home = () => {
     navigate('/');
   };
 
-  useEffect(() => {
-    const t = setInterval(() => setCurrentSlide(s => (s + 1) % slides.length), 5000);
-    return () => clearInterval(t);
-  }, [slides.length]);
+  // Dynamic filter for products section
+  const filteredProducts = products.filter(p => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Organic') return p.badge?.toLowerCase() === 'organic' || p.badge === 'Organic';
+    if (activeTab === 'Discounted') return p.discountPercent > 0;
+    if (activeTab === 'Top Rated') return p.rating >= 4.5;
+    return true;
+  });
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--background)]">
 
-      {/* ── Main Navigation Bar ── */}
-      <header className="bg-white sticky top-0 z-50 shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-6">
-            
+      {/* ── Sticky Header ── */}
+      <header className="bg-[var(--card)] backdrop-blur-md sticky top-0 z-50 shadow-sm transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="flex items-center justify-between gap-4 md:gap-8">
+
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                <Leaf className="w-6 h-6 text-white" />
+            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
+                <Leaf className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-extrabold text-emerald-700 tracking-tight">FarmConnect</span>
+              <div className="flex flex-col">
+                <span className="text-lg font-black tracking-tight leading-none video-text-flow">FarmConnect</span>
+                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold tracking-wider">DIRECT FROM SOIL</span>
+              </div>
             </Link>
 
-            {/* Location Selector */}
-            <div className="hidden lg:block relative">
-              <button
-                onClick={() => setLocationOpen(!locationOpen)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-colors"
-              >
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                <div className="text-left">
-                  <p className="text-[10px] text-slate-500">Deliver to</p>
-                  <p className="text-sm font-semibold text-slate-800">{selectedLocation}</p>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${locationOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {locationOpen && (
-                <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 w-64 py-2">
-                  {locations.map((loc) => (
-                    <button
-                      key={loc.code}
-                      onClick={() => { setSelectedLocation(loc.name); setLocationOpen(false); }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors"
-                    >
-                      <span className="font-medium text-slate-800">{loc.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Advanced Search Bar */}
-            <div className="flex-1 hidden md:block">
-              <form onSubmit={(e) => { e.preventDefault(); if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`); }} className="flex rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-emerald-500 transition-colors shadow-sm">
+            <div className="flex-1 max-w-xs hidden md:block">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
+                }}
+                className="flex items-center bg-[var(--secondary)] rounded-xl border border-[var(--border)] focus-within:border-[var(--primary)] focus-within:bg-[var(--secondary)] transition-all shadow-inner overflow-hidden"
+              >
                 <input
                   type="text"
-                  placeholder="Search fresh vegetables, organic fruits, cereals..."
+                  placeholder="Search fresh vegetables, organic grains, local products..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
+                  className="flex-1 px-4 py-2.5 text-xs font-medium text-[var(--foreground)] focus:outline-none bg-transparent"
                 />
-                <button type="submit" className="px-6 bg-emerald-600 hover:bg-emerald-700 transition-colors">
-                  <Search className="w-5 h-5 text-white" />
+                <button type="submit" className="p-2.5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 transition-colors mr-1 my-1 rounded-lg">
+                  <Search className="w-4 h-4 text-white" />
                 </button>
               </form>
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 ml-auto">
-              {/* Account */}
-              {user ? (
-                <div className="relative group">
-                  <button className="hidden sm:flex flex-col items-start text-slate-700 hover:text-emerald-600 transition-colors">
-                    <span className="text-[10px] text-slate-400">Hello, {user.name || 'User'}</span>
-                    <span className="text-xs font-semibold flex items-center gap-0.5">Account <ChevronDown className="w-3 h-3" /></span>
+            <div className="flex items-center gap-2.5 md:gap-5 flex-shrink-0 ml-auto">
+              {/* Theme Toggle */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-center w-9 h-9 hover:bg-[var(--secondary)] rounded-xl transition-all text-[var(--foreground)]">
+                    {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
+                      <Moon className="w-4.5 h-4.5" />
+                    ) : (
+                      <Sun className="w-4.5 h-4.5" />
+                    )}
                   </button>
-                  {/* Dropdown Menu */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <button
-                      onClick={handleDashboardRedirect}
-                      className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 rounded-t-xl"
-                    >
-                      Dashboard
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-b-xl"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => navigate('/login')}
-                  className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-600 transition-colors border border-slate-300 hover:border-emerald-500 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl"
-                >
-                  Sign In
-                </button>
-              )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
+                  <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                    <Monitor className="w-4 h-4 mr-2" />
+                    System
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-              {/* Favorites */}
+              {/* Favorites Wishlist */}
               <Link
                 to="/favorites"
-                className="flex items-center gap-1.5 text-slate-700 hover:text-emerald-600 transition-colors relative"
+                className="flex items-center justify-center w-9 h-9 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
               >
-                <div className="relative">
-                  <Heart className="w-5 h-5" />
-                  {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {favorites.filter(f => !String(f).startsWith('cat-')).length}
-                    </span>
-                  )}
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">Favorites</span>
+                <Heart className="w-5 h-5 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
+                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
+                  </span>
+                )}
               </Link>
 
               {/* Cart */}
-              <Link to="/customer/cart" className="flex items-center gap-1.5 text-slate-700 hover:text-emerald-600 transition-colors relative">
-                <div className="relative">
-                  <ShoppingCart className="w-5 h-5" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
-                  )}
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">Cart</span>
+              <Link
+                to="/customer/cart"
+                className="flex items-center justify-center w-10 h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-xl font-bold transition-all relative"
+              >
+                <ShoppingCart className="w-4.5 h-4.5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-[var(--primary)] text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
 
+              {/* Auth actions */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all mr-2" aria-label="Profile menu">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-white font-bold text-sm">
+                        {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="bottom" sideOffset={8} className="min-w-[180px] p-1.5 bg-[var(--card)] border-[var(--border)]">
+                    <DropdownMenuItem onClick={() => navigate('/customer/profile')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/customer/dashboard/orders')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                      <Package className="w-4 h-4 mr-2" />
+                      My Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/customer/dashboard/reviews')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                      <Star className="w-4 h-4 mr-2" />
+                      My Review
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/customer/settings')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout} className="flex items-center justify-start cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link
+                  to="/login"
+                  className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-[var(--secondary)]/70 px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all mr-2"
+                >
+                  <User className="w-4 h-4" />
+                  Sign In
+                </Link>
+              )}
+
               {/* Mobile Menu Toggle */}
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden">
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden flex items-center justify-center w-9 h-9 bg-[var(--secondary)] rounded-xl hover:bg-[var(--border)] transition-all"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5 text-[var(--foreground)]" /> : <Menu className="w-5 h-5 text-[var(--foreground)]" />}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 px-4 py-4 bg-white">
-            <div className="flex flex-col gap-4">
-              <form onSubmit={(e) => { e.preventDefault(); if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`); }} className="flex rounded-xl overflow-hidden border border-slate-200">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm text-slate-900 focus:outline-none bg-white"
-                />
-                <button type="submit" className="px-4 bg-emerald-600">
-                  <Search className="w-5 h-5 text-white" />
-                </button>
-              </form>
-              <button
-                onClick={() => setLocationOpen(!locationOpen)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200"
-              >
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-800">{selectedLocation}</span>
+          <div className="md:hidden border-t border-[var(--border)] px-4 py-4 bg-[var(--card)] space-y-3 animate-slide-down">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
+              }}
+              className="flex items-center bg-[var(--secondary)] rounded-xl border border-[var(--border)]"
+            >
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="flex-1 px-4 py-2.5 text-xs text-[var(--foreground)] bg-transparent focus:outline-none"
+              />
+              <button type="submit" className="p-2.5 bg-[var(--primary)] rounded-xl m-1">
+                <Search className="w-4 h-4 text-white" />
               </button>
-              {user ? (
-                <>
-                  <button onClick={handleDashboardRedirect} className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600">
-                    Dashboard
+            </form>
+
+            <button
+              onClick={() => setLocationOpen(!locationOpen)}
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--secondary)] rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--foreground)]"
+            >
+              <span className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[var(--primary)]" />
+                Deliver to: {selectedLocation}
+              </span>
+              <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
+            </button>
+            {locationOpen && (
+              <div className="bg-white dark:bg-white rounded-xl p-2 grid grid-cols-2 gap-1 border border-[var(--border)]">
+                {locations.map((loc) => (
+                  <button
+                    key={loc.code}
+                    onClick={() => { setSelectedLocation(loc.name); setLocationOpen(false); }}
+                    className="text-left px-3 py-2 text-[11px] font-bold text-gray-700 dark:text-gray-700 hover:text-[var(--primary)] rounded-lg hover:bg-[var(--primary)]/10 transition-all"
+                  >
+                    {loc.name}
                   </button>
-                  <button onClick={handleLogout} className="text-left px-4 py-2 text-red-600 hover:bg-red-50">
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <button 
-                  onClick={() => navigate('/login')} 
-                  className="text-left px-4 py-2 text-slate-700 hover:text-emerald-600 cursor-pointer font-medium"
+                ))}
+              </div>
+            )}
+
+            {user ? (
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  onClick={handleDashboardRedirect}
+                  className="py-2.5 text-center bg-[var(--primary)]/10 text-[var(--primary)] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
                 >
-                  Sign In
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
                 </button>
-              )}
-            </div>
+                <button
+                  onClick={handleLogout}
+                  className="py-2.5 text-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-2.5 text-center bg-[var(--primary)] text-white font-bold text-xs rounded-xl"
+              >
+                Sign In / Register
+              </button>
+            )}
           </div>
         )}
       </header>
 
-      {/* ── Container-Bounded Hero Banner ── */}
-      <section className="bg-slate-50 py-4 sm:py-8 px-3 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative w-full min-h-[280px] sm:min-h-[380px] md:min-h-[480px] rounded-2xl sm:rounded-3xl overflow-hidden flex items-center justify-center text-center p-4 sm:p-8 md:p-16">
-            
-            {slides.map((slide, i) => (
-              <div
-                key={slide.id}
-                className={`absolute inset-0 transition-opacity duration-700 ${i === currentSlide ? 'opacity-100' : 'opacity-0'}`}
-              >
-                {/* Background Image */}
+      {/* ── Beautiful Hero Carousel Section ── */}
+      <section className="relative overflow-hidden bg-[var(--card)] h-[550px] md:h-[680px]">
+
+        {/* Slides Content */}
+        {farmerSlides.map((slide, index) => {
+          const isActive = index === currentSlide;
+          return (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 w-full h-full flex items-center transition-all duration-1200 ease-[cubic-bezier(0.16,1,0.3,1)] ${isActive ? 'opacity-100 z-10 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}
+            >
+              {/* Beautiful Background Image */}
+              <div className="absolute inset-0 overflow-hidden">
                 <img
-                  src={slide.image}
+                  src={slide.bgImage}
                   alt={slide.title}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className={`w-full h-full object-cover transition-all duration-[7000ms] ease-in-out ${isActive ? 'scale-115 brightness-105 animate-hero-pan' : 'scale-100 brightness-90'}`}
                 />
-                
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/50" />
-                
-                {/* Centered Content */}
-                <div className="relative z-10 max-w-2xl mx-auto space-y-2 sm:space-y-6 flex flex-col items-center justify-center h-full px-3 sm:px-6">
-                  <span className="inline-block bg-amber-400 text-emerald-900 text-[8px] sm:text-xs font-extrabold px-2.5 sm:px-4 py-0.5 sm:py-1.5 rounded-full uppercase tracking-wider shadow-lg">
+                {/* Natural video-like motion overlays */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-black/10 z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.14),_transparent_24%)] opacity-90 z-20 animate-hero-glow pointer-events-none" />
+                <div className="absolute left-8 top-20 w-36 h-36 rounded-full bg-emerald-400/15 blur-3xl opacity-60 z-20 animate-hero-floating pointer-events-none" />
+                <div className="absolute right-14 bottom-28 w-24 h-24 rounded-full border border-white/15 opacity-70 z-20 animate-hero-floating pointer-events-none" style={{ animationDelay: '2s' }} />
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-white/15 opacity-0 z-20 animate-hero-scan pointer-events-none" />
+                {/* Subtle animated overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 via-transparent to-emerald-600/10 z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+              </div>
+
+              {/* Centered Content Container */}
+              <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center">
+
+                {/* Main Content */}
+                <div className="max-w-3xl space-y-6 md:space-y-7 text-left mt-12 md:mt-0">
+                  <div className={`inline-flex items-center gap-2 px-5 py-2 bg-[var(--primary)] text-white text-[11px] md:text-xs font-bold tracking-widest uppercase rounded-full shadow-2xl transition-all duration-800 delay-200 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
+                    <Sparkles className="w-4 h-4" />
                     {slide.tag}
-                  </span>
-                  <h2 className="text-lg sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-lg">
+                  </div>
+
+                  <h1 className={`text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-tight transition-all duration-800 delay-400 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                     {slide.title}
-                  </h2>
-                  <p className="text-white/95 text-[10px] sm:text-sm md:text-base max-w-lg mx-auto leading-relaxed drop-shadow-md">
-                    {slide.subtitle}
+                  </h1>
+
+                  <p className={`text-white/85 text-sm md:text-base lg:text-lg font-medium leading-relaxed max-w-xl transition-all duration-800 delay-600 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    {slide.story}
                   </p>
-                  <div className="flex gap-2 sm:gap-4 flex-wrap justify-center">
-                    <button className="px-4 sm:px-8 py-2 sm:py-3.5 bg-amber-400 text-emerald-900 font-bold rounded-lg sm:rounded-xl hover:bg-amber-300 transition-colors text-xs sm:text-sm md:text-base shadow-lg">
-                      Shop Now
-                    </button>
+
+                  {/* Call to Action Button */}
+                  <div className={`transition-all duration-800 delay-800 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    <Link
+                      to={`/market?cat=${slide.categoryKey}`}
+                      className="inline-flex items-center gap-3 px-9 py-5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white font-bold rounded-2xl shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-emerald-500/40 active:scale-95"
+                    >
+                      <span>Explore Now</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
                   </div>
                 </div>
               </div>
-            ))}
-
-            {/* Navigation Arrows */}
-            <button onClick={() => setCurrentSlide(s => (s - 1 + slides.length) % slides.length)} className="absolute left-1.5 sm:left-4 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-8 sm:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
-              <ChevronLeft className="w-4 sm:w-6 h-4 sm:h-6 text-slate-800" />
-            </button>
-            <button onClick={() => setCurrentSlide(s => (s + 1) % slides.length)} className="absolute right-1.5 sm:right-4 top-1/2 -translate-y-1/2 w-8 sm:w-12 h-8 sm:h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all z-30">
-              <ChevronRight className="w-4 sm:w-6 h-4 sm:h-6 text-slate-800" />
-            </button>
-
-            {/* Dots */}
-            <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 z-30">
-              {slides.map((_, i) => (
-                <button key={i} onClick={() => setCurrentSlide(i)} className={`h-1 sm:h-2 rounded-full transition-all ${i === currentSlide ? 'bg-white w-6 sm:w-8' : 'bg-white/50 w-1 sm:w-2'}`} />
-              ))}
             </div>
-          </div>
+          );
+        })}
+
+        {/* Navigation Arrows */}
+        <button
+          onClick={() => setCurrentSlide((s) => (s - 1 + farmerSlides.length) % farmerSlides.length)}
+          className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 w-14 h-14 md:w-16 md:h-16 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white shadow-2xl border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 z-30"
+        >
+          <ChevronLeft className="w-7 h-7" />
+        </button>
+        <button
+          onClick={() => setCurrentSlide((s) => (s + 1) % farmerSlides.length)}
+          className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 w-14 h-14 md:w-16 md:h-16 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white shadow-2xl border border-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 z-30"
+        >
+          <ChevronRight className="w-7 h-7" />
+        </button>
+
+        {/* Carousel Indicators (Dots) */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 z-30">
+          {farmerSlides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`h-3 rounded-full transition-all duration-400 ${i === currentSlide ? 'bg-[var(--primary)] w-12 shadow-lg shadow-emerald-500/50' : 'bg-white/30 w-3 hover:bg-white/50'}`}
+            />
+          ))}
         </div>
       </section>
 
-      {/* ── Premium Category Showcase ── */}
-      <section className="bg-slate-50 py-8 sm:py-12">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <div className="flex items-center justify-between mb-6 sm:mb-10 gap-3">
+      {/* ── Showcase: Shop by Category ── */}
+      <section className="py-16 bg-[var(--card)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-14">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800">Shop by Category</h2>
-              <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-base">Browse fresh produce from local farms</p>
+              <div className="inline-flex items-center gap-1 text-[10px] font-black tracking-widest text-[var(--primary)] uppercase mb-2">
+                <Sprout className="w-3.5 h-3.5" />
+                CATEGORIES
+              </div>
+              <h2 className="text-2xl md:text-3.5xl font-black text-[var(--foreground)] tracking-tight">Browse Fresh Harvest</h2>
+              <p className="text-[var(--muted-foreground)] mt-2 text-xs md:text-sm font-medium">Connect with growers through targeted category selections.</p>
             </div>
-            <Link to="/market" className="hidden sm:inline-flex items-center gap-2 text-emerald-600 font-semibold hover:text-emerald-700 text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all whitespace-nowrap">
-              View All <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4" />
+            <Link
+              to="/market"
+              className="mt-4 md:mt-0 inline-flex items-center gap-2 text-xs font-bold text-[var(--primary)] hover:text-[var(--primary)]/90 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 px-4.5 py-2.5 rounded-xl transition-all self-start md:self-auto"
+            >
+              <span>View Full Marketplace</span>
+              <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          {/* Categories Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {categoryData.map((cat, i) => (
               <Link
-                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
                 key={i}
-                className="group relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer bg-white"
+                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
+                className="group"
               >
-                {/* 2x2 Mosaic Image Grid */}
-                <div className="grid grid-cols-2 grid-rows-2 h-36 sm:h-56">
-                  {cat.mosaicImages.map((img, idx) => (
-                    <div key={idx} className="relative overflow-hidden">
-                      <img
-                        src={img}
-                        alt={`${cat.name} ${idx + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
+                <Card className="group relative h-[240px] md:h-[280px] overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-[var(--border)] hover:border-[var(--primary)]/30">
+                  <CardContent className="p-0 h-full">
+                    {/* 2x2 Mosaic Image Grid */}
+                    <div className="grid grid-cols-2 grid-rows-2 h-full overflow-hidden bg-[var(--secondary)]">
+                      {cat.mosaicImages.map((img, idx) => (
+                        <div key={idx} className="relative overflow-hidden">
+                          <img
+                            src={img}
+                            alt={`${cat.name} ${idx + 1}`}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                
-                {/* Card Footer */}
-                <div className="p-2.5 sm:p-5 flex flex-col gap-1 border-t border-slate-100">
-                  <h3 className="text-xs sm:text-lg font-bold text-slate-800 leading-tight line-clamp-1">{cat.name}</h3>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[9px] sm:text-sm text-slate-500">{cat.count} Items</p>
-                    <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4 text-emerald-600" />
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </Link>
             ))}
           </div>
 
-          {/* Mobile View All Button */}
-          <div className="mt-6 text-center sm:hidden">
-            <Link
-              to="/market"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-xs shadow-md"
-            >
-              View All Categories <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+        </div>
+      </section>
+
+      {/* ── Showcase: Products Grid ── */}
+      <section className="py-16 bg-[var(--background)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
+            <div>
+              <div className="inline-flex items-center gap-1 text-[10px] font-black tracking-widest text-[var(--primary)] uppercase mb-2">
+                <Package className="w-3.5 h-3.5" />
+                OUR MARKETPLACE
+              </div>
+              <h2 className="text-2xl md:text-3.5xl font-black text-[var(--foreground)] tracking-tight">Fresh Farmer Offerings</h2>
+              <p className="text-[var(--muted-foreground)] mt-2 text-xs md:text-sm font-medium">Buy directly from local farms. Middleman-free transactions.</p>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex flex-wrap gap-1.5 mt-5 md:mt-0 bg-[var(--card)] p-1 rounded-2xl border border-[var(--border)] self-start md:self-auto shadow-sm">
+              {['All', 'Organic', 'Discounted', 'Top Rated'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === tab ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Loading Skeletal State */}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 space-y-4 animate-pulse">
+                  <div className="bg-slate-200 h-40 rounded-2xl w-full" />
+                  <div className="space-y-2">
+                    <div className="bg-slate-200 h-4 rounded w-2/3" />
+                    <div className="bg-slate-200 h-3 rounded w-1/2" />
+                  </div>
+                  <div className="flex justify-between items-center pt-4">
+                    <div className="bg-slate-200 h-6 rounded w-1/3" />
+                    <div className="bg-slate-200 h-9 rounded w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((prod) => (
+                <ProductCard
+                  key={prod.id}
+                  product={prod}
+                  isFavorite={favorites.includes(prod.id)}
+                  onToggleFavorite={toggleFavorite}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 p-8">
+              <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8" />
+              </div>
+              <h3 className="text-sm font-black text-slate-800">No products found</h3>
+              <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto">We couldn't find any products in this view. Try toggling the product tabs or searching for fresh products in the marketplace.</p>
+              <Link to="/market" className="mt-5 inline-flex items-center gap-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md">
+                Browse Marketplace
+              </Link>
+            </div>
+          )}
+
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-slate-900 text-white mt-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl">🌾</span>
-              </div>
-              <span className="text-lg font-extrabold">FarmConnect</span>
-            </div>
-            <p className="text-sm text-slate-400 leading-relaxed">The largest multi-vendor marketplace for farm-fresh produce in Ethiopia.</p>
-          </div>
+      <footer className="bg-[var(--card)] border-t border-[var(--border)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
 
-          {[
-            { title: 'Marketplace', links: ['Browse Products', 'New Arrivals', 'Top Vendors', 'Categories'] },
-            { title: 'For Vendors',  links: ['Start Selling', 'Vendor Dashboard', 'Pricing', 'Analytics'] },
-            { title: 'Company',      links: ['Careers', 'Blog', 'Contact'] },
-            { title: 'Support',      links: ['Help Center', 'Track Order', 'Returns', 'FAQ'] },
-          ].map((col, index) => (
-            <div key={`footer-col-${index}-${col.title}`}>
-              <h4 className="font-bold mb-3 text-sm">{col.title}</h4>
-              <ul className="space-y-2">
-                {col.links.map((link, linkIndex) => (
-                  <li key={`${col.title}-link-${linkIndex}`}><a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">{link}</a></li>
-                ))}
+            {/* Column 1: Info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
+                  <Leaf className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-base font-black tracking-tight video-text-flow">FarmConnect</span>
+              </div>
+              <p className="text-xs text-[var(--muted-foreground)] leading-relaxed font-medium">Enabling authentic direct trade between passionate local farmers and modern city households across Ethiopia.</p>
+              <p className="text-[10px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">&copy; 2026 FarmConnect Inc. All rights reserved.</p>
+            </div>
+
+            {/* Column 2: Navigation */}
+            <div>
+              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Quick Navigation</h5>
+              <ul className="space-y-2.5 text-xs text-[var(--muted-foreground)] font-medium">
+                <li><Link to="/market" className="hover:text-[var(--primary)] transition-colors">Marketplace Catalog</Link></li>
+                <li><Link to="/favorites" className="hover:text-[var(--primary)] transition-colors">My Wishlist Favorites</Link></li>
+                <li><Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link></li>
               </ul>
             </div>
-          ))}
-        </div>
 
-        <div className="border-t border-slate-800 py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-400">&copy; 2026 FarmConnect, Inc. All rights reserved.</p>
-            <div className="flex gap-6 text-sm text-slate-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Use</a>
+            {/* Column 3: Contact */}
+            <div>
+              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Grower Support</h5>
+              <ul className="space-y-2.5 text-xs text-[var(--muted-foreground)] font-medium">
+                <li><button onClick={handleDashboardRedirect} className="hover:text-[var(--primary)] transition-colors">Register as Farmer</button></li>
+                <li><button onClick={handleDashboardRedirect} className="hover:text-[var(--primary)] transition-colors">Farmer Guide & Resources</button></li>
+              </ul>
             </div>
+
+            {/* Column 4: Contact details */}
+            <div className="text-xs text-[var(--muted-foreground)] space-y-2">
+              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Contact Info</h5>
+              <p className="font-semibold text-[var(--foreground)]">FarmConnect HQ</p>
+              <p>Email: contact@farmconnect.com</p>
+              <p>Phone: +251 911 123 456</p>
+              <p>Address: Addis Ababa, Ethiopia</p>
+            </div>
+
           </div>
         </div>
       </footer>
+
     </div>
   );
 };

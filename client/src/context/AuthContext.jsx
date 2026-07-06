@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
-        
+
         // Only restore user state if both user and token exist
         if (storedUser && storedToken) {
           const parsedUser = JSON.parse(storedUser);
@@ -48,13 +48,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
-      
+
       // Ensure user object has a role
       if (!response.data.user || !response.data.user.role) {
         console.error('Login response missing user role:', response.data);
         throw new Error('Invalid user data received from server');
       }
-      
+
       setUser(response.data.user);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
       return response.data;
     } catch (error) {
       let message;
-      
+
       // Check for network errors
       if (!error.response) {
         message = 'Network error: Could not connect to server. Please check your internet connection.';
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         // Server errors
         message = error.response?.data?.message || error.message || 'Invalid email or password';
       }
-      
+
       throw new Error(message);
     }
   };
@@ -78,30 +78,25 @@ export const AuthProvider = ({ children }) => {
   // Real register implementation
   const register = async (registrationData) => {
     console.log('Register data being sent:', registrationData);
-    
-    // Filter out any non-serializable data (like File objects)
-    const serializableData = {};
-    for (const key in registrationData) {
-      const value = registrationData[key];
-      if (value instanceof File) {
-        console.log(`Skipping file field: ${key}`);
-        continue;
-      }
-      serializableData[key] = value;
-    }
-    
+
+    const serializableData = registrationData && typeof registrationData === 'object'
+      ? Object.fromEntries(
+        Object.entries(registrationData).filter(([, value]) => value !== undefined && value !== null)
+      )
+      : {};
+
     console.log('Filtered data for API:', serializableData);
-    
+
     try {
       const response = await authAPI.register(serializableData);
       console.log('Success response:', response.data);
-      
+
       // Ensure user object has a role
       if (!response.data.user || !response.data.user.role) {
         console.error('Register response missing user role:', response.data);
         throw new Error('Invalid user data received from server');
       }
-      
+
       setUser(response.data.user);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
@@ -110,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Register axios error:', error);
       let message;
-      
+
       // Check for network errors
       if (!error.response) {
         message = 'Network error: Could not connect to server. Please check your internet connection.';
@@ -118,7 +113,7 @@ export const AuthProvider = ({ children }) => {
         // Server errors
         message = error.response?.data?.message || error.message || 'Registration failed';
       }
-      
+
       throw new Error(message);
     }
   };

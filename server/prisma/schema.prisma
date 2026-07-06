@@ -14,68 +14,79 @@ enum Role {
 }
 
 model User {
-  id                   Int       @id @default(autoincrement())
-  name                 String
-  email                String    @unique
-  phone                String?   @unique
-  password             String
-  role                 Role      @default(CUSTOMER)
-  address              String?
-  location             String?
-  profileImage         String?
-  nationalId           String?
-  tinNumber            String?
-  landMapFile          String?
-  resetPasswordToken   String?
-  resetPasswordExpires DateTime?
-  createdAt            DateTime  @default(now())
-  
+  id                    Int       @id @default(autoincrement())
+  name                  String
+  email                 String    @unique
+  phone                 String?   @unique
+  password              String
+  role                  Role      @default(CUSTOMER)
+  address               String?
+  location              String?
+  profileImage          String?
+  nationalId            String?
+  tinNumber             String?
+  landMapFile           String?
+  resetPasswordToken    String?
+  resetPasswordExpires  DateTime?
+  createdAt             DateTime  @default(now())
+
   // Farmer-specific fields
-  farmName             String?
-  farmSize             String?
-  bio                  String?
-  isVerified           Boolean   @default(false)
-  certifications       String[]
-  languages            String[]
-  
+  farmName              String?
+  farmSize              String?
+  bio                   String?
+  isVerified            Boolean   @default(false)
+  certifications        String[]
+  languages             String[]
+
   // Settings fields
-  language             String    @default("English")
-  timezone             String    @default("Africa/Addis_Ababa")
-  
+  language              String    @default("English")
+  timezone              String    @default("Africa/Addis_Ababa")
+  theme                 String    @default("system")
+  profileVisibility     String    @default("public")
+  privateAccount        Boolean   @default(false)
+  showEmailOnProfile    Boolean   @default(false)
+  showPhoneOnProfile    Boolean   @default(false)
+  showAddressOnProfile  Boolean   @default(false)
+  showOrderActivity     Boolean   @default(true)
+  emailNotifications    Boolean   @default(true)
+  pushNotifications     Boolean   @default(true)
+  smsNotifications      Boolean   @default(false)
+
   // Payment settings
-  bankName             String?
-  accountNumber        String?
-  paymentMethod        String?
-  autoWithdrawal       Boolean   @default(false)
-  withdrawalThreshold  Float?
-  
+  bankName              String?
+  accountNumber         String?
+  paymentMethod         String?
+  autoWithdrawal        Boolean   @default(false)
+  withdrawalThreshold   Float?
+
   // Security settings
-  twoFactor            Boolean   @default(false)
-  loginAlerts          Boolean   @default(true)
-  sessionTimeout       Int       @default(30)
-  
+  twoFactor             Boolean   @default(false)
+  loginAlerts           Boolean   @default(true)
+  sessionTimeout        Int       @default(30)
+
   // Professional settings
-  businessLicense      String?
-  taxId                String?
-  vatRegistered        Boolean   @default(false)
-  vatNumber            String?
-  insuranceProvider    String?
-  insurancePolicy      String?
-  insuranceExpiry      DateTime?
-  farmRegistration     String?
+  businessLicense       String?
+  taxId                 String?
+  vatRegistered         Boolean   @default(false)
+  vatNumber             String?
+  insuranceProvider     String?
+  insurancePolicy       String?
+  insuranceExpiry       DateTime?
+  farmRegistration      String?
   membershipAssociations String[]
-  
+
   // Account status
-  isActive             Boolean   @default(true)
+  isActive              Boolean   @default(true)
 
   // Relations
-  products             Product[]
-  orders               Order[]
-  sentMessages         Message[] @relation("SentMessages")
-  receivedMessages     Message[] @relation("ReceivedMessages")
-  notifications        Notification[]
-  withdrawalRequests   WithdrawalRequest[]
-  orderItems           OrderItem[]
+  products              Product[]
+  orders                Order[]
+  orderItems            OrderItem[]
+  notifications         Notification[]
+  reviews               Review[]
+  sentMessages          Message[] @relation("SentMessages")
+  receivedMessages      Message[] @relation("ReceivedMessages")
+  withdrawalRequests    WithdrawalRequest[]
 
   @@index([role, isActive])
   @@index([role, isVerified])
@@ -83,52 +94,75 @@ model User {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  stock       Int      @default(0)
-  category    String?
-  image       String?
-  badges      String[]
-  status      String   @default("pending")
-  farmerId    Int
-  farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orderItems  OrderItem[]
+  id                Int      @id @default(autoincrement())
+  name              String
+  description       String?
+  price             Float
+  stock             Int      @default(0)
+  totalStock        Int?
+  minOrderQuantity  Int      @default(1)
+  unit              String?
+  category          String?
+  brand             String?
+  sku               String?
+  discountPrice     Float?
+  isOrganic         Boolean  @default(false)
+  harvestDate       DateTime?
+  expiryDate        DateTime?
+  image             String?
+  badges            String[]
+  tags              String[]
+  status            String   @default("pending")
+  farmerId          Int
+  farmer            User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+  notifications     Notification[]
+  reviews           Review[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
 
-  @@index([farmerId, status])
-  @@index([status])
-  @@index([category])
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
 }
 
 model Order {
-  id                  Int         @id @default(autoincrement())
-  orderCode           String
-  customerId          Int?
-  customer            User?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  items               Json        @default("[]")
-  total               Float       @default(0)
-  subtotal            Float       @default(0)
-  deliveryFee         Float       @default(0)
-  tax                 Float       @default(0)
-  status              String      @default("processing")
-  paymentMethod       String      @default("cash")
-  paymentStatus       String      @default("unpaid")
-  fullName            String?
-  email               String?
-  phone               String?
-  city                String?
-  address             String?
-  additionalInfo      String?
-  vendor              String?
-  restaurant          String?
-  estimatedDelivery   String?
-  specialInstructions String?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
-  orderItems          OrderItem[]
+  id                   Int      @id @default(autoincrement())
+  orderCode            String
+  customerId           Int?
+  customer             User?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items                Json     @default("[]")
+  total                Float    @default(0)
+  subtotal             Float    @default(0)
+  deliveryFee          Float    @default(0)
+  tax                  Float    @default(0)
+  status               String   @default("processing")
+  paymentMethod        String   @default("cash")
+  paymentStatus        String   @default("unpaid")
+  fullName             String?
+  email                String?
+  phone                String?
+  city                 String?
+  address              String?
+  additionalInfo       String?
+  vendor               String?
+  restaurant           String?
+  estimatedDelivery    String?
+  specialInstructions  String?
+  orderItems           OrderItem[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([customerId, status])
   @@index([status])
@@ -136,16 +170,16 @@ model Order {
 }
 
 model OrderItem {
-  id          Int      @id @default(autoincrement())
-  orderId     Int
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId   Int
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity    Int
-  price       Float
-  farmerId    Int
-  farmer      User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Float
+  farmerId  Int
+  farmer    User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@index([farmerId])
   @@index([orderId])
@@ -175,21 +209,22 @@ model Message {
 
 model Notification {
   id        Int      @id @default(autoincrement())
-  userId    Int
+  type      String   @default("SYSTEM")
   title     String
   message   String
-  type      String   @default("SYSTEM")
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WithdrawalRequest {
   id          Int       @id @default(autoincrement())
   farmerId    Int
   amount      Float
-  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  status      String    @default("PENDING")
   createdAt   DateTime  @default(now())
   processedAt DateTime?
 

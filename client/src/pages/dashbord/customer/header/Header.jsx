@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../../../context/CartContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Search, ShoppingCart, User, Bell, MapPin, 
-  Menu, ChevronDown, Package, Home, Store, 
-  History, Settings, LogOut
+import {
+  Search, ShoppingCart, User, Bell, MapPin,
+  Menu, ChevronDown, Package, Home, Store,
+  History, Settings, LogOut, Heart, BarChart3, Sun, Moon, Monitor
 } from 'lucide-react';
 
 const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
@@ -18,7 +19,7 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('vegetables');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  
+
   const searchRef = useRef(null);
   const categoriesRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -45,13 +46,20 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
   // User menu items
   const userMenuItems = [
     { label: 'My Profile', icon: <User size={18} />, path: '/customer/profile' },
-    { label: 'My Orders', icon: <Package size={18} />, path: '/customer/orders' },
+    { label: 'My Orders', icon: <BarChart3 size={18} />, path: '/customer/orders' },
+    { label: 'Favorites', icon: <Heart size={18} />, path: '/favorites' },
     { label: 'Address Book', icon: <MapPin size={18} />, path: '/customer/addresses' },
     { label: 'Notifications', icon: <Bell size={18} />, path: '/customer/notifications' },
-    { label: 'Settings', icon: null, path: '/customer/settings' },
+    { label: 'Settings', icon: <Settings size={18} />, path: '/customer/settings' },
   ];
 
+  const { theme, setTheme } = useTheme();
 
+  const themeOptions = [
+    { value: 'system', label: 'System', icon: <Monitor size={16} /> },
+    { value: 'dark', label: 'Dark', icon: <Moon size={16} /> },
+    { value: 'light', label: 'Light', icon: <Sun size={16} /> },
+  ];
 
   // Delivery address
   const deliveryAddress = {
@@ -99,6 +107,19 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const root = window.document.documentElement;
+    localStorage.setItem('theme', theme);
+    root.classList.remove('light', 'dark');
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -270,20 +291,19 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     aria-label="User menu"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {user?.name?.charAt(0) || 'C'}
+                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-base">
+                      <User size={18} />
                     </div>
-                    <span className="text-sm font-medium text-slate-800 whitespace-nowrap hidden lg:inline">{user?.name?.split(' ')[0] || 'Guest'}</span>
                     <ChevronDown size={16} className={`text-slate-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                   </button>
 
                   {/* User Dropdown */}
                   {showUserMenu && (
-                    <div className="absolute top-[calc(100%+8px)] right-0 w-[280px] bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] z-[1002] border border-slate-200 overflow-hidden animate-slide-down max-sm:w-[260px] max-sm:right-[-20px]">
+                    <div className="absolute top-[calc(100%+8px)] right-0 w-[300px] bg-white rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.12)] z-[1002] border border-slate-200 overflow-hidden animate-slide-down max-sm:w-[280px] max-sm:right-[-20px]">
                       <div className="px-4 py-4 bg-slate-50 border-b border-slate-200">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold text-base">
-                            {user?.name?.charAt(0) || 'C'}
+                            <User size={18} />
                           </div>
                           <div>
                             <h4 className="m-0 mb-1 text-sm text-slate-800 font-semibold">{user?.name || 'Customer'}</h4>
@@ -306,10 +326,26 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                               setShowUserMenu(false);
                             }}
                           >
-                            {item.label !== 'Settings' && <span className="text-slate-500 w-5">{item.icon}</span>}
+                            <span className="text-slate-500 w-5">{item.icon}</span>
                             <span>{item.label}</span>
                           </button>
                         ))}
+                      </div>
+
+                      <div className="border-t border-slate-200 py-3 px-4 space-y-2 bg-slate-50">
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Theme</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {themeOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => setTheme(option.value)}
+                              className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-semibold transition ${theme === option.value ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}
+                            >
+                              <span>{option.icon}</span>
+                              <span>{option.label}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="border-t border-slate-200 py-2">

@@ -1,118 +1,139 @@
 const prisma = require('../db/prismaClient');
 
+const buildProductPayload = (product) => {
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const reviewCount = reviews.length || Number(product.reviewsCount || 0);
+  const averageRating = reviewCount
+    ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
+    : Number(product.rating || 4.5);
+
+  return {
+    ...product,
+    reviews: reviews.map((review) => ({
+      ...review,
+      user: review.user?.name || review.userName || 'Anonymous',
+      userName: review.user?.name || review.userName || 'Anonymous',
+      date: review.createdAt
+        ? new Date(review.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+        : 'Recently added',
+    })),
+    vendor: product.farmer?.farmName || product.farmer?.name || 'Fresh Vendor',
+    vendorVerified: product.farmer?.isVerified || false,
+    rating: averageRating,
+    reviewsCount: reviewCount,
+    discountPercent: product.discountPrice ? Math.round((1 - product.discountPrice / product.price) * 100) : 0
+  };
+};
+
 // Get all approved products (public endpoint)
 exports.getProducts = async (req, res) => {
   try {
-    const { category, search, skip = 0, limit = 20 } = req.query;
-    
+    const {
+      category,
+      search,
+      brand,
+      minPrice,
+      maxPrice,
+      rating,
+      sortBy = 'newest',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
+
     const where = { status: 'approved' };
-    
+    const filters = [];
+
     if (category) {
-      where.category = { contains: category, mode: 'insensitive' };
+      filters.push({ category: { contains: category, mode: 'insensitive' } });
     }
-    
+
+    if (brand) {
+      filters.push({ brand: { contains: brand, mode: 'insensitive' } });
+    }
+
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      filters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
     }
-    
+
+    if (minPrice || maxPrice) {
+      const priceFilter = {};
+      if (minPrice) priceFilter.gte = parseFloat(minPrice);
+      if (maxPrice) priceFilter.lte = parseFloat(maxPrice);
+      filters.push({ price: priceFilter });
+    }
+
+    if (filters.length) {
+      where.AND = filters;
+    }
+
+    let orderBy = { createdAt: 'desc' };
+    switch (sortBy) {
+      case 'price-low':
+        orderBy = { price: 'asc' };
+        break;
+      case 'price-high':
+        orderBy = { price: 'desc' };
+        break;
+      case 'rating':
+        orderBy = { createdAt: 'desc' };
+        break;
+      default:
+        orderBy = { createdAt: 'desc' };
+    }
+
     const products = await prisma.product.findMany({
       where,
-      skip: parseInt(skip),
-      take: parseInt(limit),
+      skip,
+      take: parsedLimit,
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
+        },
+        reviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy
     });
-    
+
+    let mappedProducts = products.map(buildProductPayload);
+    if (rating) {
+      mappedProducts = mappedProducts.filter((product) => Number(product.rating || 0) >= Number(rating));
+    }
+
     const total = await prisma.product.count({ where });
-    
+
     res.json({
       success: true,
-      data: products.map(p => ({
-        ...p,
-        vendor: p.farmer?.farmName || p.farmer?.name || 'Fresh Vendor',
-        vendorVerified: p.farmer?.isVerified || false
-      })),
+      data: mappedProducts,
       total,
-      page: Math.floor(skip / limit) + 1,
-      pages: Math.ceil(total / limit)
+      page: parsedPage,
+      pages: Math.ceil(total / parsedLimit)
     });
   } catch (error) {
     console.error('Error fetching products:', error);
-    // Return empty array with mock products if there's an error
     res.json({
       success: true,
-      data: [
-        {
-          id: 1,
-          name: 'Fresh Tomatoes',
-          price: 45.99,
-          image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80',
-          category: 'Vegetables',
-          rating: 4.8,
-          reviewsCount: 245,
-          discountPercent: 10,
-          unit: 'kg',
-          badge: 'Fresh',
-          description: 'Locally grown premium tomatoes',
-          vendor: 'Fresh Farm',
-          vendorVerified: true
-        },
-        {
-          id: 2,
-          name: 'Organic Lettuce',
-          price: 35.50,
-          image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80',
-          category: 'Vegetables',
-          rating: 4.6,
-          reviewsCount: 156,
-          discountPercent: 5,
-          unit: 'bunch',
-          badge: 'Organic',
-          description: 'Crisp organic lettuce',
-          vendor: 'Green Farm',
-          vendorVerified: true
-        },
-        {
-          id: 3,
-          name: 'Red Apples',
-          price: 52.00,
-          image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400&q=80',
-          category: 'Fruits',
-          rating: 4.9,
-          reviewsCount: 312,
-          discountPercent: 15,
-          unit: 'kg',
-          badge: 'Premium',
-          description: 'Sweet red apples',
-          vendor: 'Orchard Farm',
-          vendorVerified: true
-        },
-        {
-          id: 4,
-          name: 'Green Bell Peppers',
-          price: 42.00,
-          image: 'https://images.unsplash.com/photo-1563565080-749774653557?w=400&q=80',
-          category: 'Vegetables',
-          rating: 4.5,
-          reviewsCount: 98,
-          discountPercent: 0,
-          unit: 'kg',
-          badge: 'Fresh',
-          description: 'Fresh bell peppers',
-          vendor: 'Fresh Farm',
-          vendorVerified: true
-        }
-      ],
-      total: 4,
+      data: [],
+      total: 0,
       page: 1,
-      pages: 1
+      pages: 0,
+      error: error.message
     });
   }
 };
@@ -121,21 +142,29 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id, 10) },
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
+        },
+        reviews: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
         }
       }
     });
-    
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    
-    res.json({ success: true, data: product });
+
+    res.json({ success: true, data: buildProductPayload(product) });
   } catch (error) {
     console.error('Error fetching product:', error);
     res.status(500).json({ message: 'Failed to fetch product', error: error.message });
@@ -146,26 +175,35 @@ exports.getProductById = async (req, res) => {
 exports.getProductsByCategory = async (req, res) => {
   try {
     const { category, limit = 20 } = req.query;
-    
+
     if (!category) {
       return res.status(400).json({ message: 'Category is required' });
     }
-    
+
     const products = await prisma.product.findMany({
       where: {
         status: 'approved',
         category: { contains: category, mode: 'insensitive' }
       },
-      take: parseInt(limit),
+      take: parseInt(limit, 10),
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
+        },
+        reviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
-    
-    res.json({ success: true, data: products });
+
+    res.json({ success: true, data: products.map(buildProductPayload) });
   } catch (error) {
     console.error('Error fetching products by category:', error);
     res.status(500).json({ message: 'Failed to fetch products', error: error.message });
