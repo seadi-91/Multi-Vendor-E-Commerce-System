@@ -9,6 +9,7 @@ import SkeletonLoader from "../../../components/SkeletonLoader";
 import EmptyState from "../../../components/EmptyState";
 import NotificationBell from "../../../components/NotificationBell";
 import { Toaster } from "sonner";
+import { toast } from "sonner";
 import api from "../../../api.js";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -190,7 +191,7 @@ const AdminDashboard = () => {
       setAllProducts(prev => prev.map(p => 
         p.id === productId ? { ...p, status: newStatus } : p
       ));
-      fetchDashboardStats();
+      await fetchDashboardStats(); // Fixed: Added await to prevent hanging
     } catch (err) {
       console.error('Failed to update product status:', err);
       setError('Failed to update product status. Please try again.');
@@ -253,6 +254,9 @@ const AdminDashboard = () => {
 
   // Delete confirmation dialog state
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null, type: null, label: '' });
+  
+  // Reject confirmation dialog state
+  const [rejectConfirm, setRejectConfirm] = useState({ open: false, id: null, name: '' });
 
   // Pagination state per table (10 rows per page)
   const PAGE_SIZE = 10;
@@ -404,39 +408,9 @@ const AdminDashboard = () => {
     }
   }, [view]);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get("/admin/notifications");
-      setNotifications(res.data);
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const markAsRead = async (id) => {
-    try {
-      await api.put(`/admin/notifications/${id}/read`);
-      fetchNotifications();
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await api.put("/admin/notifications/read-all");
-      fetchNotifications();
-    } catch (err) {
-      console.error("Failed to mark all notifications as read:", err);
-    }
-  };
+  // ❌ REMOVED DUPLICATE NOTIFICATION FETCHING
+  // NotificationBell component already handles fetching notifications
+  // Having duplicate fetch logic was causing 429 Rate Limit errors
 
   const fetchData = async () => {
     setError(null);
@@ -449,7 +423,7 @@ const AdminDashboard = () => {
         const res = await api.get("/admin/users");
         setUsers(res.data.users || res.data);
       } else if (view === "farmers") {
-        const res = await api.get("/admin/farmers/verified");
+        const res = await api.get("/admin/farmers");
         setFarmers(res.data.farmers || res.data);
       } else if (view === "all-products") {
         const res = await api.get("/admin/products");
@@ -581,20 +555,184 @@ const AdminDashboard = () => {
   };
 
   const executeDelete = async () => {
-    const { id, type } = deleteConfirm;
+    console.log('=== START: Frontend Delete User ===');
+    const { id, type, label } = deleteConfirm;
+    console.log(`Deleting ${type} with ID: ${id} (${label})`);
+    
+    // Close dialog immediately
     setDeleteConfirm({ open: false, id: null, type: null, label: '' });
+    
+    // Set loading state
+    setLoading(true);
+    setError(null);
+    
     try {
+      console.log(`Making API call: DELETE /admin/${type}s/${id}`);
       await api.delete(`/admin/${type}s/${id}`);
+      console.log(`API call successful for ${type} ${id}`);
+      
+      // ✅ PAGINATION FIX: Check if we're deleting the last item on current page
+      let shouldResetPage = false;
+      
       if (type === "user") {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
-      } else {
-        setFarmers((prev) => prev.filter((f) => f.id !== id));
+        console.log('Removing user from local state');
+        const remainingUsers = users.filter((u) => u.id !== id);
+        setUsers(remainingUsers);
+        
+        // Check if current page will be empty after deletion
+        const currentPageItems = filteredUsers.filter((u) => u.id !== id);
+        const itemsOnCurrentPage = currentPageItems.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE);
+        if (itemsOnCurrentPage.length === 0 && usersPage > 1) {
+          console.log('Last item on page deleted - resetting to page 1');
+          setUsersPage(1);
+          shouldResetPage = true;
+        }
+      } else if (type === "farmer") {
+        console.log('Removing farmer from local state');
+        const remainingFarmers = farmers.filter((f) => f.id !== id);
+        setFarmers(remainingFarmers);
+        
+        // Check if current page will be empty after deletion
+        const currentPageItems = filteredFarmers.filter((f) => f.id !== id);
+        const itemsOnCurrentPage = currentPageItems.slice((farmersPage - 1) * PAGE_SIZE, farmersPage * PAGE_SIZE);
+        if (itemsOnCurrentPage.length === 0 && farmersPage > 1) {
+          console.log('Last item on page deleted - resetting to page 1');
+          setFarmersPage(1);
+          shouldResetPage = true;
+        }
+      } else if (type === "product") {
+        console.log('Removing product from local state');
+        const remainingProducts = allProducts.filter((p) => p.id !== id);
+        setAllProducts(remainingProducts);
+        
+        // Check if current page will be empty after deletion
+        const currentPageItems = filteredAllProducts.filter((p) => p.id !== id);
+        const itemsOnCurrentPage = currentPageItems.slice((productsPage - 1) * PAGE_SIZE, productsPage * PAGE_SIZE);
+        if (itemsOnCurrentPage.length === 0 && productsPage > 1) {
+          console.log('Last item on page deleted - resetting to page 1');
+          setProductsPage(1);
+          shouldResetPage = true;
+        }
       }
-      fetchDashboardStats();
-    } catch {
-      setError(`Failed to delete ${type}. Please try again.`);
+      
+      // Refresh dashboard stats
+      console.log('Refreshing dashboard stats...');
+      await fetchDashboardStats();
+      
+      // Close detail sheet if open
+      if (detailSheetOpen && detailSheetData?.id === id) {
+        console.log('Closing detail sheet');
+        setDetailSheetOpen(false);
+        setDetailSheetData(null);
+        setDetailSheetType(null);
+      }
+      
+      // ✅ SUCCESS NOTIFICATION
+      console.log(`✅ Successfully deleted ${type} "${label}"`);
+      if (shouldResetPage) {
+        console.log('ℹ️ Pagination was reset to page 1');
+      }
+      
+      console.log('=== END: Frontend Delete User - Success ===');
+    } catch (err) {
+      console.error('=== END: Frontend Delete User - Error ===');
+      console.error('Delete error:', err);
+      
+      // Show error message
+      const errorMessage = err.response?.data?.error || err.message || `Failed to delete ${type}. Please try again.`;
+      setError(errorMessage);
+      
+      // Refetch data to ensure UI is in sync with backend
+      console.log('Refetching data after error...');
+      await fetchData();
+    } finally {
+      setLoading(false);
+      console.log('Delete operation completed');
     }
   };
+
+  // Handle farmer verification (approve)
+  const handleApproveFarmer = async (farmerId) => {
+    try {
+      await api.put(`/admin/farmers/${farmerId}/verify`);
+      // Optimistic UI update
+      setFarmers(prev => prev.map(f => 
+        f.id === farmerId ? { ...f, isVerified: true } : f
+      ));
+      fetchDashboardStats();
+    } catch (err) {
+      console.error('Failed to verify farmer:', err);
+      setError('Failed to verify farmer. Please try again.');
+      // Revert optimistic update by refetching
+      fetchData();
+    }
+  };
+
+  // Handle farmer rejection
+  const handleRejectFarmer = (farmerId, farmerName) => {
+    setRejectConfirm({ open: true, id: farmerId, name: farmerName });
+  };
+
+  const executeRejectFarmer = async () => {
+    const { id } = rejectConfirm;
+    setRejectConfirm({ open: false, id: null, name: '' });
+    try {
+      await api.put(`/admin/farmers/${id}/reject`);
+      // Optimistic UI update - mark as rejected (isVerified: false and add rejected flag)
+      setFarmers(prev => prev.map(f => 
+        f.id === id ? { ...f, isVerified: false, isRejected: true } : f
+      ));
+      fetchDashboardStats();
+    } catch (err) {
+      console.error('Failed to reject farmer:', err);
+      setError('Failed to reject farmer. Please try again.');
+      // Revert optimistic update by refetching
+      fetchData();
+    }
+  };
+
+  // Handle farmer suspend
+  const handleSuspendFarmer = async (farmerId) => {
+    try {
+      await api.put(`/admin/users/${farmerId}/suspend`);
+      setFarmers(prev => prev.map(f => 
+        f.id === farmerId ? { ...f, isActive: false } : f
+      ));
+      setDetailSheetData(prev => prev ? { ...prev, isActive: false } : null);
+      fetchDashboardStats();
+    } catch (err) {
+      setError('Failed to suspend farmer.');
+    }
+  };
+
+  // Handle farmer activate
+  const handleActivateFarmer = async (farmerId) => {
+    try {
+      await api.put(`/admin/users/${farmerId}/activate`);
+      setFarmers(prev => prev.map(f => 
+        f.id === farmerId ? { ...f, isActive: true } : f
+      ));
+      setDetailSheetData(prev => prev ? { ...prev, isActive: true } : null);
+      fetchDashboardStats();
+    } catch (err) {
+      setError('Failed to activate farmer.');
+    }
+  };
+
+  // Expose handlers globally for AdminDetailSheet
+  React.useEffect(() => {
+    window.handleApproveFarmer = handleApproveFarmer;
+    window.handleRejectFarmer = handleRejectFarmer;
+    window.handleSuspendFarmer = handleSuspendFarmer;
+    window.handleActivateFarmer = handleActivateFarmer;
+    
+    return () => {
+      delete window.handleApproveFarmer;
+      delete window.handleRejectFarmer;
+      delete window.handleSuspendFarmer;
+      delete window.handleActivateFarmer;
+    };
+  }, []);
 
   const toggleUserStatus = async (id, type, currentStatus) => {
     try {
@@ -1425,7 +1563,8 @@ const AdminDashboard = () => {
                                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Farmer</th>
                                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
                                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Farm Name</th>
-                                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Verification</th>
+                                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Account Status</th>
                                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                                 </tr>
                               </thead>
@@ -1439,9 +1578,22 @@ const AdminDashboard = () => {
                                     <td className="px-6 py-4 text-sm text-slate-600">{farmer.email}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{farmer.farmName || 'N/A'}</td>
                                     <td className="px-6 py-4">
-                                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${farmer.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                                      <div className="flex items-center gap-2">
+                                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                                          farmer.isVerified 
+                                            ? 'bg-emerald-100 text-emerald-700' 
+                                            : farmer.isRejected
+                                            ? 'bg-red-100 text-red-700'
+                                            : 'bg-amber-100 text-amber-700'
                                         }`}>
-                                        {farmer.isActive ? 'Active' : 'Inactive'}
+                                          {farmer.isVerified ? '✓ Verified' : farmer.isRejected ? '✗ Rejected' : '⏱ Pending'}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${farmer.isActive ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                                        }`}>
+                                        {farmer.isActive ? 'Active' : 'Suspended'}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4">
@@ -1459,6 +1611,23 @@ const AdminDashboard = () => {
                                             View Details
                                           </DropdownMenuItem>
                                           <DropdownMenuSeparator />
+                                          {!farmer.isVerified && (
+                                            <>
+                                              <DropdownMenuItem onClick={async () => {
+                                                try {
+                                                  await api.put(`/admin/farmers/${farmer.id}/verify`);
+                                                  fetchData();
+                                                  fetchDashboardStats();
+                                                } catch (err) {
+                                                  setError('Failed to verify farmer.');
+                                                }
+                                              }}>
+                                                <Check className="mr-2 h-4 w-4 text-emerald-600" />
+                                                Verify Farmer
+                                              </DropdownMenuItem>
+                                              <DropdownMenuSeparator />
+                                            </>
+                                          )}
                                           {farmer.isActive ? (
                                             <DropdownMenuItem onClick={async () => {
                                               try {
@@ -1517,23 +1686,25 @@ const AdminDashboard = () => {
               )}
 
               {view === "all-products" && (
-                <div className="animate-in fade-in duration-300">
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <AdminFilterBar
-                      pageType="products"
-                      filters={filters}
-                      setFilters={setFilters}
-                      searchTerm={searchTerm}
-                      setSearchTerm={setSearchTerm}
-                      exportData={getExportData()}
-                      exportColumns={getExportColumns()}
-                      exportFilename={getExportFilename()}
-                      exportTitle={getExportTitle()}
-                    />
+                <div className="animate-in fade-in duration-300 -mx-6 md:-mx-10">
+                  <div className="bg-white border-y border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-6 md:px-10">
+                      <AdminFilterBar
+                        pageType="products"
+                        filters={filters}
+                        setFilters={setFilters}
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        exportData={getExportData()}
+                        exportColumns={getExportColumns()}
+                        exportFilename={getExportFilename()}
+                        exportTitle={getExportTitle()}
+                      />
+                    </div>
                     {renderActiveFilters()}
                     {/* Inline error banner */}
                     {error && (
-                      <div className="px-4 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between gap-3">
+                      <div className="px-6 md:px-10 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-red-700 text-sm">
                           <AlertCircle className="w-4 h-4 flex-shrink-0" />
                           <span>{error}</span>

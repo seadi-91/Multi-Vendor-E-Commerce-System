@@ -15,7 +15,8 @@ import {
   Clock,
   Shield,
   Truck,
-  ShoppingBag
+  ShoppingBag,
+  AlertCircle
 } from 'lucide-react';
 
 /**
@@ -139,7 +140,7 @@ export default function AdminDetailSheet({ open, onClose, type, data }) {
     <div className="space-y-6">
       {/* Profile Section */}
       <div className="flex items-start gap-4">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
           {data.profileImage ? (
             <img 
               src={data.profileImage} 
@@ -147,116 +148,233 @@ export default function AdminDetailSheet({ open, onClose, type, data }) {
               className="w-full h-full rounded-full object-cover"
             />
           ) : (
-            <User className="w-10 h-10 text-slate-400" />
+            <span className="text-2xl font-bold text-white">
+              {data.name?.charAt(0)?.toUpperCase() || 'F'}
+            </span>
           )}
         </div>
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-slate-900">{data.name}</h3>
+          <h3 className="text-xl font-bold text-slate-900">{data.name || 'Not provided'}</h3>
           <p className="text-sm text-slate-500">Farmer ID: #{data.id}</p>
           <div className="mt-2 flex gap-2">
-            <Badge variant={data.isVerified ? 'default' : 'secondary'}>
-              {data.isVerified ? 'Verified' : 'Pending'}
+            <Badge className={
+              data.isVerified 
+                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' 
+                : 'bg-amber-100 text-amber-700 hover:bg-amber-100'
+            }>
+              {data.isVerified ? '✓ Verified' : '⏱ Pending Verification'}
             </Badge>
-            <Badge variant={data.isActive ? 'default' : 'destructive'}>
-              {data.isActive ? 'Active' : 'Inactive'}
+            <Badge className={
+              data.isActive 
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-100' 
+                : 'bg-red-100 text-red-700 hover:bg-red-100'
+            }>
+              {data.isActive ? 'Active' : 'Suspended'}
             </Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Personal Information */}
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 space-y-4 border border-slate-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <User className="w-5 h-5 text-indigo-600" />
+          Personal Information
+        </h4>
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex items-start gap-3">
+            <Mail className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-slate-500 font-medium">Email</p>
+              <p className="text-sm text-slate-900">{data.email || 'Not provided'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Phone className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-slate-500 font-medium">Phone</p>
+              <p className="text-sm text-slate-900">{data.phone || 'Not provided'}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-slate-500 font-medium">Address</p>
+              <p className="text-sm text-slate-900">{data.address || data.location || 'Not provided'}</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Farm Information */}
-      <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-          <Shield className="w-4 h-4" />
+      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-5 space-y-4 border border-emerald-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <Shield className="w-5 h-5 text-emerald-600" />
           Farm Information
         </h4>
-        <div className="grid grid-cols-1 gap-2 text-sm">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-slate-500">Farm Name</p>
-            <p className="font-medium text-slate-900">{data.farmName || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">Farm Name</p>
+            <p className="font-semibold text-slate-900">{data.farmName || 'Not provided'}</p>
           </div>
           <div>
-            <p className="text-slate-500">Farm Size</p>
-            <p className="font-medium text-slate-900">{data.farmSize || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">Farm Size</p>
+            <p className="font-semibold text-slate-900">{data.farmSize || 'Not provided'}</p>
           </div>
-          <div>
-            <p className="text-slate-500">Bio</p>
-            <p className="font-medium text-slate-900">{data.bio || 'N/A'}</p>
-          </div>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 font-medium mb-1">Bio</p>
+          <p className="text-sm text-slate-700">{data.bio || 'No bio added'}</p>
         </div>
       </div>
 
-      {/* Contact Information */}
-      <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-          <User className="w-4 h-4" />
-          Contact Information
-        </h4>
-        <div className="grid grid-cols-1 gap-2 text-sm">
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-600">{data.email || 'N/A'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-600">{data.phone || 'N/A'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-600">{data.address || 'N/A'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Business Details */}
-      <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-          <Package className="w-4 h-4" />
-          Business Details
+      {/* Business/Legal Documents */}
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-5 space-y-4 border border-blue-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <Package className="w-5 h-5 text-blue-600" />
+          Business & Legal Documents
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-slate-500">National ID</p>
-            <p className="font-medium text-slate-900">{data.nationalId || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">National ID</p>
+            <p className="font-mono text-xs font-semibold text-slate-900 bg-white px-2 py-1 rounded">
+              {data.nationalId || 'Pending verification'}
+            </p>
           </div>
           <div>
-            <p className="text-slate-500">TIN Number</p>
-            <p className="font-medium text-slate-900">{data.tinNumber || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">TIN Number</p>
+            <p className="font-mono text-xs font-semibold text-slate-900 bg-white px-2 py-1 rounded">
+              {data.tinNumber || 'Pending verification'}
+            </p>
           </div>
           <div>
-            <p className="text-slate-500">Bank Name</p>
-            <p className="font-medium text-slate-900">{data.bankName || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">Bank Name</p>
+            <p className="text-sm text-slate-900">{data.bankName || 'Not provided'}</p>
           </div>
           <div>
-            <p className="text-slate-500">Account Number</p>
-            <p className="font-medium text-slate-900">{data.accountNumber || 'N/A'}</p>
+            <p className="text-xs text-slate-500 font-medium mb-1">Account Number</p>
+            <p className="font-mono text-xs font-semibold text-slate-900 bg-white px-2 py-1 rounded">
+              {data.accountNumber || 'Not provided'}
+            </p>
+          </div>
+        </div>
+        
+        {/* Document Placeholders */}
+        <div className="pt-2 space-y-2">
+          <p className="text-xs text-slate-600 font-medium mb-2">Verification Documents:</p>
+          <div className="bg-white rounded-lg p-3 border border-dashed border-blue-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                  <Package className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-700">ID Document</p>
+                  <p className="text-[10px] text-slate-500">{data.nationalId ? 'Uploaded' : 'Not uploaded'}</p>
+                </div>
+              </div>
+              {data.nationalId && (
+                <Button size="sm" variant="outline" className="h-7 text-xs">
+                  View
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-3 border border-dashed border-blue-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-700">Land Map File</p>
+                  <p className="text-[10px] text-slate-500">{data.landMapFile ? 'Uploaded' : 'Not uploaded'}</p>
+                </div>
+              </div>
+              {data.landMapFile && (
+                <Button size="sm" variant="outline" className="h-7 text-xs">
+                  View
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Account Status */}
-      <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4" />
-          Account Status
+      {/* Location Map Placeholder */}
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 space-y-3 border border-slate-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <MapPin className="w-5 h-5 text-slate-600" />
+          Farm Location
         </h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-slate-500">Verification Status</p>
-            <p className="font-medium text-slate-900">{data.isVerified ? 'Verified' : 'Pending'}</p>
+        <div className="aspect-video bg-slate-200 rounded-lg flex items-center justify-center border border-slate-300">
+          <div className="text-center">
+            <MapPin className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-600">Map integration coming soon</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {data.address || data.location || 'No location provided'}
+            </p>
           </div>
-          <div>
-            <p className="text-slate-500">Active Status</p>
-            <p className="font-medium text-slate-900">{data.isActive ? 'Active' : 'Inactive'}</p>
+        </div>
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 space-y-3 border border-purple-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <Package className="w-5 h-5 text-purple-600" />
+          Performance Metrics
+        </h4>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="bg-white rounded-lg p-3">
+            <p className="text-xs text-slate-500 font-medium">Products</p>
+            <p className="text-2xl font-bold text-slate-900">{data.productCount || 0}</p>
           </div>
-          <div>
-            <p className="text-slate-500">Member Since</p>
-            <p className="font-medium text-slate-900">{formatDate(data.createdAt)}</p>
+          <div className="bg-white rounded-lg p-3">
+            <p className="text-xs text-slate-500 font-medium">Orders</p>
+            <p className="text-2xl font-bold text-slate-900">{data.orderCount || 0}</p>
           </div>
-          <div>
-            <p className="text-slate-500">Total Products</p>
-            <p className="font-medium text-slate-900">{data.productCount || 0}</p>
+          <div className="bg-white rounded-lg p-3">
+            <p className="text-xs text-slate-500 font-medium">Rating</p>
+            <p className="text-2xl font-bold text-slate-900">{data.rating || 'N/A'}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Account Timeline */}
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 space-y-3 border border-slate-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <Calendar className="w-5 h-5 text-slate-600" />
+          Account Timeline
+        </h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between items-center py-2 border-b border-slate-200">
+            <span className="text-slate-600">Member Since</span>
+            <span className="font-semibold text-slate-900">{formatDate(data.createdAt)}</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-slate-200">
+            <span className="text-slate-600">Verification Status</span>
+            <span className={`font-semibold ${data.isVerified ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {data.isVerified ? 'Verified' : 'Pending'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-slate-600">Account Status</span>
+            <span className={`font-semibold ${data.isActive ? 'text-blue-600' : 'text-red-600'}`}>
+              {data.isActive ? 'Active' : 'Suspended'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity Placeholder */}
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 space-y-3 border border-slate-200">
+        <h4 className="font-bold text-slate-900 flex items-center gap-2 text-base">
+          <Clock className="w-5 h-5 text-slate-600" />
+          Recent Activity
+        </h4>
+        <div className="text-sm text-slate-500 text-center py-4">
+          <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+          <p>No recent activity to display</p>
         </div>
       </div>
     </div>
@@ -329,40 +447,52 @@ export default function AdminDetailSheet({ open, onClose, type, data }) {
           <User className="w-4 h-4" />
           Farmer Information
         </h4>
-        <div className="grid grid-cols-1 gap-2 text-sm">
-          <div>
-            <p className="text-slate-500">Farmer Name</p>
-            <p className="font-medium text-slate-900">{data.farmer?.name || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Farm Name</p>
-            <p className="font-medium text-slate-900">{data.farmer?.farmName || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Contact Email</p>
-            <p className="font-medium text-slate-900">{data.farmer?.email || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Phone</p>
-            <p className="font-medium text-slate-900">{data.farmer?.phone || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Address</p>
-            <p className="font-medium text-slate-900">{data.farmer?.address || 'N/A'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500">Verification Status</p>
-            <p className="font-medium text-slate-900">
-              {data.farmer?.isVerified ? 'Verified' : 'Pending'}
+        {!data.farmer ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+            <div className="flex items-center gap-2 text-amber-700">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <p className="font-medium">Farmer account has been deleted</p>
+            </div>
+            <p className="text-xs text-amber-600 mt-1">
+              The farmer who created this product is no longer in the system.
             </p>
           </div>
-          <div>
-            <p className="text-slate-500">Account Status</p>
-            <p className="font-medium text-slate-900">
-              {data.farmer?.isActive ? 'Active' : 'Inactive'}
-            </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 text-sm">
+            <div>
+              <p className="text-slate-500">Farmer Name</p>
+              <p className="font-medium text-slate-900">{data.farmer?.name || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Farm Name</p>
+              <p className="font-medium text-slate-900">{data.farmer?.farmName || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Contact Email</p>
+              <p className="font-medium text-slate-900">{data.farmer?.email || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Phone</p>
+              <p className="font-medium text-slate-900">{data.farmer?.phone || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Address</p>
+              <p className="font-medium text-slate-900">{data.farmer?.address || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Verification Status</p>
+              <p className="font-medium text-slate-900">
+                {data.farmer?.isVerified ? 'Verified' : 'Pending'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500">Account Status</p>
+              <p className="font-medium text-slate-900">
+                {data.farmer?.isActive ? 'Active' : 'Inactive'}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Timestamps */}
@@ -420,23 +550,96 @@ export default function AdminDetailSheet({ open, onClose, type, data }) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:w-[500px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{getTitle()}</SheetTitle>
-          <SheetDescription>
-            View detailed information about this {type}
-          </SheetDescription>
+      <SheetContent className="w-full sm:max-w-2xl lg:max-w-4xl overflow-y-auto">
+        <SheetHeader className="border-b border-slate-200 pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="text-2xl">{getTitle()}</SheetTitle>
+              <SheetDescription className="text-base mt-1">
+                View detailed information and manage this {type}
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
         
         <div className="mt-6">
           {renderContent()}
         </div>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </div>
+        {/* Action Buttons Section */}
+        {type === 'farmer' && data && (
+          <div className="mt-8 pt-6 border-t border-slate-200 bg-slate-50 -mx-6 px-6 py-4 sticky bottom-0">
+            <h4 className="text-sm font-semibold text-slate-700 mb-3">Admin Actions</h4>
+            <div className="flex flex-wrap gap-3">
+              {!data.isVerified && !data.isRejected && (
+                <>
+                  <Button 
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => {
+                      // This will be handled by parent component
+                      if (window.handleApproveFarmer) {
+                        window.handleApproveFarmer(data.id);
+                        onClose();
+                      }
+                    }}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Approve Verification
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => {
+                      // This will be handled by parent component
+                      if (window.handleRejectFarmer) {
+                        window.handleRejectFarmer(data.id, data.name);
+                        onClose();
+                      }
+                    }}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Reject Verification
+                  </Button>
+                </>
+              )}
+              {data.isActive ? (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (window.handleSuspendFarmer) {
+                      window.handleSuspendFarmer(data.id);
+                      onClose();
+                    }
+                  }}
+                >
+                  Suspend Account
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (window.handleActivateFarmer) {
+                      window.handleActivateFarmer(data.id);
+                      onClose();
+                    }
+                  }}
+                >
+                  Activate Account
+                </Button>
+              )}
+              <Button variant="outline" onClick={onClose} className="ml-auto">
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {type !== 'farmer' && (
+          <div className="mt-6 flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

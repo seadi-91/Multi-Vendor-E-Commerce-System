@@ -41,10 +41,11 @@ exports.protect = async (req, res, next) => {
       return res.status(403).json({ message: 'Account is deactivated' });
     }
 
+    // Note: Verification check temporarily commented out for development
     // Check if farmer is verified (for farmer-specific routes)
-    if (user.role === 'FARMER' && !user.isVerified) {
-      return res.status(403).json({ message: 'Farmer account is not verified' });
-    }
+    // if (user.role === 'FARMER' && !user.isVerified) {
+    //   return res.status(403).json({ message: 'Farmer account is not verified' });
+    // }
 
     req.user = user;
     next();

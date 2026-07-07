@@ -26,7 +26,11 @@ const NotificationBell = () => {
       setNotifications(data);
       setUnreadCount(data.filter(n => !n.read).length);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Only log errors that aren't account-deletion related (404 with USER_NOT_FOUND)
+      // The API interceptor handles redirects for deleted accounts
+      if (error.response?.status !== 404 || error.response?.data?.code !== 'USER_NOT_FOUND') {
+        console.error('Error fetching notifications:', error);
+      }
     } finally {
       setLoading(false);
     }

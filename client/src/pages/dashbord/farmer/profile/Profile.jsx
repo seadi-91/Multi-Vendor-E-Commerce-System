@@ -1,54 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
+import { useFarmerProfile } from '../../../../context/FarmerProfileContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Calendar, Camera, Edit2, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const { user, logout } = useAuth();
+  const { profile: contextProfile, loading: contextLoading, fetchProfile, updateProfile } = useFarmerProfile();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
-    name: 'Mubarek Edris',
-    email: 'mubarek.edris@farmconnect.com',
-    phone: '+251 911 234 567',
-    location: 'Gondar, Ethiopia',
-    farmName: 'Green Valley Farm',
-    farmSize: '15 hectares',
-    joinedDate: 'January 15, 2024',
-    bio: 'Passionate organic farmer specializing in vegetables and fruits. Committed to sustainable farming practices and providing fresh, high-quality produce to the local community.',
-    certifications: ['Organic Certified', 'Fair Trade'],
-    languages: ['Amharic', 'English'],
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    address: '',
+    farmName: '',
+    farmSize: '',
+    bio: '',
+    certifications: [],
+    languages: [],
+    isVerified: false,
+    createdAt: null
   });
 
-  console.log('Profile component rendered, logout function:', typeof logout);
+  useEffect(() => {
+    // Fetch profile on mount if not already loaded
+    if (!contextProfile) {
+      fetchProfile();
+    }
+  }, [contextProfile, fetchProfile]);
+
+  useEffect(() => {
+    // Sync local state with context
+    if (contextProfile) {
+      setProfile(contextProfile);
+    }
+  }, [contextProfile]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // Save logic here
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await updateProfile({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        location: profile.location,
+        address: profile.address,
+        farmName: profile.farmName,
+        farmSize: profile.farmSize,
+        bio: profile.bio
+      });
+      setIsEditing(false);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error(error.response?.data?.error || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
+    // Reset to context profile
+    if (contextProfile) {
+      setProfile(contextProfile);
+    }
     setIsEditing(false);
-    // Reset logic here
   };
 
-  const handleLogout = () => {
-    console.log('Logout button clicked');
-    logout();
+  const formatJoinedDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
   };
 
-  const handleProfileClick = () => {
-    // Already on profile page
-    console.log('Profile clicked');
-  };
+  if (contextLoading && !contextProfile) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 w-full max-w-4xl mx-auto">
@@ -66,13 +112,13 @@ const Profile = () => {
             </Button>
           ) : (
             <div className="flex gap-2">
-              <Button onClick={handleCancel} variant="outline" className="border-slate-200 h-7 text-xs rounded-lg">
+              <Button onClick={handleCancel} variant="outline" className="border-slate-200 h-7 text-xs rounded-lg" disabled={saving}>
                 <X className="h-3 w-3 mr-1.5" />
                 Cancel
               </Button>
-              <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 h-7 text-xs rounded-lg transition-all">
+              <Button onClick={handleSave} className="bg-slate-900 hover:bg-slate-800 h-7 text-xs rounded-lg transition-all" disabled={saving}>
                 <Save className="h-3 w-3 mr-1.5" />
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           )}
@@ -86,7 +132,7 @@ const Profile = () => {
           <div className="flex flex-col items-center gap-3">
             <div className="relative">
               <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-xl font-semibold">
-                {profile.name.charAt(0)}
+                {profile.name?.charAt(0)?.toUpperCase() || 'F'}
               </div>
               {!isEditing && (
                 <button className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800">
@@ -94,7 +140,9 @@ const Profile = () => {
                 </button>
               )}
             </div>
-            <Badge className="bg-emerald-500 text-white border-none text-[10px]">Verified Farmer</Badge>
+            <Badge className={`${profile.isVerified ? 'bg-emerald-500' : 'bg-amber-500'} text-white border-none text-[10px]`}>
+              {profile.isVerified ? 'Verified Farmer' : 'Pending Verification'}
+            </Badge>
           </div>
 
           {/* Profile Details */}
@@ -105,14 +153,14 @@ const Profile = () => {
                 {isEditing ? (
                   <Input
                     name="name"
-                    value={profile.name}
+                    value={profile.name || ''}
                     onChange={handleChange}
                     className="border-slate-200 h-9 text-sm rounded-md"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-slate-900">
                     <User className="h-4 w-4 text-slate-400" />
-                    {profile.name}
+                    {profile.name || 'Not set'}
                   </div>
                 )}
               </div>
@@ -121,14 +169,14 @@ const Profile = () => {
                 {isEditing ? (
                   <Input
                     name="email"
-                    value={profile.email}
+                    value={profile.email || ''}
                     onChange={handleChange}
                     className="border-slate-200 h-9 text-sm"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-slate-900">
                     <Mail className="h-4 w-4 text-slate-400" />
-                    {profile.email}
+                    {profile.email || 'Not set'}
                   </div>
                 )}
               </div>
@@ -137,14 +185,14 @@ const Profile = () => {
                 {isEditing ? (
                   <Input
                     name="phone"
-                    value={profile.phone}
+                    value={profile.phone || ''}
                     onChange={handleChange}
                     className="border-slate-200 h-9 text-sm"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-slate-900">
                     <Phone className="h-4 w-4 text-slate-400" />
-                    {profile.phone}
+                    {profile.phone || 'Not set'}
                   </div>
                 )}
               </div>
@@ -153,14 +201,14 @@ const Profile = () => {
                 {isEditing ? (
                   <Input
                     name="location"
-                    value={profile.location}
+                    value={profile.location || ''}
                     onChange={handleChange}
                     className="border-slate-200 h-9 text-sm"
                   />
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-slate-900">
                     <MapPin className="h-4 w-4 text-slate-400" />
-                    {profile.location}
+                    {profile.location || 'Not set'}
                   </div>
                 )}
               </div>
@@ -171,12 +219,12 @@ const Profile = () => {
               {isEditing ? (
                 <Input
                   name="farmName"
-                  value={profile.farmName}
+                  value={profile.farmName || ''}
                   onChange={handleChange}
                   className="border-slate-200 h-9 text-sm"
                 />
               ) : (
-                <div className="text-sm text-slate-900">{profile.farmName}</div>
+                <div className="text-sm text-slate-900">{profile.farmName || 'Not set'}</div>
               )}
             </div>
 
@@ -185,12 +233,12 @@ const Profile = () => {
               {isEditing ? (
                 <Input
                   name="farmSize"
-                  value={profile.farmSize}
+                  value={profile.farmSize || ''}
                   onChange={handleChange}
                   className="border-slate-200 h-9 text-sm"
                 />
               ) : (
-                <div className="text-sm text-slate-900">{profile.farmSize}</div>
+                <div className="text-sm text-slate-900">{profile.farmSize || 'Not set'}</div>
               )}
             </div>
 
@@ -199,19 +247,19 @@ const Profile = () => {
               {isEditing ? (
                 <Textarea
                   name="bio"
-                  value={profile.bio}
+                  value={profile.bio || ''}
                   onChange={handleChange}
                   className="border-slate-200 text-sm"
                   rows={3}
                 />
               ) : (
-                <p className="text-sm text-slate-700">{profile.bio}</p>
+                <p className="text-sm text-slate-700">{profile.bio || 'No bio added'}</p>
               )}
             </div>
 
             <div className="flex items-center gap-2 text-slate-500">
               <Calendar className="h-3.5 w-3.5" />
-              <span className="text-xs">Member since {profile.joinedDate}</span>
+              <span className="text-xs">Member since {formatJoinedDate(profile.createdAt)}</span>
             </div>
           </div>
         </div>

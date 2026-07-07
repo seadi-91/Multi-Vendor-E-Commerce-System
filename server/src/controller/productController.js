@@ -164,6 +164,11 @@ exports.getProductById = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // Only show approved products to public
+    if (product.status !== 'approved') {
+      return res.status(404).json({ message: 'Product not available' });
+    }
+
     res.json({ success: true, data: buildProductPayload(product) });
   } catch (error) {
     console.error('Error fetching product:', error);

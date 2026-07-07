@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useFarmerProfile } from '../../../../context/FarmerProfileContext';
 import { 
   User, 
   Bell, 
@@ -29,15 +30,15 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import api from '@/api';
+import { toast } from 'sonner';
 
 const Settings = () => {
+  const { profile: contextProfile, fetchProfile, updateProfile, updateSettings } = useFarmerProfile();
   const [activeTab, setActiveTab] = useState('profile');
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [settings, setSettings] = useState({
     name: '',
@@ -80,34 +81,47 @@ const Settings = () => {
   });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    // Fetch settings on mount if not already loaded
+    if (!contextProfile) {
+      fetchProfileSettings();
+    }
+  }, [contextProfile]);
 
-  const fetchSettings = async () => {
+  useEffect(() => {
+    // Sync settings with context profile
+    if (contextProfile) {
+      setSettings(prev => ({ ...prev, ...contextProfile }));
+    }
+  }, [contextProfile]);
+
+  const fetchProfileSettings = async () => {
     try {
       const res = await api.get('/farmer/settings');
       setSettings(prev => ({ ...prev, ...res.data }));
     } catch (err) {
       console.error('Failed to fetch settings:', err);
+      toast.error('Failed to load settings');
     }
   };
 
   const handleSaveAccount = async () => {
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
-      await api.put('/farmer/settings', {
+      await updateSettings({
         name: settings.name,
         email: settings.email,
         phone: settings.phone,
+        location: settings.location,
+        farmName: settings.farmName,
+        farmSize: settings.farmSize,
+        bio: settings.bio,
         language: settings.language,
         timezone: settings.timezone
       });
-      setSuccess('Account settings saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Account settings saved successfully');
+      setIsEditingProfile(false);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save account settings');
+      toast.error(err.response?.data?.error || 'Failed to save account settings');
     } finally {
       setLoading(false);
     }
@@ -115,23 +129,20 @@ const Settings = () => {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword) {
-      setError('Please fill in all password fields');
+      toast.error('Please fill in all password fields');
       return;
     }
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
       await api.put('/farmer/settings/password', {
         currentPassword,
         newPassword
       });
-      setSuccess('Password changed successfully');
+      toast.success('Password changed successfully');
       setCurrentPassword('');
       setNewPassword('');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to change password');
+      toast.error(err.response?.data?.error || 'Failed to change password');
     } finally {
       setLoading(false);
     }
@@ -139,10 +150,8 @@ const Settings = () => {
 
   const handleSaveNotifications = async () => {
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
-      await api.put('/farmer/settings', {
+      await updateSettings({
         emailOrders: settings.emailOrders,
         emailMessages: settings.emailMessages,
         emailPromotions: settings.emailPromotions,
@@ -152,10 +161,9 @@ const Settings = () => {
         smsOrders: settings.smsOrders,
         smsAlerts: settings.smsAlerts
       });
-      setSuccess('Notification preferences saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Notification preferences saved successfully');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save notification preferences');
+      toast.error(err.response?.data?.error || 'Failed to save notification preferences');
     } finally {
       setLoading(false);
     }
@@ -163,20 +171,17 @@ const Settings = () => {
 
   const handleSavePayment = async () => {
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
-      await api.put('/farmer/settings', {
+      await updateSettings({
         bankName: settings.bankName,
         accountNumber: settings.accountNumber,
         paymentMethod: settings.paymentMethod,
         autoWithdrawal: settings.autoWithdrawal,
         withdrawalThreshold: settings.withdrawalThreshold
       });
-      setSuccess('Payment settings saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Payment settings saved successfully');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save payment settings');
+      toast.error(err.response?.data?.error || 'Failed to save payment settings');
     } finally {
       setLoading(false);
     }
@@ -184,18 +189,15 @@ const Settings = () => {
 
   const handleSaveSecurity = async () => {
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
-      await api.put('/farmer/settings', {
+      await updateSettings({
         twoFactor: settings.twoFactor,
         loginAlerts: settings.loginAlerts,
         sessionTimeout: settings.sessionTimeout
       });
-      setSuccess('Security settings saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Security settings saved successfully');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save security settings');
+      toast.error(err.response?.data?.error || 'Failed to save security settings');
     } finally {
       setLoading(false);
     }
@@ -203,10 +205,8 @@ const Settings = () => {
 
   const handleSaveProfessional = async () => {
     setLoading(true);
-    setError('');
-    setSuccess('');
     try {
-      await api.put('/farmer/settings', {
+      await updateSettings({
         businessLicense: settings.businessLicense,
         taxId: settings.taxId,
         vatRegistered: settings.vatRegistered,
@@ -216,10 +216,9 @@ const Settings = () => {
         insuranceExpiry: settings.insuranceExpiry,
         farmRegistration: settings.farmRegistration
       });
-      setSuccess('Professional settings saved successfully');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Professional settings saved successfully');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save professional settings');
+      toast.error(err.response?.data?.error || 'Failed to save professional settings');
     } finally {
       setLoading(false);
     }
@@ -268,18 +267,6 @@ const Settings = () => {
         <h1 className="text-sm font-semibold text-slate-900">Settings</h1>
         <p className="text-[10px] text-slate-500">Manage your account and professional settings</p>
       </div>
-
-      {success && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-2 rounded-lg text-sm">
-          {success}
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row gap-6 max-w-4xl mx-auto">
         {/* Sidebar Tabs */}

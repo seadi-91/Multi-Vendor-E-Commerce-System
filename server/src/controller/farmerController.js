@@ -93,20 +93,39 @@ exports.getDashboardStats = async (req, res) => {
 // Product Management
 exports.getFarmerProducts = async (req, res) => {
   try {
+    console.log('=== Fetching Farmer Products ===');
+    
     // Validate user authentication
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: 'Unauthorized access' });
     }
     
     const farmerId = req.user.id;
+    console.log('Farmer ID:', farmerId);
+    
+    // **CRITICAL: Verify farmer exists (prevents 500 errors after deletion)**
+    const farmer = await prisma.user.findUnique({
+      where: { id: farmerId },
+      select: { id: true, role: true, isActive: true }
+    });
+    
+    if (!farmer) {
+      console.log('Farmer account not found - likely deleted');
+      return res.status(404).json({ 
+        error: 'Farmer account not found. Your account may have been removed.',
+        code: 'FARMER_NOT_FOUND'
+      });
+    }
+    
+    if (farmer.role !== 'FARMER') {
+      return res.status(403).json({ error: 'Only farmers can access this endpoint' });
+    }
     
     // Validate pagination parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
     
-    if (page < 1 || limit < 1 || limit > 100) {
-      return res.status(400).json({ error: 'Invalid pagination parameters' });
-    }
+    console.log('Pagination params - page:', page, 'limit:', limit);
     
     const products = await prisma.product.findMany({
       where: { farmerId },
@@ -116,6 +135,8 @@ exports.getFarmerProducts = async (req, res) => {
     });
     
     const total = await prisma.product.count({ where: { farmerId } });
+    
+    console.log('Products fetched:', products.length, 'Total:', total);
     
     res.json({
       products,
@@ -128,30 +149,70 @@ exports.getFarmerProducts = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching farmer products:', error);
+    
+    // Handle Prisma-specific errors
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Farmer account not found' });
+    }
+    
     res.status(500).json({ error: 'Failed to fetch products. Please try again later.' });
   }
 };
 
 exports.createProduct = async (req, res) => {
   try {
+    console.log('=== Creating Product ===');
+    
     // Validate user authentication
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: 'Unauthorized access' });
     }
     
     const farmerId = req.user.id;
-    console.log('=== Creating Product ===');
     console.log('Farmer ID:', farmerId);
     console.log('Request body:', req.body);
     console.log('Request file:', req.file);
+    
+    // **BUSINESS RULE 1: Check if farmer is verified**
+    const farmer = await prisma.user.findUnique({
+      where: { id: farmerId },
+      select: { isVerified: true, isActive: true, role: true }
+    });
+    
+    if (!farmer) {
+      return res.status(404).json({ error: 'Farmer account not found' });
+    }
+    
+    if (farmer.role !== 'FARMER') {
+      return res.status(403).json({ error: 'Only farmers can create products' });
+    }
+    
+    if (!farmer.isVerified) {
+      return res.status(403).json({ 
+        error: 'Your account must be verified before you can add products. Please contact admin for verification.',
+        code: 'FARMER_NOT_VERIFIED'
+      });
+    }
+    
+    if (!farmer.isActive) {
+      return res.status(403).json({ 
+        error: 'Your account is currently suspended. Please contact admin.',
+        code: 'FARMER_SUSPENDED'
+      });
+    }
 
     const {
-      name, description, price, stock, totalStock, minOrderQuantity, unit, category, badges,
+      name, description, price, stock, totalStock, minOrderQuantity, unit, category, customCategory, badges,
       sku, discountPrice, brand, tags, isOrganic, harvestDate, expiryDate
     } = req.body;
 
+    // **Handle custom category (when category === 'Others')**
+    const finalCategory = category === 'Others' && customCategory 
+      ? customCategory.trim() 
+      : category;
+
     // Validate required fields
-    if (!name || !price || !stock || !category) {
+    if (!name || !price || !stock || !finalCategory) {
       return res.status(400).json({ 
         error: 'Missing required fields: name, price, stock, and category are required' 
       });
@@ -183,12 +244,19 @@ exports.createProduct = async (req, res) => {
     let imageUrl = '';
     if (req.file) {
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
-        imageUrl = result.secure_url;
-        console.log('Image uploaded:', imageUrl);
+        // Check if Cloudinary is configured
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+          console.warn('Cloudinary credentials not configured. Skipping image upload.');
+          // Don't fail the request, just skip the upload
+        } else {
+          const result = await cloudinary.uploader.upload(req.file.path, { folder: 'products' });
+          imageUrl = result.secure_url;
+          console.log('Image uploaded:', imageUrl);
+        }
       } catch (uploadError) {
         console.error('Image upload failed:', uploadError);
-        return res.status(500).json({ error: 'Failed to upload product image' });
+        // Don't fail the product creation if image upload fails
+        console.warn('Product will be created without image');
       }
     }
 
@@ -198,10 +266,10 @@ exports.createProduct = async (req, res) => {
         description: description?.trim() || '',
         price: numericPrice,
         stock: numericStock,
-        totalStock: Number(totalStock) || numericStock,
+        // totalStock removed - field doesn't exist in schema
         minOrderQuantity: Number(minOrderQuantity) || 1,
         unit,
-        category,
+        category: finalCategory,  // Use finalCategory to handle custom categories
         brand,
         sku,
         discountPrice: discountPrice ? Number(discountPrice) : null,
@@ -212,7 +280,7 @@ exports.createProduct = async (req, res) => {
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
         image: imageUrl,
         farmerId,
-        status: 'pending',
+        status: 'pending', // Will be 'approved' by admin before showing in marketplace
       }
     });
 
@@ -247,11 +315,20 @@ exports.createProduct = async (req, res) => {
 
     res.status(201).json(product);
   } catch (error) {
-    console.error('Error creating product:', error);
+    console.error('=== ERROR in createProduct ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error code:', error.code);
+    
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'A product with this SKU already exists' });
     }
-    res.status(500).json({ error: 'Failed to create product. Please try again later.' });
+    
+    // Catch any unexpected errors to prevent server crash
+    res.status(500).json({ 
+      error: 'Failed to create product. Please try again later.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 };
 
@@ -263,7 +340,7 @@ exports.updateProduct = async (req, res) => {
     }
     
     const { 
-      name, description, price, stock, totalStock, minOrderQuantity, unit, category, badges,
+      name, description, price, stock, minOrderQuantity, unit, category, badges,
       sku, discountPrice, brand, tags, isOrganic, harvestDate, expiryDate
     } = req.body;
     const farmerId = req.user.id;
@@ -824,29 +901,75 @@ exports.getFarmerProfile = async (req, res) => {
         email: true,
         phone: true,
         address: true,
+        location: true,
         profileImage: true,
         farmName: true,
         farmSize: true,
         bio: true,
         isVerified: true,
+        isActive: true,
+        certifications: true,
+        languages: true,
+        nationalId: true,
+        tinNumber: true,
+        bankName: true,
+        accountNumber: true,
+        paymentMethod: true,
         createdAt: true
       }
     });
+    
+    if (!farmer) {
+      return res.status(404).json({ error: 'Farmer not found' });
+    }
+    
     res.json(farmer);
   } catch (error) {
+    console.error('Error fetching farmer profile:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.updateFarmerProfile = async (req, res) => {
   try {
-    const { name, email, phone, address, profileImage, farmName, farmSize, bio } = req.body;
+    const { name, email, phone, address, location, profileImage, farmName, farmSize, bio, certifications, languages } = req.body;
+    
     const farmer = await prisma.user.update({
       where: { id: req.user.id },
-      data: { name, email, phone, address, profileImage, farmName, farmSize, bio }
+      data: { 
+        name, 
+        email, 
+        phone, 
+        address, 
+        location,
+        profileImage, 
+        farmName, 
+        farmSize, 
+        bio,
+        ...(certifications && { certifications }),
+        ...(languages && { languages })
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        location: true,
+        profileImage: true,
+        farmName: true,
+        farmSize: true,
+        bio: true,
+        isVerified: true,
+        certifications: true,
+        languages: true,
+        createdAt: true
+      }
     });
+    
     res.json(farmer);
   } catch (error) {
+    console.error('Error updating farmer profile:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -857,20 +980,63 @@ exports.getFarmerSettings = async (req, res) => {
     const farmer = await prisma.user.findUnique({
       where: { id: req.user.id },
       select: {
+        // Profile fields
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        location: true,
+        farmName: true,
+        farmSize: true,
+        bio: true,
+        profileImage: true,
+        certifications: true,
+        languages: true,
+        createdAt: true,
+        isVerified: true,
+        // Settings fields
         language: true,
         timezone: true,
+        emailNotifications: true,
+        pushNotifications: true,
+        smsNotifications: true,
+        // Payment settings
         bankName: true,
         accountNumber: true,
         paymentMethod: true,
         autoWithdrawal: true,
         withdrawalThreshold: true,
+        // Security settings
         twoFactor: true,
         loginAlerts: true,
-        sessionTimeout: true
+        sessionTimeout: true,
+        // Professional settings
+        businessLicense: true,
+        taxId: true,
+        vatRegistered: true,
+        vatNumber: true,
+        insuranceProvider: true,
+        insurancePolicy: true,
+        insuranceExpiry: true,
+        farmRegistration: true,
+        nationalId: true,
+        tinNumber: true
       }
     });
-    res.json(farmer);
+    
+    if (!farmer) {
+      return res.status(404).json({ error: 'Farmer not found' });
+    }
+    
+    // Format the joinedDate
+    const formattedFarmer = {
+      ...farmer,
+      joinedDate: farmer.createdAt ? new Date(farmer.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : null
+    };
+    
+    res.json(formattedFarmer);
   } catch (error) {
+    console.error('Error fetching farmer settings:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -878,12 +1044,20 @@ exports.getFarmerSettings = async (req, res) => {
 exports.updateFarmerSettings = async (req, res) => {
   try {
     const settings = req.body;
+    
+    // Filter out undefined values
+    const filteredSettings = Object.fromEntries(
+      Object.entries(settings).filter(([_, v]) => v !== undefined)
+    );
+    
     const farmer = await prisma.user.update({
       where: { id: req.user.id },
-      data: settings
+      data: filteredSettings
     });
+    
     res.json(farmer);
   } catch (error) {
+    console.error('Error updating farmer settings:', error);
     res.status(500).json({ error: error.message });
   }
 };

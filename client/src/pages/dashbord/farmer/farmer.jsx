@@ -17,6 +17,7 @@ import Earnings from './Earnings';
 import Analytics from './Analytics';
 import NotificationBell from '../../../components/NotificationBell';
 import { Toaster } from 'sonner';
+import { FarmerProfileProvider } from '../../../context/FarmerProfileContext';
 
 const FarmerDashboard = () => {
   const { user, logout } = useAuth();
@@ -63,9 +64,10 @@ const FarmerDashboard = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
-        <Toaster position="top-right" richColors closeButton />
+    <FarmerProfileProvider>
+      <SidebarProvider>
+        <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
+          <Toaster position="top-right" richColors closeButton />
         {/* Desktop Sidebar */}
         <div className={`hidden lg:block ${isSidebarCollapsed ? 'w-28 flex-shrink-0 transition-all duration-300 ease-in-out' : 'w-64 flex-shrink-0 transition-all duration-300 ease-in-out'}`}>
           <FarmerSidebar
@@ -270,6 +272,7 @@ const FarmerDashboard = () => {
         </div>
       </div>
     </SidebarProvider>
+    </FarmerProfileProvider>
   );
 };
 

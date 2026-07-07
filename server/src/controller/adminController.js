@@ -218,57 +218,331 @@ exports.getSuspendedUsers = async (req, res) => {
 
 exports.suspendUser = async (req, res) => {
   try {
-    const user = await prisma.user.update({
-      where: { id: parseInt(req.params.id) },
-      data: { isActive: false },
-      select: { id: true, name: true, email: true, isActive: true }
+    const userId = parseInt(req.params.id);
+    
+    // **BUSINESS RULE 3: Suspend user and hide all their products**
+    const result = await prisma.$transaction(async (tx) => {
+      // Get user to check if they're a farmer
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, isActive: true, role: true }
+      });
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Suspend the user
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+        select: { id: true, name: true, email: true, isActive: true, role: true }
+      });
+      
+      // If user is a farmer, hide/suspend all their products
+      if (user.role === 'FARMER') {
+        const productsUpdated = await tx.product.updateMany({
+          where: { 
+            farmerId: userId,
+            status: { in: ['approved', 'pending'] } // Don't affect already rejected/hidden products
+          },
+          data: { status: 'suspended' }
+        });
+        
+        console.log(`[ADMIN] Farmer ${userId} suspended. ${productsUpdated.count} products hidden from marketplace.`);
+        
+        // Create notification for the farmer
+        await tx.notification.create({
+          data: {
+            type: 'ACCOUNT_SUSPENDED',
+            title: 'Account Suspended',
+            message: 'Your account has been suspended by admin. All your products have been hidden from the marketplace. Please contact support for assistance.',
+            userId: userId,
+            read: false
+          }
+        });
+      }
+      
+      return updatedUser;
     });
-    res.json(user);
+    
+    res.json(result);
   } catch (error) {
+    console.error('Failed to suspend user:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.activateUser = async (req, res) => {
   try {
-    const user = await prisma.user.update({
-      where: { id: parseInt(req.params.id) },
-      data: { isActive: true },
-      select: { id: true, name: true, email: true, isActive: true }
+    const userId = parseInt(req.params.id);
+    
+    // **BUSINESS RULE 3: Activate user and restore their previously suspended products**
+    const result = await prisma.$transaction(async (tx) => {
+      // Get user to check if they're a farmer
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, isActive: true, role: true, isVerified: true }
+      });
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // Activate the user
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { isActive: true },
+        select: { id: true, name: true, email: true, isActive: true, role: true }
+      });
+      
+      // If user is a verified farmer, restore their suspended products
+      if (user.role === 'FARMER' && user.isVerified) {
+        const productsRestored = await tx.product.updateMany({
+          where: { 
+            farmerId: userId,
+            status: 'suspended'
+          },
+          data: { status: 'approved' } // Restore to approved status
+        });
+        
+        console.log(`[ADMIN] Farmer ${userId} activated. ${productsRestored.count} products restored to marketplace.`);
+        
+        // Create notification for the farmer
+        await tx.notification.create({
+          data: {
+            type: 'ACCOUNT_ACTIVATED',
+            title: 'Account Activated',
+            message: 'Your account has been reactivated. Your products are now visible in the marketplace again.',
+            userId: userId,
+            read: false
+          }
+        });
+      }
+      
+      return updatedUser;
     });
-    res.json(user);
+    
+    res.json(result);
   } catch (error) {
+    console.error('Failed to activate user:', error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.deleteUser = async (req, res) => {
+  const startTime = Date.now();
+  
   try {
-    console.log('=== Deleting User ===');
-    console.log('User ID:', req.params.id);
-
-    // Check if user has products
-    const userProducts = await prisma.product.count({
-      where: { farmerId: parseInt(req.params.id) }
-    });
-    console.log('User products count:', userProducts);
-
-    if (userProducts > 0) {
-      // Delete user's products first
-      await prisma.product.deleteMany({
-        where: { farmerId: parseInt(req.params.id) }
+    console.log('=== START: Delete User ===');
+    console.log('Request params ID:', req.params.id);
+    console.log('Logged-in admin ID:', req.user.id);
+    
+    const userId = parseInt(req.params.id);
+    const adminId = req.user.id;
+    
+    // ✅ VALIDATION: Check if userId is valid
+    if (!userId || isNaN(userId) || userId <= 0) {
+      console.log('❌ VALIDATION FAILED: Invalid user ID');
+      return res.status(400).json({ 
+        error: 'Invalid user ID',
+        message: 'User ID must be a valid positive integer' 
       });
-      console.log('Deleted user products');
     }
-
-    await prisma.user.delete({
-      where: { id: parseInt(req.params.id) }
+    
+    // ✅ CRITICAL: Prevent self-deletion
+    if (userId === adminId) {
+      console.log('❌ BLOCKED: Admin attempted to delete their own account');
+      return res.status(403).json({ 
+        error: 'Cannot delete your own account',
+        message: 'For security reasons, administrators cannot delete their own accounts. Please contact another administrator.' 
+      });
+    }
+    
+    // Use transaction for atomic deletion with proper cleanup
+    const result = await prisma.$transaction(async (tx) => {
+      console.log('Starting user deletion transaction...');
+      
+      // Fetch user to check role and get info
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          role: true,
+          _count: {
+            select: {
+              products: true,
+              orders: true,
+              orderItems: true,
+              notifications: true,
+              reviews: true,
+              sentMessages: true,
+              receivedMessages: true,
+              withdrawalRequests: true
+            }
+          }
+        }
+      });
+      
+      if (!user) {
+        console.log('❌ User not found in database');
+        throw { statusCode: 404, message: 'User not found' };
+      }
+      
+      // ✅ ADDITIONAL PROTECTION: Prevent deletion of other ADMIN accounts (optional safety measure)
+      // Uncomment if you want only one super admin to exist
+      // if (user.role === 'ADMIN') {
+      //   console.log('❌ BLOCKED: Cannot delete administrator accounts');
+      //   throw { statusCode: 403, message: 'Cannot delete administrator accounts' };
+      // }
+      
+      console.log(`Deleting user: ${user.name} (${user.email}) - Role: ${user.role}`);
+      console.log('Related records:', user._count);
+      
+      // For FARMERS: Products, OrderItems, Messages, Notifications, WithdrawalRequests
+      // will be automatically CASCADE deleted by Prisma schema
+      
+      // For CUSTOMERS: Orders have SetNull, Reviews have SetNull
+      // These will be kept but customer reference will be nulled
+      
+      if (user.role === 'FARMER') {
+        console.log(`Will cascade delete ${user._count.products} products for farmer ${userId}`);
+        console.log(`Will cascade delete ${user._count.orderItems} order items`);
+        console.log(`Will cascade delete ${user._count.withdrawalRequests} withdrawal requests`);
+      }
+      
+      if (user._count.notifications > 0) {
+        console.log(`Will cascade delete ${user._count.notifications} notifications`);
+      }
+      
+      if (user._count.sentMessages > 0 || user._count.receivedMessages > 0) {
+        console.log(`Will cascade delete ${user._count.sentMessages} sent and ${user._count.receivedMessages} received messages`);
+      }
+      
+      // Delete the user (Prisma will handle cascade deletes based on schema)
+      await tx.user.delete({
+        where: { id: userId }
+      });
+      
+      console.log(`User ${userId} deleted successfully with all related data`);
+      
+      return {
+        deletedUser: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        },
+        relatedRecordsDeleted: user._count
+      };
+    }, {
+      maxWait: 5000, // Maximum time to wait for transaction to start (5 seconds)
+      timeout: 30000, // Maximum time for transaction to complete (30 seconds)
+      isolationLevel: 'Serializable' // Highest isolation level for data consistency
     });
-    console.log('User deleted successfully');
-    res.json({ message: 'User deleted successfully' });
+    
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ DELETE SUCCESS - Execution time: ${executionTime}ms`);
+    console.log('=== END: Delete User - Success ===');
+    
+    res.json({ 
+      success: true,
+      message: 'User deleted successfully',
+      deletedUser: result.deletedUser,
+      relatedRecordsDeleted: result.relatedRecordsDeleted,
+      executionTime: `${executionTime}ms`
+    });
+    
   } catch (error) {
-    console.error('Error deleting user:', error);
-    res.status(500).json({ error: error.message });
+    const executionTime = Date.now() - startTime;
+    console.error('=== END: Delete User - Error ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error(`❌ DELETE FAILED - Execution time: ${executionTime}ms`);
+    
+    // Handle custom errors with status codes
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ 
+        success: false,
+        error: error.message || 'Delete operation failed',
+        executionTime: `${executionTime}ms`
+      });
+    }
+    
+    // Handle Prisma-specific errors
+    if (error.code) {
+      console.error('Prisma error code:', error.code);
+      
+      // P2025: Record not found
+      if (error.code === 'P2025') {
+        return res.status(404).json({ 
+          success: false,
+          error: 'User not found',
+          message: 'The user you are trying to delete does not exist',
+          executionTime: `${executionTime}ms`
+        });
+      }
+      
+      // P2003: Foreign key constraint failed
+      if (error.code === 'P2003') {
+        return res.status(409).json({ 
+          success: false,
+          error: 'Cannot delete user due to foreign key constraint',
+          message: 'This user has related records that prevent deletion. Please contact support.',
+          executionTime: `${executionTime}ms`
+        });
+      }
+      
+      // P2034: Transaction failed
+      if (error.code === 'P2034') {
+        return res.status(500).json({ 
+          success: false,
+          error: 'Transaction conflict',
+          message: 'The delete operation conflicted with another operation. Please try again.',
+          executionTime: `${executionTime}ms`
+        });
+      }
+    }
+    
+    // Handle database connection errors
+    if (error.message && error.message.includes('connect')) {
+      console.error('❌ DATABASE CONNECTION ERROR');
+      return res.status(503).json({ 
+        success: false,
+        error: 'Database connection error',
+        message: 'Unable to connect to the database. Please try again later.',
+        executionTime: `${executionTime}ms`
+      });
+    }
+    
+    // Handle timeout errors
+    if (error.message && (error.message.includes('timeout') || error.message.includes('timed out'))) {
+      console.error('❌ OPERATION TIMEOUT');
+      return res.status(504).json({ 
+        success: false,
+        error: 'Operation timeout',
+        message: 'The delete operation took too long. Please try again.',
+        executionTime: `${executionTime}ms`
+      });
+    }
+    
+    // Generic error response (prevents server crash)
+    console.error('❌ UNHANDLED ERROR - Returning 500');
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete user',
+      message: error.message || 'An unexpected error occurred while deleting the user',
+      executionTime: `${executionTime}ms`,
+      // Only include stack trace in development
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    });
+  } finally {
+    // Prisma automatically manages connection pooling
+    // No need to explicitly close connections in modern Prisma
+    console.log('Delete user operation completed');
   }
 };
 
@@ -640,10 +914,16 @@ exports.updateAdminProfile = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     console.log('=== Fetching All Products ===');
-    const { category, status, sortBy, search, priceMin, priceMax, page = 1, limit = 10 } = req.query;
+    const { category, status, sortBy, search, priceMin, priceMax, farmerId, page = 1, limit = 10 } = req.query;
     
     // Build where clause for filtering
     const where = {};
+    
+    // **BUSINESS RULE 3: Filter products by specific farmer**
+    if (farmerId) {
+      where.farmerId = parseInt(farmerId);
+      console.log(`Filtering products for farmer ID: ${farmerId}`);
+    }
     
     if (category && category !== 'All') {
       where.category = category;

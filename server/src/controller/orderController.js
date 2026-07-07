@@ -263,6 +263,20 @@ exports.createOrder = async (req, res) => {
                     `Order placed (${updated.orderCode})`,
                     updated.orderCode
                 );
+                
+                // **BUSINESS RULE 2: Send notification to seller about new order**
+                if (update.farmerId) {
+                    await tx.notification.create({
+                        data: {
+                            type: 'NEW_ORDER',
+                            title: 'New Order Received!',
+                            message: `You have a new order for "${update.productName}" (Quantity: ${update.quantity}). Order Code: ${updated.orderCode}`,
+                            userId: update.farmerId,
+                            productId: update.productId,
+                            read: false
+                        }
+                    });
+                }
             }
 
             return {

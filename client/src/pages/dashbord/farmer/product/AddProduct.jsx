@@ -88,6 +88,62 @@ const ProductManagement = () => {
     { id: 5, title: 'Review', icon: '✅' },
   ];
 
+  // **Generate SKU automatically when product name or category changes**
+  useEffect(() => {
+    if (formData.name && formData.category && !editingId) {
+      // Generate SKU format: CATEGORY_PREFIX-NAME_PREFIX-TIMESTAMP
+      const categoryPrefix = formData.category === 'Others' 
+        ? (formData.customCategory || 'PRD').substring(0, 3).toUpperCase()
+        : formData.category.substring(0, 3).toUpperCase();
+      const namePrefix = formData.name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
+      const timestamp = Date.now().toString().slice(-6); // Last 6 digits
+      const generatedSKU = `${categoryPrefix}-${namePrefix}-${timestamp}`;
+      
+      // Only auto-generate if SKU is empty
+      if (!formData.sku) {
+        setFormData(prev => ({ ...prev, sku: generatedSKU }));
+      }
+    }
+  }, [formData.name, formData.category, formData.customCategory, editingId]);
+
+  // **Step validation - check if current step has all required fields filled**
+  const isStepValid = (step) => {
+    switch (step) {
+      case 1: // Basic Info
+        return formData.name.trim() !== '' && 
+               (formData.category !== 'Others' || formData.customCategory.trim() !== '');
+      
+      case 2: // Details (all optional)
+        return true;
+      
+      case 3: // Pricing & Inventory
+        return formData.price && Number(formData.price) > 0 &&
+               formData.stock && Number(formData.stock) >= 0 &&
+               formData.minOrderQuantity && Number(formData.minOrderQuantity) > 0;
+      
+      case 4: // Media (optional)
+        return true;
+      
+      case 5: // Review
+        return true;
+      
+      default:
+        return true;
+    }
+  };
+
+  const handleNextStep = () => {
+    // Validate current step before moving forward
+    if (!isStepValid(currentStep)) {
+      setError('Please fill in all required fields before proceeding to the next step.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
+    setError(''); // Clear any existing errors
+    setCurrentStep(prev => Math.min(STEPS.length, prev + 1));
+  };
+
   useEffect(() => {
     setShowForm(location.pathname.endsWith('/add'));
     // Check for search query from navigation state
@@ -100,7 +156,8 @@ const ProductManagement = () => {
     setLoadingProducts(true);
     try {
       const res = await api.get('/farmer/products');
-      setProducts(res.data);
+      // API returns { products: [...], pagination: {...} }
+      setProducts(Array.isArray(res.data.products) ? res.data.products : Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
       setError('Failed to load inventory.');
@@ -141,13 +198,38 @@ const ProductManagement = () => {
 
     try {
       const data = new FormData();
+      
+      // Append all form fields, skipping empty values for optional fields
       Object.keys(formData).forEach(key => {
-        if (key === 'image' && formData[key] instanceof File) {
-          data.append(key, formData[key]);
-        } else if (key !== 'image') {
-          data.append(key, formData[key]);
+        const value = formData[key];
+        
+        // Handle image file separately
+        if (key === 'image' && value instanceof File) {
+          data.append(key, value);
+        }
+        // Skip image if it's not a File
+        else if (key === 'image') {
+          // Do nothing - don't append null or non-File values
+        }
+        // Handle boolean values
+        else if (typeof value === 'boolean') {
+          data.append(key, value.toString());
+        }
+        // Skip empty strings for optional fields
+        else if (value === '' && ['brand', 'sku', 'subCategory', 'tags', 'description', 'discountPrice', 'harvestDate', 'expiryDate', 'totalStock'].includes(key)) {
+          // Do nothing - don't send empty optional fields
+        }
+        // Append all other non-empty values
+        else if (value !== null && value !== undefined) {
+          data.append(key, value);
         }
       });
+
+      console.log('Submitting form data...');
+      // Log FormData contents for debugging
+      for (let pair of data.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
       if (editingId) {
         await api.put(`/farmer/products/${editingId}`, data);
@@ -160,7 +242,8 @@ const ProductManagement = () => {
       await fetchProducts();
       resetForm();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save product. Please check your inputs.');
+      console.error('Submit error:', err);
+      setError(err.response?.data?.error || err.response?.data?.details || 'Failed to save product. Please check your inputs.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
@@ -211,7 +294,7 @@ const ProductManagement = () => {
     if (location.pathname.endsWith('/add')) navigate('/farmer/products');
   };
 
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = (Array.isArray(products) ? products : []).filter(p => {
     const matchSearch = (p.name || '').toLowerCase().includes(filters.search.toLowerCase()) || (p.sku || '').toLowerCase().includes(filters.search.toLowerCase());
     const matchCat = filters.category === 'All' || p.category === filters.category;
     const matchStatus = filters.status === 'All' || p.status === filters.status;
@@ -219,8 +302,8 @@ const ProductManagement = () => {
   });
 
   // Derived Stats
-  const totalValue = products.reduce((sum, p) => sum + (Number(p.stock) * Number(p.price)), 0);
-  const lowStockCount = products.filter(p => Number(p.stock) < 10).length;
+  const totalValue = (Array.isArray(products) ? products : []).reduce((sum, p) => sum + (Number(p.stock) * Number(p.price)), 0);
+  const lowStockCount = (Array.isArray(products) ? products : []).filter(p => Number(p.stock) < 10).length;
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-12 w-full space-y-4">
@@ -603,7 +686,7 @@ const ProductManagement = () => {
                 {currentStep < STEPS.length ? (
                   <Button
                     type="button"
-                    onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
+                    onClick={handleNextStep}
                     className="gap-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg h-9 px-6 text-sm transition-all"
                   >
                     Next <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
