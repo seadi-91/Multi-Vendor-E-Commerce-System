@@ -743,10 +743,10 @@ exports.getAllOrders = async (req, res) => {
     console.log('=== Fetching All Orders ===');
     const orders = await prisma.order.findMany({
       include: {
-        user: {
+        customer: {
           select: { name: true, email: true, phone: true }
         },
-        items: {
+        orderItems: {
           include: {
             product: {
               include: {
@@ -761,6 +761,7 @@ exports.getAllOrders = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     console.log('Orders found:', orders.length);
+    console.log('Sample order:', orders[0] ? JSON.stringify(orders[0], null, 2) : 'No orders');
     res.json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -851,12 +852,15 @@ exports.getReports = async (req, res) => {
 // Transactions
 exports.getTransactions = async (req, res) => {
   try {
+    console.log('=== Fetching Transactions ===');
     const orders = await prisma.order.findMany({
       include: {
         customer: { select: { name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    console.log('Orders found for transactions:', orders.length);
 
     const transactions = orders.map(order => ({
       id: order.id,
@@ -870,8 +874,10 @@ exports.getTransactions = async (req, res) => {
       customerEmail: order.email || order.customer?.email || ''
     }));
 
+    console.log('Transactions mapped:', transactions.length);
     res.json(transactions);
   } catch (error) {
+    console.error('Error fetching transactions:', error);
     res.status(500).json({ error: error.message });
   }
 };

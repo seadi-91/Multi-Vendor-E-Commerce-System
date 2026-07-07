@@ -14,6 +14,9 @@ router.use(farmerOnly);
 // Dashboard Statistics
 router.get('/stats', farmerController.getDashboardStats);
 
+// Alerts
+router.get('/alerts', farmerController.getAlerts);
+
 // Product Management
 router.get('/products', farmerController.getFarmerProducts);
 router.post('/products', upload.single('image'), farmerController.createProduct);

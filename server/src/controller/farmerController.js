@@ -266,7 +266,7 @@ exports.createProduct = async (req, res) => {
         description: description?.trim() || '',
         price: numericPrice,
         stock: numericStock,
-        // totalStock removed - field doesn't exist in schema
+        totalStock: totalStock !== undefined ? Number(totalStock) : numericStock,
         minOrderQuantity: Number(minOrderQuantity) || 1,
         unit,
         category: finalCategory,  // Use finalCategory to handle custom categories
@@ -503,6 +503,8 @@ exports.getFarmerOrders = async (req, res) => {
       whereClause.order = { status };
     }
 
+    console.log('Where clause:', JSON.stringify(whereClause));
+
     // Get all order items for this farmer's products
     const orderItems = await prisma.orderItem.findMany({
       where: whereClause,
@@ -516,6 +518,9 @@ exports.getFarmerOrders = async (req, res) => {
     });
 
     console.log('Order items found:', orderItems.length);
+    if (orderItems.length > 0) {
+      console.log('Sample order item:', JSON.stringify(orderItems[0], null, 2));
+    }
 
     // Group by order
     const ordersMap = new Map();
@@ -526,15 +531,15 @@ exports.getFarmerOrders = async (req, res) => {
           orderNumber: `ORD-${String(item.orderId).padStart(6, '0')}`,
           total: item.order.total,
           status: item.order.status,
-          customerName: item.order.customerName,
-          customerEmail: item.order.customerEmail,
-          customerPhone: item.order.customerPhone,
-          customerAddress: item.order.customerAddress,
-          notes: item.order.notes,
-          specialInstructions: item.order.notes,
-          subtotal: item.order.total,
-          tax: 0,
-          deliveryFee: 0,
+          customerName: item.order.fullName,
+          customerEmail: item.order.email,
+          customerPhone: item.order.phone,
+          customerAddress: item.order.address,
+          notes: item.order.additionalInfo,
+          specialInstructions: item.order.specialInstructions,
+          subtotal: item.order.subtotal,
+          tax: item.order.tax,
+          deliveryFee: item.order.deliveryFee,
           createdAt: item.order.createdAt,
           items: []
         });
@@ -550,7 +555,10 @@ exports.getFarmerOrders = async (req, res) => {
     });
 
     const orders = Array.from(ordersMap.values());
-    console.log('Orders:', orders);
+    console.log('Orders grouped:', orders.length);
+    if (orders.length > 0) {
+      console.log('Sample order:', JSON.stringify(orders[0], null, 2));
+    }
 
     // Apply pagination
     const total = orders.length;
@@ -604,11 +612,11 @@ exports.getPendingOrders = async (req, res) => {
           id: item.orderId,
           total: item.order.total,
           status: item.order.status,
-          customerName: item.order.customerName,
-          customerEmail: item.order.customerEmail,
-          customerPhone: item.order.customerPhone,
-          customerAddress: item.order.customerAddress,
-          notes: item.order.notes,
+          customerName: item.order.fullName,
+          customerEmail: item.order.email,
+          customerPhone: item.order.phone,
+          customerAddress: item.order.address,
+          notes: item.order.additionalInfo,
           createdAt: item.order.createdAt,
           items: []
         });
@@ -663,11 +671,11 @@ exports.getCompletedOrders = async (req, res) => {
           id: item.orderId,
           total: item.order.total,
           status: item.order.status,
-          customerName: item.order.customerName,
-          customerEmail: item.order.customerEmail,
-          customerPhone: item.order.customerPhone,
-          customerAddress: item.order.customerAddress,
-          notes: item.order.notes,
+          customerName: item.order.fullName,
+          customerEmail: item.order.email,
+          customerPhone: item.order.phone,
+          customerAddress: item.order.address,
+          notes: item.order.additionalInfo,
           createdAt: item.order.createdAt,
           items: []
         });
@@ -1109,3 +1117,127 @@ exports.getSubCategories = async (req, res) => {
   }
 };
 
+
+// Farm Alerts
+exports.getAlerts = async (req, res) => {
+  try {
+    // Validate user authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized access' });
+    }
+    
+    const farmerId = req.user.id;
+    
+    // Get farmer's products to generate relevant alerts
+    const products = await prisma.product.findMany({
+      where: { farmerId },
+      select: { 
+        id: true, 
+        name: true, 
+        stock: true, 
+        status: true,
+        expiryDate: true,
+        harvestDate: true
+      }
+    });
+
+    const alerts = [];
+    const now = new Date();
+
+    // Generate alerts based on product data
+    products.forEach(product => {
+      // Low stock alert
+      if (product.stock > 0 && product.stock <= 5) {
+        alerts.push({
+          id: `low-stock-${product.id}`,
+          type: 'warning',
+          severity: product.stock <= 2 ? 'high' : 'medium',
+          title: 'Low Stock Alert',
+          message: `${product.name} has only ${product.stock} units remaining. Consider restocking soon.`,
+          timestamp: new Date().toISOString(),
+          category: 'Inventory'
+        });
+      }
+
+      // Out of stock alert
+      if (product.stock === 0) {
+        alerts.push({
+          id: `out-of-stock-${product.id}`,
+          type: 'warning',
+          severity: 'high',
+          title: 'Out of Stock',
+          message: `${product.name} is out of stock. Restock to continue selling.`,
+          timestamp: new Date().toISOString(),
+          category: 'Inventory'
+        });
+      }
+
+      // Expiry date warning
+      if (product.expiryDate) {
+        const expiryDate = new Date(product.expiryDate);
+        const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+          alerts.push({
+            id: `expiry-${product.id}`,
+            type: 'warning',
+            severity: daysUntilExpiry <= 3 ? 'high' : 'medium',
+            title: 'Product Expiring Soon',
+            message: `${product.name} will expire in ${daysUntilExpiry} day${daysUntilExpiry > 1 ? 's' : ''}. Consider promoting or discounting.`,
+            timestamp: new Date().toISOString(),
+            category: 'Product Quality'
+          });
+        }
+      }
+
+      // Harvest reminder
+      if (product.harvestDate) {
+        const harvestDate = new Date(product.harvestDate);
+        const daysSinceHarvest = Math.ceil((now - harvestDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceHarvest >= 30) {
+          alerts.push({
+            id: `harvest-${product.id}`,
+            type: 'harvest',
+            severity: 'low',
+            title: 'Time for New Harvest',
+            message: `${product.name} was harvested ${daysSinceHarvest} days ago. Plan your next harvest cycle.`,
+            timestamp: new Date().toISOString(),
+            category: 'Farming'
+          });
+        }
+      }
+    });
+
+    // Add general farming tips if no specific alerts
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 'tip-1',
+        type: 'weather',
+        severity: 'low',
+        title: 'Weather Tip',
+        message: 'Monitor weather conditions regularly to optimize your harvest schedule.',
+        timestamp: new Date().toISOString(),
+        category: 'Tips'
+      });
+      alerts.push({
+        id: 'tip-2',
+        type: 'irrigation',
+        severity: 'low',
+        title: 'Irrigation Reminder',
+        message: 'Maintain consistent watering schedules for optimal crop growth.',
+        timestamp: new Date().toISOString(),
+        category: 'Tips'
+      });
+    }
+
+    // Sort by severity (high, medium, low)
+    const severityOrder = { high: 0, medium: 1, low: 2 };
+    alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+    res.json(alerts);
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    res.status(500).json({ error: 'Failed to fetch alerts. Please try again later.' });
+  }
+};

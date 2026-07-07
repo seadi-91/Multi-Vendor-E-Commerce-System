@@ -266,7 +266,9 @@ exports.createOrder = async (req, res) => {
                 data: { orderCode }
             });
 
-            // Log all inventory changes
+            // Log all inventory changes and send notifications
+            const uniqueFarmerIds = new Set();
+            
             for (const update of stockUpdates) {
                 await logInventoryChange(
                     tx,
@@ -280,20 +282,52 @@ exports.createOrder = async (req, res) => {
                     normalizedCustomerId || req.user?.id || null
                 );
                 
-                // **BUSINESS RULE 2: Send notification to seller about new order**
+                // Track unique farmers involved in this order
                 if (update.farmerId) {
-                    await tx.notification.create({
-                        data: {
-                            type: 'NEW_ORDER',
-                            title: 'New Order Received!',
-                            message: `You have a new order for "${update.productName}" (Quantity: ${update.quantity}). Order Code: ${updated.orderCode}`,
-                            userId: update.farmerId,
-                            productId: update.productId,
-                            read: false
-                        }
-                    });
+                    uniqueFarmerIds.add(update.farmerId);
                 }
             }
+
+            // Send notifications to all farmers involved in this order
+            for (const farmerId of uniqueFarmerIds) {
+                const farmerProducts = stockUpdates
+                    .filter(u => u.farmerId === farmerId)
+                    .map(u => `${u.productName} (${u.quantity}x)`)
+                    .join(', ');
+
+                await tx.notification.create({
+                    data: {
+                        type: 'NEW_ORDER',
+                        title: 'New Order Received!',
+                        message: `You have a new order: ${farmerProducts}. Order Code: ${updated.orderCode}`,
+                        userId: farmerId,
+                        read: false
+                    }
+                });
+            }
+
+            // Send notifications to ALL admin users
+            const adminUsers = await tx.user.findMany({
+                where: { role: 'ADMIN' },
+                select: { id: true }
+            });
+
+            const orderTotal = updated.total || 0;
+            const itemCount = stockUpdates.length;
+            
+            for (const admin of adminUsers) {
+                await tx.notification.create({
+                    data: {
+                        type: 'NEW_ORDER',
+                        title: 'New Order Placed',
+                        message: `New order ${updated.orderCode} placed: ${itemCount} item${itemCount > 1 ? 's' : ''}, Total: $${orderTotal.toFixed(2)}`,
+                        userId: admin.id,
+                        read: false
+                    }
+                });
+            }
+
+            console.log(`✓ Notifications sent: ${uniqueFarmerIds.size} farmer(s), ${adminUsers.length} admin(s)`);
 
             return {
                 ...updated,
@@ -417,6 +451,44 @@ exports.updateOrderStatus = async (req, res) => {
                     `Order cancelled (${updated.orderCode})`,
                     updated.orderCode
                 );
+            }
+
+            // Send notifications for status changes
+            if (status && status !== previousStatus) {
+                const uniqueFarmerIds = new Set();
+                order.orderItems.forEach(item => {
+                    if (item.product?.farmerId) {
+                        uniqueFarmerIds.add(item.product.farmerId);
+                    }
+                });
+
+                // Notify farmers about order status change
+                for (const farmerId of uniqueFarmerIds) {
+                    await tx.notification.create({
+                        data: {
+                            type: 'ORDER_STATUS',
+                            title: 'Order Status Updated',
+                            message: `Order ${updated.orderCode} status changed to: ${status}`,
+                            userId: farmerId,
+                            read: false
+                        }
+                    });
+                }
+
+                // Notify customer if they exist
+                if (order.customerId) {
+                    await tx.notification.create({
+                        data: {
+                            type: 'ORDER_STATUS',
+                            title: 'Order Status Updated',
+                            message: `Your order ${updated.orderCode} is now: ${status}`,
+                            userId: order.customerId,
+                            read: false
+                        }
+                    });
+                }
+
+                console.log(`✓ Order status notifications sent for ${updated.orderCode}: ${previousStatus} → ${status}`);
             }
 
             return updated;

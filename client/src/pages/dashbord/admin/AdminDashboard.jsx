@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { useTheme } from "../../../context/ThemeContext";
 import AdminSidebar from "./AdminSidebar";
 import AdminProfile from "./profile";
 import AdminSettings from "./settings";
@@ -14,7 +15,6 @@ import api from "../../../api.js";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Switch } from "../../../components/ui/switch";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "../../../components/ui/sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "../../../components/ui/sheet";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../../../components/ui/chart";
@@ -67,11 +67,15 @@ import {
   MessageSquare,
   Menu,
   LayoutDashboard,
-  MoreHorizontal
+  MoreHorizontal,
+  Sun,
+  Moon,
+  Monitor
 } from "lucide-react";
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const [view, setView] = useState("dashboard");
   const [users, setUsers] = useState([]);
@@ -896,20 +900,19 @@ const AdminDashboard = () => {
   );
 
   return (
-    <SidebarProvider>
+    <>
       <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
         <Toaster position="top-right" richColors closeButton />
-        {/* Desktop Sidebar */}
-        <div className={`hidden md:block ${isSidebarCollapsed ? 'w-28 flex-shrink-0 transition-all duration-300 ease-in-out' : 'w-64 flex-shrink-0 transition-all duration-300 ease-in-out'}`}>
-          <AdminSidebar
-            onLogout={logout}
-            activeTab={view}
-            onNav={setView}
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={toggleSidebarCollapse}
-
-          />
-        </div>
+      {/* Desktop Sidebar */}
+      <div className={`hidden md:flex ${isSidebarCollapsed ? 'w-28' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out h-screen overflow-hidden`}>
+        <AdminSidebar
+          onLogout={logout}
+          activeTab={view}
+          onNav={setView}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+        />
+      </div>
 
         {/* Mobile Sidebar Drawer */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -1001,6 +1004,33 @@ const AdminDashboard = () => {
 
             {/* Right – Notifications + Profile */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+
+              {/* Theme Toggle */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center justify-center w-8 h-8 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-700 dark:text-slate-300">
+                    {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
+                      <Moon className="w-4 h-4" />
+                    ) : (
+                      <Sun className="w-4 h-4" />
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                  <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <Sun className="w-4 h-4 mr-2" />
+                    Light
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <Moon className="w-4 h-4 mr-2" />
+                    Dark
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <Monitor className="w-4 h-4 mr-2" />
+                    System
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Notifications */}
               <div className="hidden sm:block">
@@ -2066,7 +2096,7 @@ const AdminDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SidebarProvider>
+    </>
   );
 };
 

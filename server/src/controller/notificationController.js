@@ -183,12 +183,33 @@ exports.createNotification = async (userId, type, title, message, productId = nu
         type,
         title,
         message,
-        productId
+        productId,
+        read: false
       }
     });
     return notification;
   } catch (error) {
     console.error('Error creating notification:', error);
+    throw error;
+  }
+};
+
+// Bulk create notifications for multiple recipients (e.g., all admins)
+exports.createBulkNotifications = async (recipientIds, type, title, message, productId = null) => {
+  try {
+    const notifications = await prisma.notification.createMany({
+      data: recipientIds.map(userId => ({
+        userId,
+        type,
+        title,
+        message,
+        productId,
+        read: false
+      }))
+    });
+    return notifications;
+  } catch (error) {
+    console.error('Error creating bulk notifications:', error);
     throw error;
   }
 };
