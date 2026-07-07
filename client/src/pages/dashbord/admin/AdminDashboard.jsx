@@ -901,10 +901,10 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
+      <div className="flex flex-row w-full min-h-screen bg-slate-50/50">
         <Toaster position="top-right" richColors closeButton />
       {/* Desktop Sidebar */}
-      <div className={`hidden md:flex ${isSidebarCollapsed ? 'w-28' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out h-screen overflow-hidden`}>
+      <div className={`hidden md:flex ${isSidebarCollapsed ? 'w-28' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out h-screen sticky top-0`}>
         <AdminSidebar
           onLogout={logout}
           activeTab={view}
@@ -969,10 +969,10 @@ const AdminDashboard = () => {
         </Sheet>
 
         {/* Main Area */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 flex flex-col relative">
 
           {/* ── Header (matches Farmer Dashboard style) ── */}
-          <nav className="flex flex-row items-center justify-between w-full px-4 sm:px-6 py-4 bg-white border-b border-slate-200 flex-shrink-0 z-10">
+          <nav className="flex flex-row items-center justify-between w-full px-4 sm:px-6 py-4 bg-white border-b border-slate-200 flex-shrink-0 z-10 sticky top-0">
             {/* Left – Logo on mobile, Greeting on desktop */}
             <div className="flex items-center shrink-0 gap-3">
               <div className="flex items-center gap-2">

@@ -68,10 +68,10 @@ const FarmerDashboard = () => {
   return (
     <FarmerProfileProvider>
       <SidebarProvider>
-        <div className="flex flex-row w-full h-screen bg-slate-50/50 overflow-hidden">
+        <div className="flex flex-row w-full min-h-screen bg-slate-50/50">
           <Toaster position="top-right" richColors closeButton />
           {/* Desktop Sidebar */}
-          <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-28' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out h-screen overflow-hidden`}>
+          <div className={`hidden lg:flex ${isSidebarCollapsed ? 'w-28' : 'w-64'} flex-shrink-0 transition-all duration-300 ease-in-out h-screen sticky top-0`}>
             <FarmerSidebar
               user={user}
               isCollapsed={isSidebarCollapsed}
@@ -172,9 +172,9 @@ const FarmerDashboard = () => {
           </Sheet>
 
           {/* Main Area */}
-          <div className="flex-1 flex flex-col overflow-hidden px-2 sm:px-4 relative">
+          <div className="flex-1 flex flex-col px-2 sm:px-4 relative">
             {/* Header */}
-            <nav className="flex flex-row items-center justify-between w-full px-3 sm:px-4 py-3 sm:py-4 bg-white border-b relative z-10">
+            <nav className="flex flex-row items-center justify-between w-full px-3 sm:px-4 py-3 sm:py-4 bg-white border-b relative z-10 sticky top-0">
               {/* Left - Logo on mobile, Greeting on desktop */}
               <div className="flex items-center shrink-0 gap-2 sm:gap-3">
                 <div className="flex items-center gap-2">
