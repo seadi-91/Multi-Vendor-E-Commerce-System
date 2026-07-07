@@ -12,6 +12,7 @@ import {
   Leaf, Search, Heart, ShoppingCart, Mail, Lock,
   Eye, EyeOff, Sparkles, CheckCircle2, ChevronRight, Sun, Moon, Monitor
 } from 'lucide-react';
+import Footer from '../../components/Footer';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const Login = () => {
@@ -404,18 +405,7 @@ const Login = () => {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="bg-slate-950 text-white mt-auto border-t border-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Leaf className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-black tracking-wider uppercase text-slate-400">&copy; 2026 FarmConnect. All rights reserved.</span>
-          </div>
-          <div className="flex gap-4 text-xs font-bold text-slate-500">
-            <a href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-emerald-400 transition-colors">Terms of Use</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   );

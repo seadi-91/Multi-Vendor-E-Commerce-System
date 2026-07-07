@@ -25,6 +25,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import ReviewModal from '../../components/reviews/ReviewModal';
+import Footer from '../../components/Footer';
 import { toast } from 'react-hot-toast';
 
 const Orders = () => {
@@ -466,6 +467,7 @@ const Orders = () => {
         loading={reviewSubmitting}
         theme={theme}
       />
+      <Footer />
     </div>
   );
 };

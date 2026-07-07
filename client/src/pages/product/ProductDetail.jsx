@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import Footer from '../../components/Footer';
 
 const fmt = (n) => Number(n).toFixed(2);
 
@@ -516,6 +517,7 @@ const ProductDetail = () => {
           </CardContent>
         </Card>
       </div>
+      <Footer />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Footer from '../../../../components/Footer';
 import { useCart } from '../../../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -737,6 +738,7 @@ const Home = () => {
           )}
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

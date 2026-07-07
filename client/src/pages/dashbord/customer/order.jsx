@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Footer from '../../../components/Footer';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
@@ -15,17 +16,9 @@ const MyOrders = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [currentReceiptOrder, setCurrentReceiptOrder] = useState(null);
-
-  const products = [
-    { id: 1, name: 'Organic Tomatoes', description: 'Fresh organic tomatoes from local farms', price: 4.99, rating: 4.5, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&q=80', reviewsCount: 382, discountPercent: 20, unit: 'kg', freeShipping: true, badge: 'Top Pick', category: 'Vegetables' },
-    { id: 2, name: 'Fresh Potatoes', description: 'Premium quality potatoes, perfect for cooking', price: 3.49, rating: 4.8, vendor: 'Valley Harvest', vendorVerified: true, image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=600&q=80', reviewsCount: 145, discountPercent: 18, unit: 'kg', category: 'Vegetables' },
-    { id: 3, name: 'Fresh Bell Peppers', description: 'Spicy and fresh peppers for your dishes', price: 5.99, rating: 4.0, vendor: 'Mountain Orchard', vendorVerified: true, image: 'https://images.unsplash.com/photo-1563565080-749774653557?w=600&q=80', reviewsCount: 612, discountPercent: 20, unit: 'kg', freeShipping: true, badge: 'Best Seller', category: 'Vegetables' },
-    { id: 4, name: 'Fresh Spinach', description: 'Crisp and nutritious leafy greens', price: 2.99, rating: 4.7, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=600&q=80', reviewsCount: 98, discountPercent: 20, unit: 'bunch', category: 'Vegetables' },
-    { id: 5, name: 'Organic Broccoli', description: 'Garden-fresh broccoli heads', price: 3.99, rating: 4.5, vendor: 'Green Farms', vendorVerified: true, image: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=600&q=80', reviewsCount: 220, discountPercent: 12, unit: 'bunch', category: 'Vegetables' },
-    { id: 6, name: 'Fresh Strawberries', description: 'Sun-ripened sweet strawberries', price: 6.49, rating: 4.8, vendor: 'Berryland Farms', vendorVerified: false, image: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600&q=80', reviewsCount: 450, discountPercent: 18, unit: 'pack', freeShipping: true, category: 'Fruits' },
-    { id: 7, name: 'Organic Avocados', description: 'Creamy ripe avocados from sunny farms', price: 7.99, rating: 4.7, vendor: 'Sunny Valley', vendorVerified: true, image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600&q=80', reviewsCount: 180, discountPercent: 15, unit: 'pack', badge: 'New', category: 'Fruits' },
-    { id: 8, name: 'Organic Apples', description: 'Crisp and sweet apples from mountain orchards', price: 5.49, rating: 4.9, vendor: 'Mountain Orchard', vendorVerified: true, image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600&q=80', reviewsCount: 612, discountPercent: 25, unit: 'kg', freeShipping: true, category: 'Fruits' },
-  ];
+  // State for per-product review forms: { orderId: { productId: { isEditing: bool, rating: num, comment: string } } }
+  const [productReviewForms, setProductReviewForms] = useState({});
+  const [submittingProduct, setSubmittingProduct] = useState(null); // { orderId, productId } to track which is being submitted
 
   const statusColors = {
     pending: '#f59e0b',
@@ -81,6 +74,7 @@ const MyOrders = () => {
           status: order.status || 'processing',
           paymentStatus: order.paymentStatus || (order.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
           items: order.items || [],
+          orderItems: order.orderItems || [],
           total: order.total || 0,
           subtotal: order.subtotal || 0,
           deliveryFee: order.deliveryFee || 0,
@@ -93,7 +87,9 @@ const MyOrders = () => {
           paymentMethod: order.paymentMethod || 'cash',
           estimatedDelivery: order.estimatedDelivery || '30-45 minutes',
           vendor: order.vendor || 'Fresh Farm',
-          specialInstructions: order.specialInstructions || ''
+          specialInstructions: order.specialInstructions || '',
+          wantsReview: order.wantsReview || false,
+          reviews: order.reviews || []
         };
       });
       setOrders(normalizedOrders);
@@ -105,95 +101,12 @@ const MyOrders = () => {
         const parsedOrders = JSON.parse(savedOrders);
         setOrders(parsedOrders);
       } else {
-        const mockOrders = generateMockOrders();
-        setOrders(mockOrders);
-        localStorage.setItem('orders', JSON.stringify(mockOrders));
+        setOrders([]);
       }
     } finally {
       setLoading(false);
     }
   };
-
-  const generateMockOrders = () => {
-    return [
-      {
-        id: `ORD-${Date.now().toString().slice(-8)}`,
-        orderNumber: '#00123',
-        date: new Date().toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        time: new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        timestamp: new Date().toISOString(),
-        status: 'processing',
-        paymentStatus: 'unpaid',
-        items: [
-          { ...products[0], quantity: 2, _id: products[0].id },
-          { ...products[6], quantity: 1, _id: products[6].id }
-        ],
-        total: 2 * products[0].price + products[6].price,
-        subtotal: 2 * products[0].price + products[6].price,
-        deliveryFee: 0,
-        fullName: user?.name || 'Selam',
-        phone: '+251 91 234 5678',
-        email: user?.email || 'selam@example.com',
-        city: 'Addis Ababa',
-        address: 'Bole',
-        additionalInfo: 'Bole Medhanialem, Street 123, House #45',
-        paymentMethod: 'cash',
-        estimatedDelivery: '30-45 minutes',
-        vendor: 'Green Farms',
-        specialInstructions: 'Please leave at front desk'
-      },
-      {
-        id: `ORD-${Date.now().toString().slice(-7)}`,
-        orderNumber: '#00122',
-        date: new Date(Date.now() - 86400000).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        time: new Date(Date.now() - 86400000).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        status: 'delivered',
-        paymentStatus: 'paid',
-        items: [
-          { ...products[5], quantity: 1, _id: products[5].id },
-          { ...products[7], quantity: 2, _id: products[7].id }
-        ],
-        total: products[5].price + 2 * products[7].price,
-        subtotal: products[5].price + 2 * products[7].price,
-        deliveryFee: 50,
-        fullName: user?.name || 'Selam',
-        phone: '+251 91 234 5678',
-        email: user?.email || 'selam@example.com',
-        city: 'Addis Ababa',
-        address: 'Kirkos',
-        additionalInfo: 'Near Stadium, Building #12',
-        paymentMethod: 'mobile',
-        estimatedDelivery: '20-30 minutes',
-        vendor: 'Berryland Farms',
-        specialInstructions: ''
-      }
-    ];
-  };
-
-  const filteredOrders = filter === 'all'
-    ? orders
-    : orders.filter(order => {
-      const orderStatus = (order.status || '').toLowerCase();
-      const filterStatus = filter.toLowerCase();
-      return orderStatus === filterStatus;
-    });
 
   const toggleOrderExpansion = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -227,9 +140,105 @@ const MyOrders = () => {
     navigate('/customer/cart');
   };
 
+  const toggleReviewForm = (orderId, productId) => {
+    setProductReviewForms(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        [productId]: {
+          isEditing: !prev[orderId]?.[productId]?.isEditing,
+          rating: prev[orderId]?.[productId]?.rating || 5,
+          comment: prev[orderId]?.[productId]?.comment || ''
+        }
+      }
+    }));
+  };
+
+  const handleProductReviewChange = (orderId, productId, field, value) => {
+    setProductReviewForms(prev => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        [productId]: {
+          ...prev[orderId]?.[productId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleSubmitProductReview = async (orderId, productId, item) => {
+    const formData = productReviewForms[orderId]?.[productId];
+    if (!formData) return;
+
+    setSubmittingProduct({ orderId, productId });
+    try {
+      const response = await api.post('/reviews', {
+        productId,
+        orderId,
+        rating: formData.rating,
+        comment: formData.comment.trim()
+      });
+
+      // Update local state to reflect the new review
+      setOrders(prevOrders => prevOrders.map(o => {
+        if (o.id !== orderId) return o;
+        const updatedOrderItems = o.orderItems.map(oi => {
+          if (oi.productId !== productId) return oi;
+          return { ...oi, review: response.data.data };
+        });
+        return {
+          ...o,
+          orderItems: updatedOrderItems,
+          reviews: [...(o.reviews || []), response.data.data]
+        };
+      }));
+
+      // Close the form
+      toggleReviewForm(orderId, productId);
+      toast.success('Review submitted successfully!');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmittingProduct(null);
+    }
+  };
+
   const formatPrice = (price) => {
     const numPrice = Number(price) || 0;
     return numPrice.toFixed(2);
+  };
+
+  const formatReviewDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const renderStarRating = (rating, isEditable, onRatingChange) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => isEditable && onRatingChange(star)}
+            className={`${
+              isEditable ? 'cursor-pointer hover:text-yellow-500' : 'cursor-default'
+            } text-xl`}
+            disabled={!isEditable}
+          >
+            <span className={star <= rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}>
+              ★
+            </span>
+          </button>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -301,128 +310,257 @@ const MyOrders = () => {
               <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">⏳</div>
               <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs font-medium">Loading your orders...</p>
             </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4 opacity-50">🛒</div>
-              <h3 className="text-sm sm:text-lg font-bold text-gray-800 dark:text-white mb-2 sm:mb-3">
-                No orders found
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs mb-4 sm:mb-6 max-w-sm mx-auto">
-                {filter !== 'all' ? `You have no orders with status "${filter}"` : 'Start shopping to see your orders here!'}
-              </p>
-              <Link
-                to="/"
-                className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg sm:rounded-xl font-semibold text-[10px] sm:text-xs hover:bg-green-700 transition-all"
-              >
-                🍎 Start Shopping Now
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2 sm:space-y-4">
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all"
-                >
-                  {/* Order Card Header */}
-                  <div
-                    className="p-2.5 sm:p-4 cursor-pointer"
-                    onClick={() => toggleOrderExpansion(order.id)}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap mb-1.5 sm:mb-2">
-                          <h3 className="text-xs sm:text-base font-bold text-gray-900 dark:text-white">
-                            {order.orderNumber}
-                          </h3>
-                          <span
-                            className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium"
-                            style={{
-                              backgroundColor: `${getStatusColor(order.status)}15`,
-                              color: getStatusColor(order.status),
-                              border: `1px solid ${getStatusColor(order.status)}30`
-                            }}
-                          >
-                            <span
-                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
-                              style={{ backgroundColor: getStatusColor(order.status) }}
-                            ></span>
-                            {order.status}
-                          </span>
-                          <span
-                            className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium"
-                            style={{
-                              backgroundColor: `${getPaymentStatusColor(order.paymentStatus)}15`,
-                              color: getPaymentStatusColor(order.paymentStatus),
-                              border: `1px solid ${getPaymentStatusColor(order.paymentStatus)}30`
-                            }}
-                          >
-                            {order.paymentStatus === 'paid' ? '✓ Paid' : '○ Not Paid'}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-700 dark:text-gray-300">
-                          <div className="flex items-center gap-1 sm:gap-1.5">
-                            <span className="text-green-600 text-sm sm:text-base">📅</span>
-                            <span className="font-medium">{order.date}</span>
-                          </div>
-                          <div className="flex items-center gap-1 sm:gap-1.5">
-                            <span className="text-green-600 text-sm sm:text-base">⏰</span>
-                            <span className="font-medium">{order.time}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-center md:text-right flex items-center gap-2 sm:gap-4">
-                        <div>
-                          <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide mb-0.5 sm:mb-1">Total</p>
-                          <p className="text-sm sm:text-lg font-bold text-green-700 dark:text-green-500">
-                            ${formatPrice(order.total)}
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            viewReceipt(order);
-                          }}
-                          className="px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-green-600 dark:text-green-500 border border-green-200 dark:border-green-800 rounded-md sm:rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-                        >
-                          View Receipt
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+          ) : (() => {
+            const filteredOrders = filter === 'all'
+              ? orders
+              : orders.filter(order => {
+                  const orderStatus = (order.status || '').toLowerCase();
+                  const filterStatus = filter.toLowerCase();
+                  return orderStatus === filterStatus;
+                });
 
-                  {/* Receipt Preview */}
-                  {expandedOrder === order.id && (
-                    <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 px-2.5 sm:px-4 pb-2.5 sm:pb-4">
-                      <div className="mt-2 sm:mt-4 space-y-2 sm:space-y-3">
-                        <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">Items</h4>
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between py-1 sm:py-1.5 text-[10px] sm:text-xs">
-                            <span className="text-gray-800 dark:text-gray-200 font-medium">
-                              {item.name} x{item.quantity}
+            if (filteredOrders.length === 0) {
+              return (
+                <div className="text-center py-8 sm:py-12 bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-slate-700">
+                  <div className="text-4xl sm:text-5xl mb-3 sm:mb-4 opacity-50">🛒</div>
+                  <h3 className="text-sm sm:text-lg font-bold text-gray-800 dark:text-white mb-2 sm:mb-3">
+                    No orders found
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs mb-4 sm:mb-6 max-w-sm mx-auto">
+                    {filter !== 'all' ? `You have no orders with status "${filter}"` : 'Start shopping to see your orders here!'}
+                  </p>
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-green-600 text-white rounded-lg sm:rounded-xl font-semibold text-[10px] sm:text-xs hover:bg-green-700 transition-all"
+                  >
+                    🍎 Start Shopping Now
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2 sm:space-y-4">
+                {filteredOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-all"
+                  >
+                    {/* Order Card Header */}
+                    <div
+                      className="p-2.5 sm:p-4 cursor-pointer"
+                      onClick={() => toggleOrderExpansion(order.id)}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap mb-1.5 sm:mb-2">
+                            <h3 className="text-xs sm:text-base font-bold text-gray-900 dark:text-white">
+                              {order.orderNumber}
+                            </h3>
+                            <span
+                              className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium"
+                              style={{
+                                backgroundColor: `${getStatusColor(order.status)}15`,
+                                color: getStatusColor(order.status),
+                                border: `1px solid ${getStatusColor(order.status)}30`
+                              }}
+                            >
+                              <span
+                                className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
+                                style={{ backgroundColor: getStatusColor(order.status) }}
+                              ></span>
+                              {order.status}
                             </span>
-                            <span className="font-bold text-gray-900 dark:text-white text-[10px] sm:text-sm">
-                              ${formatPrice(item.price * item.quantity)}
+                            <span
+                              className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium"
+                              style={{
+                                backgroundColor: `${getPaymentStatusColor(order.paymentStatus)}15`,
+                                color: getPaymentStatusColor(order.paymentStatus),
+                                border: `1px solid ${getPaymentStatusColor(order.paymentStatus)}30`
+                              }}
+                            >
+                              {order.paymentStatus === 'paid' ? '✓ Paid' : '○ Not Paid'}
                             </span>
                           </div>
-                        ))}
-                      </div>
-                      <div className="mt-2 sm:mt-4 flex gap-2">
-                        {order.paymentStatus !== 'paid' && (
+                          <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-700 dark:text-gray-300">
+                            <div className="flex items-center gap-1 sm:gap-1.5">
+                              <span className="text-green-600 text-sm sm:text-base">📅</span>
+                              <span className="font-medium">{order.date}</span>
+                            </div>
+                            <div className="flex items-center gap-1 sm:gap-1.5">
+                              <span className="text-green-600 text-sm sm:text-base">⏰</span>
+                              <span className="font-medium">{order.time}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-center md:text-right flex items-center gap-2 sm:gap-4">
+                          <div>
+                            <p className="text-[9px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide mb-0.5 sm:mb-1">Total</p>
+                            <p className="text-sm sm:text-lg font-bold text-green-700 dark:text-green-500">
+                              ${formatPrice(order.total)}
+                            </p>
+                          </div>
                           <button
-                            onClick={() => reorderItem(order)}
-                            className="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-md sm:rounded-lg font-semibold text-[10px] sm:text-xs hover:bg-green-700 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              viewReceipt(order);
+                            }}
+                            className="px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-green-600 dark:text-green-500 border border-green-200 dark:border-green-800 rounded-md sm:rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
                           >
-                            Reorder
+                            View Receipt
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+
+                    {/* Order Details */}
+                    {expandedOrder === order.id && (
+                      <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 px-2.5 sm:px-4 pb-2.5 sm:pb-4">
+                        <div className="mt-2 sm:mt-4 space-y-3 sm:space-y-4">
+                          <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">Items</h4>
+                          
+                          {/* Render each item */}
+                          {(order.orderItems?.length ? order.orderItems : order.items).map((item, idx) => {
+                            const productId = item.productId || item.id || item._id;
+                            const existingReview = item.review;
+                            const isOrderDelivered = order.status?.toLowerCase() === 'delivered';
+                            const isSubmittingThisProduct = 
+                              submittingProduct?.orderId === order.id && 
+                              submittingProduct?.productId === productId;
+                            const formData = productReviewForms[order.id]?.[productId];
+                            const isReviewFormOpen = formData?.isEditing;
+
+                            return (
+                              <div
+                                key={idx}
+                                className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4"
+                              >
+                                {/* Product Info */}
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                  {item.image && (
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg flex-shrink-0"
+                                    />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                      <h5 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                        {item.name} x{item.quantity}
+                                      </h5>
+                                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                        ${formatPrice(item.price * item.quantity)}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                      ${formatPrice(item.price)} each
+                                    </p>
+
+                                    {/* Review Section */}
+                                    {isOrderDelivered && (
+                                      <div className="mt-3">
+                                        {/* Existing Review */}
+                                        {existingReview ? (
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-semibold text-green-600 dark:text-green-500 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md">
+                                                Reviewed
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {renderStarRating(existingReview.rating, false)}
+                                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                {formatReviewDate(existingReview.createdAt)}
+                                              </span>
+                                            </div>
+                                            {existingReview.comment && (
+                                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                                                {existingReview.comment}
+                                              </p>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            {/* Review Form Toggle */}
+                                            {!isReviewFormOpen ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => toggleReviewForm(order.id, productId)}
+                                                className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all"
+                                              >
+                                                Rate Product
+                                              </button>
+                                            ) : (
+                                              <div className="space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
+                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Rating</span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => toggleReviewForm(order.id, productId)}
+                                                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                                {renderStarRating(
+                                                  formData?.rating || 5,
+                                                  true,
+                                                  (newRating) => handleProductReviewChange(order.id, productId, 'rating', newRating)
+                                                )}
+                                                <div>
+                                                  <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                                                    Review (Optional)
+                                                  </label>
+                                                  <textarea
+                                                    value={formData?.comment || ''}
+                                                    onChange={(e) => handleProductReviewChange(order.id, productId, 'comment', e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                    placeholder="Share your experience..."
+                                                    rows={3}
+                                                  />
+                                                </div>
+                                                <div className="flex justify-end">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleSubmitProductReview(order.id, productId, item)}
+                                                    disabled={isSubmittingThisProduct}
+                                                    className="px-4 py-1.5 bg-emerald-600 text-white rounded-md font-semibold text-xs hover:bg-emerald-700 disabled:opacity-70 transition-all flex items-center gap-2"
+                                                  >
+                                                    {isSubmittingThisProduct ? (
+                                                      <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Submitting...</>
+                                                    ) : 'Submit Review'}
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 sm:mt-4 flex gap-2">
+                          {order.paymentStatus !== 'paid' && (
+                            <button
+                              onClick={() => reorderItem(order)}
+                              className="flex-1 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-md sm:rounded-lg font-semibold text-[10px] sm:text-xs hover:bg-green-700 transition-all"
+                            >
+                              Reorder
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -477,7 +615,7 @@ const MyOrders = () => {
               </div>
               
               <div className="border-y border-dashed border-gray-300 py-2 mb-3">
-                {currentReceiptOrder.items.map((item, idx) => (
+                {(currentReceiptOrder.orderItems?.length ? currentReceiptOrder.orderItems : currentReceiptOrder.items).map((item, idx) => (
                   <div key={idx} className="flex justify-between py-0.5 text-[10px]">
                     <span className="text-gray-800 font-medium">
                       {item.name} x{item.quantity}
@@ -537,6 +675,7 @@ const MyOrders = () => {
           </div>
         </div>
       )}
+      <Footer />
     </>
   );
 };

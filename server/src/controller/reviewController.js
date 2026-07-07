@@ -59,6 +59,19 @@ exports.createReview = async (req, res) => {
             return res.status(400).json({ message: 'Rating must be between 1 and 5' });
         }
 
+        // If orderId is provided, verify user owns it and order is delivered
+        if (orderId) {
+            const order = await prisma.order.findFirst({
+                where: { id: Number(orderId), customerId: customerId }
+            });
+            if (!order) {
+                return res.status(403).json({ message: 'You do not own this order' });
+            }
+            // Optional: Check if order is delivered before allowing review?
+            // if (order.status !== 'delivered') { ... }
+        }
+
+        // Check if user already reviewed this product
         const existingReview = await prisma.review.findFirst({
             where: {
                 userId: customerId,
@@ -73,23 +86,26 @@ exports.createReview = async (req, res) => {
                     rating: parsedRating,
                     comment: comment?.trim() || '',
                     updatedAt: new Date()
-                }
+                },
+                include: { product: true, user: true }
             });
 
-            return res.status(200).json({ success: true, data: updated });
+            return res.status(200).json({ success: true, data: normalizeReview(updated, req.user) });
         }
 
         const created = await prisma.review.create({
             data: {
                 productId: Number(productId),
                 userId: customerId,
+                orderId: orderId ? Number(orderId) : null,
                 rating: parsedRating,
                 comment: comment?.trim() || '',
                 updatedAt: new Date()
-            }
+            },
+            include: { product: true, user: true }
         });
 
-        return res.status(201).json({ success: true, data: created });
+        return res.status(201).json({ success: true, data: normalizeReview(created, req.user) });
     } catch (error) {
         console.error('Create review error:', error);
         return res.status(500).json({ message: 'Failed to save review', error: error.message });

@@ -22,10 +22,14 @@ const buildProductPayload = (product) => {
     ...product,
     reviews: normalizedReviews,
     vendor: product.farmer?.farmName || product.farmer?.name || 'Fresh Vendor',
-    vendorVerified: product.farmer?.isVerified || false,
+    vendorVerified: Boolean(product.farmer?.isVerified),
     rating: averageRating,
     reviewsCount: reviewCount,
-    discountPercent: product.discountPrice ? Math.round((1 - product.discountPrice / product.price) * 100) : 0
+    stock: Number(product.stock || 0),
+    price: Number(product.price || 0),
+    discountPercent: product.discountPrice && Number(product.price)
+      ? Math.round((1 - Number(product.discountPrice) / Number(product.price)) * 100)
+      : 0
   };
 };
 
@@ -98,21 +102,12 @@ exports.getProducts = async (req, res) => {
       where,
       skip,
       take: parsedLimit,
+      orderBy,
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
-        },
-        reviews: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          include: {
-            user: {
-              select: { id: true, name: true }
-            }
-          }
         }
-      },
-      orderBy
+      }
     });
 
     let mappedProducts = products.map(buildProductPayload);
@@ -152,14 +147,6 @@ exports.getProductById = async (req, res) => {
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
-        },
-        reviews: {
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: {
-              select: { id: true, name: true }
-            }
-          }
         }
       }
     });
@@ -198,15 +185,6 @@ exports.getProductsByCategory = async (req, res) => {
       include: {
         farmer: {
           select: { id: true, name: true, farmName: true, isVerified: true }
-        },
-        reviews: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          include: {
-            user: {
-              select: { id: true, name: true }
-            }
-          }
         }
       },
       orderBy: { createdAt: 'desc' }

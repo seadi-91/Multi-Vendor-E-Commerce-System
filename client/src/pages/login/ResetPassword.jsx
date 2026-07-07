@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Footer from '../../components/Footer';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { authAPI } from '../../api';
@@ -58,88 +59,94 @@ const ResetPassword = () => {
 
   if (!isValidToken) {
     return (
-      <div className="reset-password-container">
-        <div className="reset-password-card">
-          <div className="error-icon">⚠️</div>
-          <h2>Invalid or Expired Link</h2>
-          <p>
-            This password reset link is invalid or has expired. Please request a new one.
-          </p>
-          <div className="actions">
-            <Link to="/forgot-password" className="request-new">
-              Request New Reset Link
-            </Link>
-            <Link to="/login" className="back-to-login">
-              Back to Login
-            </Link>
+      <div className="flex flex-col min-h-screen">
+        <div className="reset-password-container flex-1">
+          <div className="reset-password-card">
+            <div className="error-icon">⚠️</div>
+            <h2>Invalid or Expired Link</h2>
+            <p>
+              This password reset link is invalid or has expired. Please request a new one.
+            </p>
+            <div className="actions">
+              <Link to="/forgot-password" className="request-new">
+                Request New Reset Link
+              </Link>
+              <Link to="/login" className="back-to-login">
+                Back to Login
+              </Link>
+            </div>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="reset-password-container">
-      <div className="reset-password-card">
-        <div className="logo">
-          <h1>FarmConnect</h1>
-        </div>
-
-        <h2>Reset Your Password</h2>
-        <p className="description">
-          Enter your new password below. Make sure it's strong and secure.
-        </p>
-
-        <form onSubmit={handleSubmit} className="reset-password-form">
-          <div className="form-group">
-            <label htmlFor="password">New Password</label>
-            <div className="input-with-icon">
-              <span className="input-icon">🔒</span>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter new password"
-                required
-                disabled={loading}
-                minLength="6"
-              />
-            </div>
+    <div className="flex flex-col min-h-screen">
+      <div className="reset-password-container flex-1">
+        <div className="reset-password-card">
+          <div className="logo">
+            <h1>FarmConnect</h1>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm New Password</label>
-            <div className="input-with-icon">
-              <span className="input-icon">🔒</span>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm new password"
-                required
-                disabled={loading}
-                minLength="6"
-              />
+          <h2>Reset Your Password</h2>
+          <p className="description">
+            Enter your new password below. Make sure it's strong and secure.
+          </p>
+
+          <form onSubmit={handleSubmit} className="reset-password-form">
+            <div className="form-group">
+              <label htmlFor="password">New Password</label>
+              <div className="input-with-icon">
+                <span className="input-icon">🔒</span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter new password"
+                  required
+                  disabled={loading}
+                  minLength="6"
+                />
+              </div>
             </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm New Password</label>
+              <div className="input-with-icon">
+                <span className="input-icon">🔒</span>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm new password"
+                  required
+                  disabled={loading}
+                  minLength="6"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="reset-btn"
+              disabled={loading}
+            >
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
+          </form>
+
+          <div className="back-to-login">
+            <Link to="/login">← Back to Login</Link>
           </div>
-
-          <button
-            type="submit"
-            className="reset-btn"
-            disabled={loading}
-          >
-            {loading ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
-
-        <div className="back-to-login">
-          <Link to="/login">← Back to Login</Link>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

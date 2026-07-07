@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import CustomerFooter from '../dashbord/customer/footer/Footer';
+import Footer from '../../components/Footer';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, NavLink, Link } from 'react-router-dom';
@@ -105,8 +105,8 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
   );
 };
 
-// ─── Dashboard Header ───────────────────────────────────────────────────────
-const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount, theme, setTheme }) => {
+// ─── Cart Dashboard Header (Custom for Cart Page) ─────────────────────────────
+const CartDashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount, theme, setTheme }) => {
   const navigate = useNavigate();
   const menuRef = React.useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,52 +123,38 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const cycleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
   };
 
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-4 text-[var(--foreground)] sm:px-8">
-      {/* Mobile Menu Toggle */}
-      <button
-        onClick={onMenuToggle}
-        className="mr-2 p-2 text-[var(--foreground)] hover:text-[var(--primary)] lg:hidden"
-      >
-        <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-      </button>
-
-      {/* Universal Search Bar */}
-      <div className="flex w-full max-w-xl items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-1.5 transition-colors focus-within:border-[var(--primary)]">
-        <input
-          type="text"
-          placeholder="Search for products or sellers..."
-          className="w-full bg-transparent py-1 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
-        />
-        <button className="rounded-lg bg-[var(--primary)] p-2 text-[var(--primary-foreground)] transition-colors hover:bg-[var(--ring)]">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      {/* Left: Mobile Menu Toggle + Back Button */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuToggle}
+          className="p-2 text-[var(--foreground)] hover:text-[var(--primary)] lg:hidden"
+        >
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
+        </button>
+        <button
+          onClick={handleBack}
+          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)]"
+        >
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm font-medium hidden sm:inline">Back</span>
         </button>
       </div>
 
       {/* Global Action Icons */}
-      <div className="ml-4 flex items-center gap-3 sm:gap-5">
-        <button
-          onClick={cycleTheme}
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)] transition-all hover:bg-[var(--muted)]"
-          aria-label="Toggle theme"
-        >
-          {isDark ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
-        </button>
-
-        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
-          <span className="text-xl">🔔</span>
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-[var(--primary-foreground)]">3</span>
-        </div>
+      <div className="flex items-center gap-3 sm:gap-5">
+        <ThemeToggle theme={theme} setTheme={setTheme} />
         <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
           <span className="text-xl">🤍</span>
           {favoritesCount > 0 && (
@@ -183,7 +169,7 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(prev => !prev)}
-            className="rounded-full border border-[var(--border)] bg-[var(--secondary)] p-1 shadow-sm transition hover:ring-2 hover:ring-[var(--primary)]/20"
+            className="rounded-full border border-[var(--border)] bg-[var(--secondary)] p-1 shadow-sm"
           >
             <img
               src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop'}
@@ -218,9 +204,18 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
   );
 };
 
-// ─── Public Header ───────────────────────────────────────────────────────────
-const PublicHeader = ({ cartCount, theme, setTheme }) => {
+// ─── Cart Public Header (Custom for Cart Page) ───────────────────────────────
+const CartPublicHeader = ({ cartCount, theme, setTheme }) => {
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
@@ -234,8 +229,8 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
 
         {/* Back button */}
         <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors"
+          onClick={handleBack}
+          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)]"
         >
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm font-medium">Back</span>
@@ -243,29 +238,16 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
 
         {/* Right actions */}
         <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
-          {/* Favorites */}
           <ThemeToggle theme={theme} setTheme={setTheme} />
           <Link
             to="/favorites"
-            className="flex items-center gap-2 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors relative"
+            className="flex items-center gap-2 text-[var(--foreground)] hover:text-[var(--primary)] relative"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">
-              {theme === 'system' ? (
-                <Monitor className="w-4 h-4" />
-              ) : theme === 'dark' ? (
-                <Moon className="w-4 h-4" />
-              ) : (
-                <Sun className="w-4 h-4" />
-              )}
-            </div>
             <Heart className="w-5 h-5" />
-
           </Link>
-
-          {/* Cart */}
           <Link
             to="/customer/cart"
-            className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] transition-colors relative"
+            className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] relative"
           >
             <div className="relative">
               <ShoppingCart className="w-5 h-5" />
@@ -273,9 +255,7 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
                 <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
               )}
             </div>
-
           </Link>
-
         </div>
       </div>
     </header>
@@ -477,36 +457,26 @@ const Cart = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
-        <div className="max-w-4xl mx-auto bg-[var(--card)]/95 rounded-3xl shadow-xl border border-[var(--border)] p-4 md:p-6 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto overflow-hidden">
-          <div className="relative rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-500 p-6 shadow-2xl overflow-hidden mb-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.4),_transparent_35%)] opacity-80" />
-            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[var(--secondary)]/20 text-[var(--primary)] shadow-lg">
-                  <Sparkles className="w-7 h-7" />
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-foreground)] font-semibold">Bright Cart</p>
-                  <h1 className="text-2xl md:text-3xl font-black text-[var(--foreground)]">Light up your order experience</h1>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-[var(--secondary)]/15 border border-[var(--border)] px-4 py-3 text-[var(--foreground)] shadow-sm">
-                <p className="text-xs uppercase tracking-[0.25em] text-[var(--muted-foreground)]">Items in cart</p>
-                <p className="text-xl font-black mt-1">{itemCount}</p>
-              </div>
-            </div>
+        <CartPublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
+        <div className="max-w-4xl mx-auto bg-[var(--card)]/95 rounded-3xl border border-[var(--border)] p-4 md:p-6 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto">
+          <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
+            <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
+            {cart.length > 0 && (
+              <p className="text-sm font-medium text-[var(--muted-foreground)]">
+                {itemCount} item{itemCount !== 1 ? 's' : ''} in your cart
+              </p>
+            )}
           </div>
 
           {cart.length === 0 ? (
             <div className="text-center py-12 text-[var(--foreground)]">
-              <div className="inline-flex items-center justify-center mx-auto mb-4 h-20 w-20 rounded-3xl bg-[var(--secondary)] text-[var(--primary)] shadow-sm">
+              <div className="inline-flex items-center justify-center mx-auto mb-4 h-20 w-20 rounded-3xl bg-[var(--secondary)] text-[var(--primary)]">
                 <Sparkles className="w-10 h-10" />
               </div>
               <h2 className="text-xl font-bold mb-2 text-[var(--foreground)]">Your cart is empty</h2>
               <p className="text-sm text-[var(--muted-foreground)] mb-6">Add some delicious items to get started!</p>
               <button
-                className="bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-[var(--ring)] transition-all"
+                className="bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-2.5 rounded-lg text-sm font-semibold"
                 onClick={() => navigate('/')}
               >
                 Continue Shopping
@@ -517,15 +487,15 @@ const Cart = () => {
               <div className="flex flex-col gap-4">
                 {cart.map(item => (
                   <div
-                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm relative"
+                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-[var(--card)] rounded-3xl border border-[var(--border)] relative"
                     key={item._id}
                   >
-                    <div className="w-16 h-16 md:w-16 md:h-16 rounded-3xl overflow-hidden bg-[var(--secondary)]/80 flex-shrink-0 mx-auto md:mx-0 shadow-lg ring-1 ring-[var(--border)] transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.03]">
+                    <div className="w-16 h-16 md:w-16 md:h-16 rounded-3xl overflow-hidden bg-[var(--secondary)]/80 flex-shrink-0 mx-auto md:mx-0">
                       {item.image ? (
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover animate-cart-float"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-3xl bg-[var(--secondary)] text-[var(--primary)]">
@@ -548,7 +518,7 @@ const Cart = () => {
                       <div className="flex flex-col md:flex-row justify-between items-center gap-3">
                         <div className="flex items-center gap-2 bg-[var(--secondary)] rounded-full px-1.5 py-0.5">
                           <button
-                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-all disabled:opacity-50"
+                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center disabled:opacity-50"
                             onClick={() => decrementQuantity(item._id)}
                             aria-label="Decrease quantity"
                             disabled={item.quantity <= 1}
@@ -557,7 +527,7 @@ const Cart = () => {
                           </button>
                           <span className="font-bold text-[var(--foreground)] min-w-[24px] text-center text-sm">{item.quantity}</span>
                           <button
-                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition-all disabled:opacity-50"
+                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center disabled:opacity-50"
                             onClick={() => incrementQuantity(item._id, item.stock || 99)}
                             aria-label="Increase quantity"
                             disabled={item.quantity >= (item.stock || 99)}
@@ -573,7 +543,7 @@ const Cart = () => {
                     </div>
 
                     <button
-                      className="bg-transparent text-[var(--destructive)] border-none w-7 h-7 rounded-full text-lg cursor-pointer hover:bg-[var(--destructive)/10] transition-all flex items-center justify-center absolute top-2 right-2 md:static"
+                      className="bg-transparent text-[var(--destructive)] border-none w-7 h-7 rounded-full text-lg cursor-pointer flex items-center justify-center absolute top-2 right-2 md:static"
                       onClick={() => removeFromCart(item._id)}
                       aria-label={`Remove ${item.name} from cart`}
                     >
@@ -584,29 +554,21 @@ const Cart = () => {
               </div>
 
               <div className="sticky top-5">
-                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] shadow-sm p-5 text-[var(--foreground)]">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted-foreground)] font-semibold">Order Summary</p>
-                      <h3 className="text-2xl font-black text-[var(--foreground)]">Checkout Ready</h3>
-                    </div>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-[var(--secondary)] text-[var(--primary)] shadow-sm">
-                      <Sparkles className="w-6 h-6" />
-                    </div>
-                  </div>
+                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-5 text-[var(--foreground)]">
+                  <h3 className="mb-4 border-b border-[var(--border)] pb-2 text-base font-extrabold text-[var(--foreground)]">Order Summary</h3>
 
                   <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-[var(--muted-foreground)] text-xs">Subtotal ({itemCount} items)</span>
+                    <span className="text-xs text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
                     <span className="font-semibold text-[var(--foreground)] text-sm">{total} ETB</span>
                   </div>
 
                   <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-[var(--muted-foreground)] text-xs">Delivery Fee</span>
+                    <span className="text-xs text-[var(--muted-foreground)]">Delivery Fee</span>
                     <span className="font-semibold text-[var(--foreground)] text-sm">50 ETB</span>
                   </div>
 
                   <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-[var(--muted-foreground)] text-xs">Tax</span>
+                    <span className="text-xs text-[var(--muted-foreground)]">Tax</span>
                     <span className="font-semibold text-[var(--foreground)] text-sm">{(total * 0.15).toFixed(2)} ETB</span>
                   </div>
                   <div className="h-px bg-[var(--border)] my-3"></div>
@@ -618,14 +580,14 @@ const Cart = () => {
                     </span>
                   </div>
                   <button
-                    className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-3 rounded-3xl text-sm font-bold hover:bg-[var(--ring)] transition-all mb-3 shadow-lg shadow-[var(--primary)/30]"
+                    className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-2.5 rounded-lg text-sm font-bold mb-3"
                     onClick={handleCheckout}
                   >
                     Proceed to Checkout
                   </button>
 
                   <button
-                    className="w-full bg-transparent text-[var(--destructive)] border border-[var(--destructive)] py-2.5 rounded-3xl text-xs font-semibold hover:bg-[var(--destructive)/10] transition-all"
+                    className="w-full bg-transparent text-[var(--destructive)] border border-[var(--destructive)] py-2 rounded-lg text-xs font-semibold"
                     onClick={clearCart}
                   >
                     Clear Cart
@@ -640,8 +602,8 @@ const Cart = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] antialiased font-sans">
-      <DashboardHeader
+    <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)]">
+      <CartDashboardHeader
         user={user}
         cartCount={cartCount}
         onLogout={logout}
@@ -653,7 +615,7 @@ const Cart = () => {
 
       <main className="flex-1 overflow-y-auto">
         <section className="px-6 py-6">
-          <div className="mx-auto max-w-4xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-[var(--foreground)] shadow-sm md:p-6">
+          <div className="mx-auto max-w-4xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-[var(--foreground)] md:p-6">
             <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
               <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
               {cart.length > 0 && (
@@ -669,7 +631,7 @@ const Cart = () => {
                 <h2 className="mb-2 text-xl font-bold text-[var(--foreground)]">Your cart is empty</h2>
                 <p className="mb-6 text-sm text-[var(--muted-foreground)]">Add some delicious items to get started!</p>
                 <button
-                  className="rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-all hover:bg-[var(--ring)]"
+                  className="rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)]"
                   onClick={() => navigate('/')}
                 >
                   Continue Shopping
@@ -680,12 +642,12 @@ const Cart = () => {
                 <div className="flex flex-col gap-4">
                   {cart.map(item => (
                     <div
-                      className="relative grid grid-cols-[auto_1fr_auto] gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm transition-shadow duration-300 hover:shadow-lg md:grid-cols-[auto_1fr_auto]"
+                      className="relative grid grid-cols-[auto_1fr_auto] gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 md:grid-cols-[auto_1fr_auto]"
                       key={item._id}
                     >
-                      <div className="mx-auto h-16 w-16 flex-shrink-0 overflow-hidden rounded-3xl bg-[var(--secondary)] shadow-lg ring-1 ring-[var(--border)] transition-transform duration-500 hover:-translate-y-1 hover:scale-[1.03] md:h-16 md:w-16">
+                      <div className="mx-auto h-16 w-16 flex-shrink-0 overflow-hidden rounded-3xl bg-[var(--secondary)] md:h-16 md:w-16">
                         {item.image ? (
-                          <img src={item.image} alt={item.name} className="h-full w-full object-cover animate-cart-float" />
+                          <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center bg-[var(--secondary)] text-3xl text-[var(--primary)]">
                             🍕
@@ -707,7 +669,7 @@ const Cart = () => {
                         <div className="flex flex-col items-center gap-3 md:flex-row md:justify-between">
                           <div className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-1.5 py-0.5">
                             <button
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] transition-all hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] disabled:opacity-50"
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] disabled:opacity-50"
                               onClick={() => decrementQuantity(item._id)}
                               aria-label="Decrease quantity"
                               disabled={item.quantity <= 1}
@@ -716,7 +678,7 @@ const Cart = () => {
                             </button>
                             <span className="min-w-[24px] text-center text-sm font-bold text-[var(--foreground)]">{item.quantity}</span>
                             <button
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] transition-all hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] disabled:opacity-50"
+                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] disabled:opacity-50"
                               onClick={() => incrementQuantity(item._id, item.stock || 99)}
                               aria-label="Increase quantity"
                               disabled={item.quantity >= (item.stock || 99)}
@@ -732,7 +694,7 @@ const Cart = () => {
                       </div>
 
                       <button
-                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-none bg-transparent text-lg text-[var(--destructive)] transition-all hover:bg-[var(--destructive)/10] md:static"
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-none bg-transparent text-lg text-[var(--destructive)] md:static"
                         onClick={() => removeFromCart(item._id)}
                         aria-label={`Remove ${item.name} from cart`}
                       >
@@ -769,14 +731,14 @@ const Cart = () => {
                       </span>
                     </div>
                     <button
-                      className="mb-3 w-full rounded-lg border-none bg-[var(--primary)] py-2.5 text-sm font-bold text-[var(--primary-foreground)] transition-all hover:bg-[var(--ring)]"
+                      className="mb-3 w-full rounded-lg border-none bg-[var(--primary)] py-2.5 text-sm font-bold text-[var(--primary-foreground)]"
                       onClick={handleCheckout}
                     >
                       Proceed to Checkout
                     </button>
 
                     <button
-                      className="w-full rounded-lg border border-[var(--destructive)] bg-transparent py-2 text-xs font-semibold text-[var(--destructive)] transition-all hover:bg-[var(--destructive)/10]"
+                      className="w-full rounded-lg border border-[var(--destructive)] bg-transparent py-2 text-xs font-semibold text-[var(--destructive)]"
                       onClick={clearCart}
                     >
                       Clear Cart
@@ -789,7 +751,7 @@ const Cart = () => {
         </section>
       </main>
 
-      <CustomerFooter />
+      <Footer />
     </div>
   );
 };

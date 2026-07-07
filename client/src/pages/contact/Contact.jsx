@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Footer from '../../components/Footer';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import './Contact.scss';
@@ -277,6 +278,7 @@ const Contact = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

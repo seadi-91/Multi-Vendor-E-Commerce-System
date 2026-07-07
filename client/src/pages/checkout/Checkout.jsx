@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
-import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, Sun, Moon, Monitor, User, Settings, LogOut } from 'lucide-react';
+import Footer from '../../components/Footer';
+import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, Sun, Moon, Monitor, User, Settings, LogOut, MessageSquare } from 'lucide-react';
 
 const ThemeToggle = ({ theme, setTheme }) => {
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -60,6 +61,8 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [wantsReview, setWantsReview] = useState(true);
 
   const formatPrice = (price) => Number(price || 0).toFixed(2);
 
@@ -109,44 +112,62 @@ const Checkout = () => {
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+    // Validate form first before showing modal
+    if (!formData.fullName || formData.fullName.trim() === '') {
+      setError('Full name is required');
+      return;
+    }
+    if (!formData.phone || formData.phone.trim() === '') {
+      setError('Phone number is required');
+      return;
+    }
+    if (!formData.email || formData.email.trim() === '') {
+      setError('Email address is required');
+      return;
+    }
+    if (formData.isDelivery) {
+      if (!formData.city || formData.city.trim() === '') {
+        setError('City is required for delivery');
+        return;
+      }
+      if (!formData.address || formData.address.trim() === '') {
+        setError('Address is required for delivery');
+        return;
+      }
+    }
+    if (!cart || cart.length === 0) {
+      setError('Your cart is empty');
+      return;
+    }
+
+    setError(null);
+    // If payment method is chapa, skip modal and go directly
+    if (formData.paymentMethod === 'chapa') {
+      submitOrder(false);
+    } else {
+      setReviewModalOpen(true);
+    }
+  };
+
+  const submitOrder = async (wantsReviewValue) => {
     setIsSubmitting(true);
     setError(null);
+    setReviewModalOpen(false);
 
     try {
       console.log('=== Starting order submission ===');
       console.log('User:', user);
       console.log('Cart:', cart);
       console.log('FormData:', formData);
+      console.log('Wants review:', wantsReviewValue);
 
       // ── Check authentication ─────────────────────────────────────────────
       const token = localStorage.getItem('token');
       console.log('Token exists:', !!token);
       if (!token) {
         throw new Error('You must be logged in to place an order. Please log in and try again.');
-      }
-
-      // ── Form Validation ────────────────────────────────────────────────
-      if (!formData.fullName || formData.fullName.trim() === '') {
-        throw new Error('Full name is required');
-      }
-      if (!formData.phone || formData.phone.trim() === '') {
-        throw new Error('Phone number is required');
-      }
-      if (!formData.email || formData.email.trim() === '') {
-        throw new Error('Email address is required');
-      }
-      if (formData.isDelivery) {
-        if (!formData.city || formData.city.trim() === '') {
-          throw new Error('City is required for delivery');
-        }
-        if (!formData.address || formData.address.trim() === '') {
-          throw new Error('Address is required for delivery');
-        }
-      }
-      if (!cart || cart.length === 0) {
-        throw new Error('Your cart is empty');
       }
 
       // ── Chapa payment: initiate transaction and redirect ──────────────
@@ -206,7 +227,8 @@ const Checkout = () => {
         city: formData.city || '',
         address: formData.address || '',
         additionalInfo: formData.isDelivery ? `Delivery to ${formData.city}, ${formData.address}` : 'Pickup',
-        estimatedDelivery: formData.isDelivery ? '30-45 minutes' : '15-20 minutes'
+        estimatedDelivery: formData.isDelivery ? '30-45 minutes' : '15-20 minutes',
+        wantsReview: wantsReviewValue
       };
 
       console.log('Order payload:', JSON.stringify(orderPayload, null, 2));
@@ -241,6 +263,7 @@ const Checkout = () => {
         deliveryFee: parseFloat(deliveryFee.toFixed(2)),
         tax: 0,
         total: parseFloat(total.toFixed(2)),
+        wantsReview: wantsReviewValue
       };
 
       console.log('Created order:', createdOrder);
@@ -325,6 +348,36 @@ const Checkout = () => {
                 <p className="text-sm text-gray-500">Redirecting to your orders...</p>
               </div>
               <style>{`@keyframes progress { from { width: 0; } to { width: 100%; } }`}</style>
+            </div>
+          ) : reviewModalOpen ? (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
+              <div className={`${cardClass} rounded-3xl p-8 max-w-lg shadow-2xl transform animate-in zoom-in-95 duration-300`}>
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <MessageSquare className="w-10 h-10 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">Review your order</h2>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Would you like to rate and review the products after you receive your order?
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={() => submitOrder(true)}
+                    disabled={isSubmitting}
+                    className="flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold hover:shadow-lg transition-all disabled:opacity-70"
+                  >
+                    Yes, I'll Leave a Review
+                  </button>
+                  <button
+                    onClick={() => submitOrder(false)}
+                    disabled={isSubmitting}
+                    className="flex-1 px-6 py-3 rounded-2xl border-2 border-[var(--border)] text-[var(--foreground)] font-bold hover:bg-[var(--secondary)] transition-all disabled:opacity-70"
+                  >
+                    No, Maybe Later
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -603,6 +656,7 @@ const Checkout = () => {
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 };

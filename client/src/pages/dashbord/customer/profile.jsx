@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Footer from '../../../components/Footer';
 import {
   User, Mail, Phone, MapPin, Package, Heart, Star, Store, Copy,
   Check, X, ShoppingBag, ArrowLeft, Loader2, ChevronRight, Plus,
@@ -476,7 +477,7 @@ const Profile = () => {
           </>
         )}
       </div>
-
+      <Footer />
     </div>
   );
 };

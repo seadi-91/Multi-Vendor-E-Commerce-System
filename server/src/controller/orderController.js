@@ -24,7 +24,9 @@ const serializeOrder = (order) => {
             product: item.product ? {
                 ...item.product,
                 farmer: item.product.farmer || null
-            } : null
+            } : null,
+            // Find review for this product and order
+            review: order.reviews?.find(r => r.productId === item.productId) || null
         }))
         : items.map((item, index) => ({
             id: index + 1,
@@ -33,13 +35,16 @@ const serializeOrder = (order) => {
             price: item.price || item.unitPrice || 0,
             name: item.name || item.productName || 'Product',
             description: item.description || '',
-            image: item.image || ''
+            image: item.image || '',
+            review: order.reviews?.find(r => r.productId === (item.productId || item.id || item._id)) || null
         }));
 
     return {
         ...order,
         items: items,
-        orderItems: orderItems
+        orderItems: orderItems,
+        wantsReview: order.wantsReview || false,
+        reviews: order.reviews || []
     };
 };
 
@@ -117,7 +122,8 @@ exports.createOrder = async (req, res) => {
             vendor,
             restaurant,
             estimatedDelivery = '30-45 minutes',
-            specialInstructions
+            specialInstructions,
+            wantsReview = false
         } = req.body;
 
         let itemsJson = [];
@@ -245,6 +251,7 @@ exports.createOrder = async (req, res) => {
                     restaurant: restaurant || null,
                     estimatedDelivery: estimatedDelivery || '30-45 minutes',
                     specialInstructions: specialInstructions || null,
+                    wantsReview: wantsReview || false,
                     orderCode: `TEMP-${Date.now()}`
                 }
             });
@@ -748,7 +755,8 @@ exports.getOrders = async (req, res) => {
                             include: { farmer: true }
                         }
                     }
-                }
+                },
+                reviews: true // include all reviews for this order
             }
         });
 
@@ -776,7 +784,8 @@ exports.getOrderById = async (req, res) => {
                             include: { farmer: true }
                         }
                     }
-                }
+                },
+                reviews: true // include all reviews for this order
             }
         });
 

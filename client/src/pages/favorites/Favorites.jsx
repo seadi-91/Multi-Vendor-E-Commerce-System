@@ -5,11 +5,22 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, Package, BadgeCheck, Search, Sun, Moon, Monitor, User, Settings, LogOut, Leaf, ChevronLeft, ChevronDown, Filter, Tag } from 'lucide-react';
-import CustomerFooter from '../dashbord/customer/footer/Footer';
+import Footer from '../../components/Footer';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import api from '../../api';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
+
+const getStoredFavoriteIds = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('favorites') || '[]');
+    return Array.isArray(saved) ? saved.map((id) => String(id)) : [];
+  } catch (error) {
+    console.error('Failed to parse stored favorites:', error);
+    return [];
+  }
+};
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
@@ -217,86 +228,92 @@ const VendorBadge = ({ name, verified }) => (
 // ─── Product Card ─────────────────────────────────────────────────────────────
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, className = '' }) => {
   const {
-    id, name, price, rating = 4.5, vendor = 'Fresh Vendor', vendorVerified = true,
-    image, reviewsCount = 120, discountPercent = 0, unit = 'kg', badge, freeShipping,
-    description,
+    id, name, price, rating = 0, vendor = 'Fresh Vendor', vendorVerified = true,
+    image, reviewsCount = 0, discountPercent = 0, unit = 'kg', badge, category,
+    description, stock = 0, discountPrice,
   } = product;
 
+  const finalPrice = Number(discountPrice ?? (discountPercent > 0 ? price * (1 - discountPercent / 100) : price) ?? price);
+  const hasDiscount = discountPercent > 0 || (discountPrice && Number(discountPrice) < Number(price));
+  const stockStatus = stock > 20 ? 'In stock' : stock > 0 ? 'Low stock' : 'Out of stock';
+  const stockTone = stock > 20 ? 'text-emerald-600' : stock > 0 ? 'text-amber-600' : 'text-rose-600';
+
   return (
-    <Link to={`/product/${id}`} className="block">
-      <div className={`group bg-[var(--card)] rounded-2xl border border-[var(--border)] hover:border-[var(--primary)]/40 hover:shadow-2xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
-        {/* Image */}
-        <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '200px' }}>
+    <Link to={`/product/${id}`} className="block h-full">
+      <div className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:border-[var(--primary)]/40 hover:shadow-md ${className}`}>
+        <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '102px' }}>
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.parentNode.style.background = '#f0fdf4';
             }}
           />
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {discountPercent > 0 && (
-              <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">
-                {discountPercent}% OFF
+          <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
+            {hasDiscount && (
+              <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
+                {discountPercent > 0 ? `${discountPercent}% OFF` : 'Sale'}
               </span>
             )}
             {badge && (
-              <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">
+              <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-semibold text-amber-950 shadow-sm">
                 {badge}
               </span>
             )}
           </div>
 
-          {/* Favorite */}
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
-            className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-300"
+            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:scale-110"
           >
-            <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
+            <Heart className={`h-3 w-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 flex flex-col p-3">
+        <div className="flex flex-1 flex-col p-2.5">
           <VendorBadge name={vendor} verified={vendorVerified} />
 
-          <h3 className="text-xs font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1.5 leading-snug transition-colors">
+          <h3 className="mt-1 line-clamp-1 text-[12px] font-semibold leading-tight text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
             {name}
           </h3>
 
-          {description && (
-            <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5 line-clamp-1">{description}</p>
+          {category && (
+            <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">{category}</p>
           )}
 
-          {/* Rating */}
-          <div className="flex items-center mt-2 gap-1">
+          {description && (
+            <p className="mt-1 line-clamp-2 text-[10px] text-[var(--muted-foreground)]">{description}</p>
+          )}
+
+          <div className="mt-1.5 flex items-center gap-1">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className={`w-3 h-3 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-neutral-200'}`} />
+                <Star key={i} className={`h-2.5 w-2.5 ${i < Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-neutral-200'}`} />
               ))}
             </div>
-            <span className="text-[10px] text-[var(--muted-foreground)]">({reviewsCount.toLocaleString()})</span>
+            <span className="text-[9px] text-[var(--muted-foreground)]">{Number(rating || 0).toFixed(1)} • {reviewsCount.toLocaleString()}</span>
           </div>
 
-          {/* Price */}
-          <div className="mt-2.5 flex items-baseline gap-2">
-            <span className="text-sm font-extrabold text-[var(--primary)]">{fmt(price)}</span>
-            {discountPercent > 0 && (
-              <span className="text-[10px] text-[var(--muted-foreground)] line-through">{calcOriginal(price, discountPercent)}</span>
-            )}
-            <span className="text-[9px] text-[var(--muted-foreground)]">/{unit}</span>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-sm font-bold text-[var(--primary)]">{fmt(finalPrice)}</span>
+            {hasDiscount && <span className="text-[9px] text-[var(--muted-foreground)] line-through">{fmt(price)}</span>}
+            <span className="text-[8px] text-[var(--muted-foreground)]">/{unit}</span>
+          </div>
+
+          <div className="mt-1.5 flex items-center justify-between gap-2 text-[9px] text-[var(--muted-foreground)]">
+            <span className={`truncate ${stockTone}`}>{stockStatus}</span>
+            <span className="truncate">{vendor}</span>
           </div>
 
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-            className="w-full mt-2.5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 active:scale-[0.98] text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg"
+            className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition-all hover:opacity-90"
           >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            Add to Cart
+            <ShoppingCart className="h-3 w-3" />
+            Add
           </button>
         </div>
       </div>
@@ -431,23 +448,15 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
+  const [favoriteProducts, setFavoriteProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { theme, setTheme } = useTheme();
   const { addToCart, cart } = useCart();
   const { user, logout } = useAuth();
 
   // Calculate cart total from CartContext
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const products = [
-    { id: 1, name: 'Fresh Organic Tomatoes', price: 25.00, image: 'https://images.unsplash.com/photo-1546470427-227c7369a9b9?w=400&q=80', description: 'Locally grown organic tomatoes, perfect for salads and cooking', unit: 'kg', discountPercent: 10, vendor: 'Green Valley Farm', vendorVerified: true, rating: 4.8, reviewsCount: 45, badge: 'Organic', category: 'vegetables', stock: 50 },
-    { id: 2, name: 'Premium Coffee Beans', price: 120.00, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80', description: 'Ethiopian Yirgacheffe coffee beans, freshly roasted', unit: 'kg', discountPercent: 0, vendor: 'Highland Coffee Co.', vendorVerified: true, rating: 4.9, reviewsCount: 89, badge: 'Best Seller', category: 'coffee', stock: 30 },
-    { id: 3, name: 'Fresh Strawberries', price: 45.00, image: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=400&q=80', description: 'Sweet and juicy strawberries, hand-picked daily', unit: 'kg', discountPercent: 15, vendor: 'Berry Farm', vendorVerified: true, rating: 4.7, reviewsCount: 62, badge: 'Fresh Daily', category: 'fruits', stock: 25 },
-    { id: 4, name: 'Organic Lentils', price: 35.00, image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=400&q=80', description: 'High-protein organic lentils, perfect for healthy meals', unit: 'kg', discountPercent: 5, vendor: 'Grain Harvest', vendorVerified: true, rating: 4.6, reviewsCount: 38, badge: 'Organic', category: 'legumes', stock: 100 },
-    { id: 5, name: 'Fresh Spinach', price: 20.00, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80', description: 'Crisp organic spinach, rich in vitamins and minerals', unit: 'bunch', discountPercent: 0, vendor: 'Green Valley Farm', vendorVerified: true, rating: 4.5, reviewsCount: 29, badge: 'Organic', category: 'vegetables', stock: 40 },
-    { id: 6, name: 'Honey', price: 80.00, image: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&q=80', description: 'Pure natural honey from local beekeepers', unit: 'jar', discountPercent: 20, vendor: 'Mountain Honey', vendorVerified: true, rating: 4.9, reviewsCount: 76, badge: 'Natural', category: 'other', stock: 15 },
-    { id: 7, name: 'Fresh Carrots', price: 18.00, image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&q=80', description: 'Sweet and crunchy organic carrots', unit: 'kg', discountPercent: 0, vendor: 'Root Vegetable Farm', vendorVerified: true, rating: 4.4, reviewsCount: 34, badge: 'Organic', category: 'vegetables', stock: 60 },
-    { id: 8, name: 'Avocados', price: 55.00, image: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400&q=80', description: 'Creamy ripe avocados, perfect for toast and salads', unit: 'kg', discountPercent: 10, vendor: 'Tropical Farms', vendorVerified: true, rating: 4.7, reviewsCount: 52, badge: 'Premium', category: 'fruits', stock: 35 },
-  ];
+  const favoritesCount = favoriteProducts.length;
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -573,51 +582,105 @@ const Favorites = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Load favorites from localStorage on mount
-  useEffect(() => {
-    const normalizeFavorites = (value) => {
-      if (!Array.isArray(value)) return [];
-      return value.map((item) => String(item));
-    };
-
-    const savedFavorites = localStorage.getItem('favorites');
-    if (savedFavorites) {
-      try {
-        setFavorites(normalizeFavorites(JSON.parse(savedFavorites)));
-      } catch {
+  const refreshFavorites = async () => {
+    if (!user) {
+      const storedIds = getStoredFavoriteIds();
+      if (storedIds.length === 0) {
+        setFavoriteProducts([]);
         setFavorites([]);
+        setLoading(false);
+        return;
       }
+
+      try {
+        setLoading(true);
+        const response = await api.get('/products');
+        const products = Array.isArray(response?.data?.data) ? response.data.data : [];
+        const matchedProducts = products.filter((product) => storedIds.includes(String(product.id)));
+        setFavoriteProducts(matchedProducts);
+        setFavorites(matchedProducts.map((item) => String(item.id)));
+        localStorage.setItem('favorites', JSON.stringify(matchedProducts.map((item) => String(item.id))));
+      } catch (error) {
+        console.error('Failed to load local favorites:', error);
+        setFavoriteProducts([]);
+        setFavorites(storedIds);
+      } finally {
+        setLoading(false);
+      }
+      return;
     }
 
-    const updateFavorites = () => {
-      const saved = localStorage.getItem('favorites');
-      if (saved) {
-        try {
-          setFavorites(normalizeFavorites(JSON.parse(saved)));
-        } catch {
-          setFavorites([]);
-        }
-      } else {
-        setFavorites([]);
+    try {
+      setLoading(true);
+      const response = await api.get('/favorites');
+      const items = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const storedIds = getStoredFavoriteIds();
+      const favoriteIds = items.map((item) => String(item.id));
+      const mergedIds = Array.from(new Set([...favoriteIds, ...storedIds.filter((id) => !favoriteIds.includes(id))]));
+
+      if (items.length > 0 || mergedIds.length === 0) {
+        setFavoriteProducts(items);
+        setFavorites(favoriteIds);
+        localStorage.setItem('favorites', JSON.stringify(favoriteIds));
+        return;
       }
+
+      const productsResponse = await api.get('/products');
+      const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
+      const matchedProducts = products.filter((product) => mergedIds.includes(String(product.id)));
+      setFavoriteProducts(matchedProducts);
+      setFavorites(matchedProducts.map((item) => String(item.id)));
+      localStorage.setItem('favorites', JSON.stringify(matchedProducts.map((item) => String(item.id))));
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+      setFavoriteProducts([]);
+      setFavorites([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshFavorites();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      refreshFavorites();
     };
 
-    window.addEventListener('storage', updateFavorites);
-    window.addEventListener('favoritesUpdated', updateFavorites);
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('favoritesUpdated', handleStorageUpdate);
+
     return () => {
-      window.removeEventListener('storage', updateFavorites);
-      window.removeEventListener('favoritesUpdated', updateFavorites);
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('favoritesUpdated', handleStorageUpdate);
     };
-  }, []);
+  }, [user?.id]);
 
-  const toggleFavorite = (id) => {
+  const toggleFavorite = async (id) => {
+    if (!user) {
+      toast.error('Please sign in to manage favorites.');
+      return;
+    }
+
     const normalizedId = String(id);
     const isFav = favorites.includes(normalizedId);
-    const newFavorites = isFav ? favorites.filter((favoriteId) => favoriteId !== normalizedId) : [...favorites, normalizedId];
-    setFavorites(newFavorites);
-    localStorage.setItem('favorites', JSON.stringify(newFavorites));
-    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
-    toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
+
+    try {
+      if (isFav) {
+        await api.delete(`/favorites/${normalizedId}`);
+      } else {
+        await api.post('/favorites/add', { productId: normalizedId });
+      }
+
+      await refreshFavorites();
+      window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+      toast.success(isFav ? 'Removed from favorites' : 'Added to favorites');
+    } catch (error) {
+      console.error('Failed to update favorite:', error);
+      toast.error('Unable to update favorites right now.');
+    }
   };
 
   const handleAddToCart = (product) => {
@@ -625,75 +688,37 @@ const Favorites = () => {
     toast.success(`${product.name} added to cart!`);
   };
 
-  const favoriteProducts = products.filter((product) => favorites.includes(String(product.id)));
-  const favoritesCount = favoriteProducts.length;
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
         <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
-        <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-          {/* Hero Section */}
-          <section className="overflow-hidden rounded-3xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-2xl sm:p-8">
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+          <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-50 backdrop-blur-sm">
-                  Wishlist
+                <div className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-50 backdrop-blur-sm">
+                  Favorites
                 </div>
-                <h1 className="text-2xl font-black sm:text-3xl drop-shadow-lg">Your favorite picks</h1>
-                <p className="mt-2 max-w-2xl text-xs text-emerald-50 sm:text-sm opacity-90">
-                  Save products you love and come back whenever you're ready to shop.
+                <h1 className="text-2xl font-bold sm:text-3xl">Your saved picks</h1>
+                <p className="mt-2 max-w-2xl text-sm text-emerald-50/90">
+                  Sign in to view the products you have saved from our marketplace.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2.5 backdrop-blur-sm shadow-lg">
-                <p className="text-2xl font-black">{favoriteProducts.length}</p>
-                <p className="text-xs text-emerald-50">saved items</p>
-              </div>
             </div>
           </section>
 
-          {/* Products Section */}
-          <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-xl backdrop-blur-sm sm:p-6">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Wishlist</p>
-                <h2 className="text-xl font-black text-[var(--foreground)]">Saved favorites</h2>
-              </div>
-              <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-sm">
-                {favoriteProducts.length} saved items
-              </div>
-            </div>
-
-            {favoriteProducts.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {favoriteProducts.map(p => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    isFavorite={favorites.includes(p.id)}
-                    onToggleFavorite={toggleFavorite}
-                    onAddToCart={handleAddToCart}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-12 text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="relative">
-                    <Heart className="h-16 w-16 text-[var(--muted-foreground)] opacity-50" />
-                    <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full bg-emerald-400 opacity-20"></div>
-                  </div>
-                </div>
-                <h3 className="mb-2 text-lg font-bold text-[var(--foreground)]">No favorites yet</h3>
-                <p className="mb-6 text-xs text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
-                <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg transition hover:shadow-xl hover:scale-105">
-                  Browse Products
-                </Link>
-              </div>
-            )}
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-6 text-center shadow-sm">
+            <Heart className="mx-auto mb-4 h-12 w-12 text-[var(--muted-foreground)]/60" />
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">Please sign in</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
+              Your favorites are linked to your account, so sign in to see the real products saved here.
+            </p>
+            <Link to="/login" className="mt-5 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+              Go to Sign In
+            </Link>
           </section>
         </main>
-        <CustomerFooter />
+        <Footer />
       </div>
     );
   }
@@ -702,69 +727,79 @@ const Favorites = () => {
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
       <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <section className="overflow-hidden rounded-3xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-2xl sm:p-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-50 backdrop-blur-sm">
-                Wishlist
+              <div className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-50 backdrop-blur-sm">
+                Favorites
               </div>
-              <h1 className="text-3xl font-black sm:text-4xl drop-shadow-lg">Your favorite picks</h1>
-              <p className="mt-2 max-w-2xl text-sm text-emerald-50 sm:text-base opacity-90">
-                Keep the products you love close at hand and come back whenever you're ready to buy.
+              <h1 className="text-2xl font-bold sm:text-3xl">Your saved picks</h1>
+              <p className="mt-2 max-w-2xl text-sm text-emerald-50/90">
+                Keep the products you love close at hand and revisit them whenever you are ready to buy.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm shadow-lg">
-              <p className="text-3xl font-black">{favoriteProducts.length}</p>
-              <p className="text-sm text-emerald-50">saved items</p>
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-3.5 py-2.5 backdrop-blur-sm shadow-sm">
+              <p className="text-2xl font-bold">{favoritesCount}</p>
+              <p className="text-xs text-emerald-50/90">saved items</p>
             </div>
           </div>
         </section>
 
-        {/* Products Section */}
-        <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-xl backdrop-blur-sm sm:p-6">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-sm backdrop-blur-sm sm:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--primary)]">Wishlist</p>
-              <h2 className="text-xl font-black text-[var(--foreground)]">Saved favorites</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--primary)]">Wishlist</p>
+              <h2 className="text-lg font-semibold text-[var(--foreground)]">Saved favorites</h2>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-sm">
-              {favoriteProducts.length} saved items
+            <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-emerald-50 to-emerald-100 px-3 py-2 text-xs font-semibold text-emerald-600 shadow-sm dark:from-emerald-900/30 dark:to-emerald-800/30 dark:text-emerald-400">
+              {favoritesCount} saved items
             </div>
           </div>
 
-          {favoriteProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {favoriteProducts.map(p => (
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--secondary)] p-2.5">
+                  <div className="h-24 rounded-xl bg-[var(--border)]" />
+                  <div className="mt-2 h-2.5 w-16 rounded bg-[var(--border)]" />
+                  <div className="mt-2 h-3 w-20 rounded bg-[var(--border)]" />
+                  <div className="mt-2 h-7 rounded-lg bg-[var(--border)]" />
+                </div>
+              ))}
+            </div>
+          ) : favoriteProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              {favoriteProducts.map((p) => (
                 <ProductCard
                   key={p.id}
                   product={p}
-                  isFavorite={favorites.includes(p.id)}
+                  isFavorite={favorites.includes(String(p.id))}
                   onToggleFavorite={toggleFavorite}
                   onAddToCart={handleAddToCart}
                 />
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-12 text-center">
+            <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-10 text-center">
               <div className="mb-4 flex justify-center">
                 <div className="relative">
-                  <Heart className="h-16 w-16 text-[var(--muted-foreground)] opacity-50" />
-                  <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full bg-emerald-400 opacity-20"></div>
+                  <Heart className="h-12 w-12 text-[var(--muted-foreground)]/50" />
                 </div>
               </div>
-              <h3 className="mb-2 text-xl font-bold text-[var(--foreground)]">No favorites yet</h3>
-              <p className="mb-6 text-xs text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
-              <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-xs font-bold text-white shadow-lg transition hover:shadow-xl hover:scale-105">
-                Browse Products
+              <h3 className="mb-2 text-lg font-semibold text-[var(--foreground)]">No favorite products yet</h3>
+              <p className="mx-auto mb-5 max-w-md text-sm text-[var(--muted-foreground)]">
+                Save products from the marketplace and they will appear here with their real details from the database.
+              </p>
+              <Link to="/market" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+                Browse marketplace
               </Link>
             </div>
           )}
         </section>
       </main>
 
-      <CustomerFooter />
+      <Footer />
     </div>
   );
 };

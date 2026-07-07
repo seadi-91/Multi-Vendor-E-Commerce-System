@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -35,36 +37,36 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized - token expired, invalid, or user deleted
     if (status === 401 && !isAuthRequest && !isLoginPage) {
       console.log('401 Unauthorized - clearing auth state and redirecting to login');
-      
+
       // Check if it's due to user deletion
-      const isUserDeleted = errorMessage?.includes('user not found') || 
-                           errorMessage?.includes('Not authorized, user not found');
-      
+      const isUserDeleted = errorMessage?.includes('user not found') ||
+        errorMessage?.includes('Not authorized, user not found');
+
       // Clear all auth state
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('auth-storage'); // Zustand persist key
-      
+
       // Show appropriate message
       if (isUserDeleted) {
         alert('Your account has been removed by an administrator. You will be redirected to the login page.');
       }
-      
+
       window.location.href = '/login';
     }
 
     // Handle 404 with account deletion codes - user/farmer was deleted
     if (
-      status === 404 && 
+      status === 404 &&
       (errorCode === 'USER_NOT_FOUND' || errorCode === 'FARMER_NOT_FOUND') &&
-      !isAuthRequest && 
+      !isAuthRequest &&
       !isLoginPage
     ) {
       console.log('Account deleted - clearing auth state and redirecting to login');
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('auth-storage'); // Zustand persist key
-      
+
       // Show a message to the user about account deletion
       alert('Your account has been removed by an administrator. You will be redirected to the login page.');
       window.location.href = '/login';

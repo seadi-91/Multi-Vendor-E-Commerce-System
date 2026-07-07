@@ -175,8 +175,6 @@ const FarmerHeader = ({ user, onLogout }) => {
               );
             })}
           </ul>
-        </nav>
-          
           {/* Quick Actions */}
           <div className="quick-actions">
             <Link 

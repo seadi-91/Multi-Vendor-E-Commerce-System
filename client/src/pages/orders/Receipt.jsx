@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, CheckCircle2, CreditCard, Download, Mail, MapPin, Package, Printer, Truck, User } from 'lucide-react';
+import Footer from '../../components/Footer';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import api from '../../api';
@@ -281,8 +282,9 @@ const Receipt = () => {
                     <p className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] mt-1">We appreciate your business and look forward to serving you again.</p>
                 </div>
             </div>
+            <Footer />
         </div>
     );
-};
+  };
 
 export default Receipt;

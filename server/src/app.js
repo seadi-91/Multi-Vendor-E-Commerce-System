@@ -75,6 +75,7 @@ const productsRouter = require('./router/productsRouter');
 const reviewRouter = require('./router/reviewRouter');
 const paymentRouter = require('./router/paymentRouter');
 const notificationRouter = require('./router/notificationRouter');
+const favoritesRouter = require('./router/favoritesRouter');
 
 // Apply rate limiting to routes
 app.use('/api/auth', authLimiter, authRouter);
@@ -87,6 +88,8 @@ app.use('/api/products', apiLimiter, productsRouter);
 app.use('/api/reviews', apiLimiter, reviewRouter);
 app.use('/api/payments', apiLimiter, paymentRouter);
 app.use('/api/notifications', apiLimiter, notificationRouter);
+app.use('/api/favorites', apiLimiter, favoritesRouter);
+app.use('/api/wishlist', apiLimiter, favoritesRouter);
 
 // Health check
 app.get('/', (req, res) => {

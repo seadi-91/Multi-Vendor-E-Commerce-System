@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import Footer from '../../components/Footer';
 
 const fmt = (n) => {
   const value = Number(n);
@@ -270,6 +271,7 @@ const Market = () => {
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
         const response = await api.get('/products', {
           params: {
@@ -279,16 +281,31 @@ const Market = () => {
             limit: 50
           }
         });
-        const payload = response.data;
-        const productsData = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+
+        const payload = response?.data;
+        const productsData = Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.products)
+            ? payload.products
+            : Array.isArray(payload)
+              ? payload
+              : [];
+
         const mappedProducts = productsData.map((product) => ({
           ...product,
-          id: product.id ?? product._id,
+          id: product.id ?? product._id ?? product.productId,
+          name: product.name ?? 'Untitled product',
+          description: product.description ?? '',
+          image: product.image ?? product.photo ?? '',
+          vendor: product.vendor ?? product.farmer?.farmName ?? product.farmer?.name ?? 'Fresh Vendor',
+          category: product.category ?? 'Other',
           price: Number(product.price) || 0,
+          stock: Number(product.stock ?? product.totalStock ?? 0) || 0,
           rating: Number(product.rating) || 0,
           reviewsCount: Number(product.reviewsCount) || 0,
           discountPercent: Number(product.discountPercent) || 0,
         }));
+
         setProducts(mappedProducts);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -679,6 +696,7 @@ const Market = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

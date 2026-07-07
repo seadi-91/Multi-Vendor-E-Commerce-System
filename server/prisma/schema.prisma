@@ -79,14 +79,15 @@ model User {
   isActive Boolean @default(true)
 
   // Relations
-  products           Product[]
-  orders             Order[]
-  orderItems         OrderItem[]
-  notifications      Notification[]
-  reviews            Review[]
-  sentMessages       Message[]           @relation("SentMessages")
-  receivedMessages   Message[]           @relation("ReceivedMessages")
-  withdrawalRequests WithdrawalRequest[]
+  products              Product[]
+  orders                Order[]
+  orderItems            OrderItem[]
+  notifications         Notification[]
+  reviews               Review[]
+  favorites             Favorite[]
+  sentMessages          Message[] @relation("SentMessages")
+  receivedMessages      Message[] @relation("ReceivedMessages")
+  withdrawalRequests    WithdrawalRequest[]
 
   @@index([role, isActive])
   @@index([role, isVerified])
@@ -94,32 +95,47 @@ model User {
 }
 
 model Product {
-  id               Int            @id @default(autoincrement())
-  name             String
-  description      String?
-  price            Float
-  stock            Int            @default(0)
-  totalStock       Int?
-  minOrderQuantity Int            @default(1)
-  unit             String?
-  category         String?
-  brand            String?
-  sku              String?
-  discountPrice    Float?
-  isOrganic        Boolean        @default(false)
-  harvestDate      DateTime?
-  expiryDate       DateTime?
-  image            String?
-  badges           String[]
-  tags             String[]
-  status           String         @default("pending")
-  farmerId         Int
-  farmer           User           @relation(fields: [farmerId], references: [id], onDelete: Cascade)
-  orderItems       OrderItem[]
-  notifications    Notification[]
-  reviews          Review[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                Int      @id @default(autoincrement())
+  name              String
+  description       String?
+  price             Float
+  stock             Int      @default(0)
+  totalStock        Int?
+  minOrderQuantity  Int      @default(1)
+  unit              String?
+  category          String?
+  brand             String?
+  sku               String?
+  discountPrice     Float?
+  isOrganic         Boolean  @default(false)
+  harvestDate       DateTime?
+  expiryDate        DateTime?
+  image             String?
+  badges            String[]
+  tags              String[]
+  status            String   @default("pending")
+  farmerId          Int
+  farmer            User     @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+  notifications     Notification[]
+  reviews           Review[]
+  favorites         Favorite[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
 
 model Review {
