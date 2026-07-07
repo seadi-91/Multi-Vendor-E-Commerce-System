@@ -81,7 +81,7 @@ function App() {
             }
           />
 
-          {/* Customer Routes (Changed path to support nested routes) */}
+          {/* Customer Routes */}
           <Route
             path="/customer/dashboard/*"
             element={
@@ -108,6 +108,14 @@ function App() {
           />
           <Route
             path="/customer/orders/receipt/:id"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+                <Receipt />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders/:orderId/receipt"
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
                 <Receipt />

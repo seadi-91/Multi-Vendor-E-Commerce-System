@@ -21,18 +21,18 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[var(--card)] border-r border-[var(--border)] p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[var(--card)] border-r border-[var(--border)] p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out shadow-lg ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div>
           {/* Brand Logo */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-white text-xl">🌾</span>
                 </div>
                 <h1 className="text-lg font-extrabold flex items-center">
@@ -43,7 +43,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
             </div>
             <button
               onClick={onClose}
-              className="lg:hidden p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              className="lg:hidden p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             >
               ✕
             </button>
@@ -75,7 +75,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
                 <span className="text-lg">🤍</span> <span>Wishlist</span>
               </div>
               {favoritesCount > 0 && (
-                <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{favoritesCount}</span>
+                <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-sm">{favoritesCount}</span>
               )}
             </NavLink>
 
@@ -83,21 +83,21 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
               <div className="flex items-center gap-3">
                 <span className="text-lg">🛒</span> <span>Cart</span>
               </div>
-              <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">{cartCount || 0}</span>
+              <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-sm">{cartCount || 0}</span>
             </NavLink>
           </nav>
         </div>
 
         {/* Sidebar Promo Card */}
-        <div className="bg-[var(--secondary)] rounded-2xl p-4 mt-6 relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-2xl p-4 mt-6 relative overflow-hidden group border border-emerald-200 dark:border-emerald-700">
           <div className="relative z-10">
             <h3 className="text-[var(--foreground)] font-bold text-base mb-1">Fresh Deals!</h3>
             <p className="text-xs text-[var(--muted-foreground)] mb-3 max-w-[120px]">Get up to 20% off on selected products</p>
-            <Link to="/" className="bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] font-semibold text-xs px-4 py-2 rounded-lg transition-colors">
+            <Link to="/" className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg">
               Shop Now
             </Link>
           </div>
-          <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform">🧺</span>
+          <span className="absolute bottom-[-10px] right-[-10px] text-5xl opacity-80 pointer-events-none group-hover:scale-110 transition-transform duration-500">🧺</span>
         </div>
       </aside>
     </>
@@ -109,11 +109,11 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
   const navigate = useNavigate();
 
   return (
-    <header className="bg-[var(--card)] border-b border-[var(--border)] px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-40">
+    <header className="bg-[var(--card)] border-b border-[var(--border)] px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
       {/* Mobile Menu Toggle */}
       <button
         onClick={onMenuToggle}
-        className="lg:hidden p-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] mr-2"
+        className="lg:hidden p-2 text-[var(--muted-foreground)] hover:text-[var(--primary)] mr-2 transition-colors"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -121,13 +121,13 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
       </button>
 
       {/* Universal Search Bar */}
-      <div className="flex items-center w-full max-w-xl bg-[var(--secondary)] border border-[var(--border)] rounded-xl overflow-hidden px-4 py-1.5 focus-within:border-[var(--primary)] transition-colors">
+      <div className="flex items-center w-full max-w-xl bg-[var(--secondary)] border border-[var(--border)] rounded-xl overflow-hidden px-4 py-1.5 focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/20 transition-all">
         <input
           type="text"
           placeholder="Search for products or sellers..."
           className="bg-transparent w-full text-sm text-[var(--foreground)] placeholder-[var(--muted-foreground)] outline-none py-1"
         />
-        <button className="bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] p-2 rounded-lg transition-colors">
+        <button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 text-white p-2 rounded-lg transition-all shadow-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
@@ -136,19 +136,19 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
 
       {/* Global Action Icons */}
       <div className="flex items-center gap-4 sm:gap-6">
-        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)]">
+        <div onClick={() => navigate('/customer/dashboard/notifications')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
           <span className="text-xl">🔔</span>
-          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
+          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">3</span>
         </div>
-        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)]">
+        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
           <span className="text-xl">🤍</span>
           {favoritesCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{favoritesCount}</span>
+            <span className="absolute -top-1 -right-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">{favoritesCount}</span>
           )}
         </div>
-        <div onClick={() => navigate('/customer/cart')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)]">
+        <div onClick={() => navigate('/customer/cart')} className="relative cursor-pointer p-1 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
           <span className="text-xl">🛒</span>
-          <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount || 0}</span>
+          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">{cartCount || 0}</span>
         </div>
 
         {/* User Interactive Menu Context */}
@@ -156,7 +156,7 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
           <img
             src={user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop"}
             alt="User profile"
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700"
           />
           <div className="text-left hidden md:block">
             <p className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-1 cursor-default">
@@ -171,26 +171,26 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
           {/* 3-Dot Dropdown Actions Panel */}
           <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl py-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200 z-50">
 
-            <button onClick={() => navigate('/customer/dashboard/notifications')} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left">
+            <button onClick={() => navigate('/customer/dashboard/notifications')} className="w-full flex items-center justify-between px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left transition-colors">
               <div className="flex items-center gap-3">
                 <span>🔔</span> Notifications
               </div>
-              <span className="bg-green-50 text-green-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+              <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
             </button>
-            <button onClick={() => navigate('/customer/profile')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left">
+            <button onClick={() => navigate('/customer/profile')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left transition-colors">
               <span>👤</span> Profile
             </button>
-            <button onClick={() => navigate('/customer/dashboard/orders')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left">
+            <button onClick={() => navigate('/customer/dashboard/orders')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left transition-colors">
               <span>🛍️</span> My Orders
             </button>
-            <button onClick={() => navigate('/customer/dashboard/reviews')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left">
+            <button onClick={() => navigate('/customer/dashboard/reviews')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left transition-colors">
               <span>⭐</span> My Reviews
             </button>
-            <button onClick={() => navigate('/customer/dashboard/settings')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left">
+            <button onClick={() => navigate('/customer/dashboard/settings')} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] hover:text-[var(--primary)] font-medium text-left transition-colors">
               <span>⚙️</span> Settings
             </button>
             <hr className="my-1 border-[var(--border)]" />
-            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium text-left">
+            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium text-left transition-colors">
               <span>📤</span> Logout
             </button>
           </div>
@@ -204,8 +204,8 @@ const DashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCou
 const VendorBadge = ({ name, verified }) => (
   <div className="flex items-center gap-1.5">
     <div
-      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-      style={{ background: `hsl(${(name.charCodeAt(0) * 37) % 360}, 55%, 45%)` }}
+      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 shadow-sm"
+      style={{ background: `linear-gradient(135deg, hsl(${(name.charCodeAt(0) * 37) % 360}, 55%, 45%), hsl(${(name.charCodeAt(0) * 37) % 360}, 65%, 55%))` }}
     >
       {name[0]}
     </div>
@@ -224,13 +224,13 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
   return (
     <Link to={`/product/${id}`} className="block">
-      <div className={`group bg-[var(--card)] rounded-2xl border border-[var(--border)] hover:border-[var(--primary)]/40 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
+      <div className={`group bg-[var(--card)] rounded-2xl border border-[var(--border)] hover:border-[var(--primary)]/40 hover:shadow-2xl transition-all duration-300 flex flex-col overflow-hidden ${className}`}>
         {/* Image */}
         <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '200px' }}>
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.parentNode.style.background = '#f0fdf4';
@@ -240,12 +240,12 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {discountPercent > 0 && (
-              <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+              <span className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">
                 {discountPercent}% OFF
               </span>
             )}
             {badge && (
-              <span className="bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded shadow">
+              <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg">
                 {badge}
               </span>
             )}
@@ -254,22 +254,22 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
           {/* Favorite */}
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
-            className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:scale-110 active:scale-95 transition-all"
+            className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-300"
           >
             <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 flex flex-col p-4">
+        <div className="flex-1 flex flex-col p-3">
           <VendorBadge name={vendor} verified={vendorVerified} />
 
-          <h3 className="text-sm font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1.5 leading-snug">
+          <h3 className="text-xs font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1.5 leading-snug transition-colors">
             {name}
           </h3>
 
           {description && (
-            <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5 line-clamp-1">{description}</p>
+            <p className="text-[10px] text-[var(--muted-foreground)] mt-0.5 line-clamp-1">{description}</p>
           )}
 
           {/* Rating */}
@@ -279,21 +279,21 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
                 <Star key={i} className={`w-3 h-3 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-neutral-200'}`} />
               ))}
             </div>
-            <span className="text-[11px] text-[var(--muted-foreground)]">({reviewsCount.toLocaleString()})</span>
+            <span className="text-[10px] text-[var(--muted-foreground)]">({reviewsCount.toLocaleString()})</span>
           </div>
 
           {/* Price */}
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-base font-extrabold text-[var(--primary)]">{fmt(price)}</span>
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <span className="text-sm font-extrabold text-[var(--primary)]">{fmt(price)}</span>
             {discountPercent > 0 && (
-              <span className="text-xs text-[var(--muted-foreground)] line-through">{calcOriginal(price, discountPercent)}</span>
+              <span className="text-[10px] text-[var(--muted-foreground)] line-through">{calcOriginal(price, discountPercent)}</span>
             )}
-            <span className="text-[10px] text-[var(--muted-foreground)]">/{unit}</span>
+            <span className="text-[9px] text-[var(--muted-foreground)]">/{unit}</span>
           </div>
 
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-            className="w-full mt-3 py-2.5 bg-[var(--primary)] hover:opacity-90 active:scale-[0.98] text-[var(--primary-foreground)] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+            className="w-full mt-2.5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:opacity-90 active:scale-[0.98] text-white rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             Add to Cart
@@ -312,12 +312,12 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
   const [sortBy, setSortBy] = useState('Popular');
 
   return (
-    <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
+    <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-md border-b border-[var(--border)]">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
         {/* Logo — left */}
         <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
-            <span className="text-[var(--primary-foreground)] font-extrabold text-sm">FC</span>
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
+            <span className="text-white font-extrabold text-sm">FC</span>
           </div>
           <span className="text-lg font-extrabold text-[var(--primary)] tracking-tight">FarmConnect</span>
         </Link>
@@ -333,7 +333,7 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
 
         {/* Search + Category + Sort */}
         <div className="flex flex-1 flex-col gap-2 mx-4 max-w-3xl md:flex-row md:items-center md:gap-3">
-          <div className="flex items-center w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl overflow-hidden px-3 py-1">
+          <div className="flex items-center w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl overflow-hidden px-3 py-1 focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/20 transition-all">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -342,7 +342,7 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
             />
             <button
               onClick={() => navigate(`/market?search=${encodeURIComponent(query)}&cat=${encodeURIComponent(category)}&sort=${encodeURIComponent(sortBy)}`)}
-              className="p-2 text-[var(--muted-foreground)] rounded-lg hover:bg-[var(--secondary)]"
+              className="p-2 text-[var(--muted-foreground)] rounded-lg hover:bg-[var(--secondary)] transition-colors"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -351,7 +351,7 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
           <div className="flex items-center gap-2 flex-wrap md:justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)]">
+                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)] hover:border-[var(--primary)] transition-colors">
                   {category}
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -367,7 +367,7 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)]">
+                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)] hover:border-[var(--primary)] transition-colors">
                   Sort: {sortBy}
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -415,11 +415,11 @@ const PublicHeader = ({ cartCount, theme, setTheme }) => {
           {/* Cart */}
           <button
             onClick={() => navigate('/customer/cart')}
-            className="relative flex items-center justify-center w-10 h-10 bg-[var(--secondary)] hover:bg-[var(--secondary)]/90 text-[var(--primary)] rounded-xl font-bold transition-all"
+            className="relative flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:opacity-90 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
           >
             <ShoppingCart className="w-5 h-5" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-[var(--primary-foreground)] text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">{cartCount}</span>
             )}
           </button>
         </div>
@@ -630,34 +630,36 @@ const Favorites = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
+      <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
         <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
         <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-          <section className="overflow-hidden rounded-[32px] border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-xl sm:p-8">
+          {/* Hero Section */}
+          <section className="overflow-hidden rounded-3xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-2xl sm:p-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-50">
+                <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-50 backdrop-blur-sm">
                   Wishlist
                 </div>
-                <h1 className="text-3xl font-black sm:text-4xl">Your favorite picks</h1>
-                <p className="mt-2 max-w-2xl text-sm text-emerald-50 sm:text-base">
-                  Save products you love and come back whenever you’re ready to shop.
+                <h1 className="text-2xl font-black sm:text-3xl drop-shadow-lg">Your favorite picks</h1>
+                <p className="mt-2 max-w-2xl text-xs text-emerald-50 sm:text-sm opacity-90">
+                  Save products you love and come back whenever you're ready to shop.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                <p className="text-3xl font-black">{favoriteProducts.length}</p>
-                <p className="text-sm text-emerald-50">saved items</p>
+              <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2.5 backdrop-blur-sm shadow-lg">
+                <p className="text-2xl font-black">{favoriteProducts.length}</p>
+                <p className="text-xs text-emerald-50">saved items</p>
               </div>
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-sm backdrop-blur-sm sm:p-6">
+          {/* Products Section */}
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-xl backdrop-blur-sm sm:p-6">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-600">Wishlist</p>
-                <h2 className="text-2xl font-black text-[var(--foreground)]">Saved favorites</h2>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-600">Wishlist</p>
+                <h2 className="text-xl font-black text-[var(--foreground)]">Saved favorites</h2>
               </div>
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 text-sm font-semibold text-[var(--primary)]">
+              <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-sm">
                 {favoriteProducts.length} saved items
               </div>
             </div>
@@ -675,11 +677,16 @@ const Favorites = () => {
                 ))}
               </div>
             ) : (
-              <div className="rounded-[28px] border border-dashed border-[var(--border)] bg-[var(--secondary)]/70 p-12 text-center">
-                <Heart className="mx-auto mb-4 h-16 w-16 text-[var(--muted-foreground)]" />
-                <h3 className="mb-2 text-xl font-bold text-[var(--foreground)]">No favorites yet</h3>
-                <p className="mb-6 text-sm text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
-                <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700">
+              <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-12 text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="relative">
+                    <Heart className="h-16 w-16 text-[var(--muted-foreground)] opacity-50" />
+                    <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full bg-emerald-400 opacity-20"></div>
+                  </div>
+                </div>
+                <h3 className="mb-2 text-lg font-bold text-[var(--foreground)]">No favorites yet</h3>
+                <p className="mb-6 text-xs text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
+                <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg transition hover:shadow-xl hover:scale-105">
                   Browse Products
                 </Link>
               </div>
@@ -692,35 +699,37 @@ const Favorites = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
       <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
 
       <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-[32px] border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-xl sm:p-8">
+        {/* Hero Section */}
+        <section className="overflow-hidden rounded-3xl border border-emerald-100 dark:border-emerald-800 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-2xl sm:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-50">
+              <div className="mb-3 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-50 backdrop-blur-sm">
                 Wishlist
               </div>
-              <h1 className="text-3xl font-black sm:text-4xl">Your favorite picks</h1>
-              <p className="mt-2 max-w-2xl text-sm text-emerald-50 sm:text-base">
-                Keep the products you love close at hand and come back whenever you’re ready to buy.
+              <h1 className="text-3xl font-black sm:text-4xl drop-shadow-lg">Your favorite picks</h1>
+              <p className="mt-2 max-w-2xl text-sm text-emerald-50 sm:text-base opacity-90">
+                Keep the products you love close at hand and come back whenever you're ready to buy.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm shadow-lg">
               <p className="text-3xl font-black">{favoriteProducts.length}</p>
               <p className="text-sm text-emerald-50">saved items</p>
             </div>
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-sm backdrop-blur-sm sm:p-6">
+        {/* Products Section */}
+        <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-4 shadow-xl backdrop-blur-sm sm:p-6">
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--primary)]">Wishlist</p>
-              <h2 className="text-2xl font-black text-[var(--foreground)]">Saved favorites</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--primary)]">Wishlist</p>
+              <h2 className="text-xl font-black text-[var(--foreground)]">Saved favorites</h2>
             </div>
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 text-sm font-semibold text-[var(--primary)]">
+            <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-sm">
               {favoriteProducts.length} saved items
             </div>
           </div>
@@ -738,11 +747,16 @@ const Favorites = () => {
               ))}
             </div>
           ) : (
-            <div className="rounded-[28px] border border-dashed border-[var(--border)] bg-[var(--secondary)]/70 p-12 text-center">
-              <Heart className="mx-auto mb-4 h-16 w-16 text-[var(--muted-foreground)]" />
+            <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-12 text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="relative">
+                  <Heart className="h-16 w-16 text-[var(--muted-foreground)] opacity-50" />
+                  <div className="absolute inset-0 h-16 w-16 animate-ping rounded-full bg-emerald-400 opacity-20"></div>
+                </div>
+              </div>
               <h3 className="mb-2 text-xl font-bold text-[var(--foreground)]">No favorites yet</h3>
-              <p className="mb-6 text-sm text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
-              <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700">
+              <p className="mb-6 text-xs text-[var(--muted-foreground)]">Start adding products you love to your wishlist.</p>
+              <Link to="/" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-xs font-bold text-white shadow-lg transition hover:shadow-xl hover:scale-105">
                 Browse Products
               </Link>
             </div>

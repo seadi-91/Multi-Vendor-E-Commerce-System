@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
 import { toast } from 'react-hot-toast';
-import { Heart, Star, ShoppingCart, ChevronLeft, Search, Sun, Moon, Monitor } from 'lucide-react';
+import { Heart, Star, ShoppingCart, ChevronLeft, Search, Sun, Moon, Monitor, Menu, X, User, Package, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -34,10 +34,10 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
 
   return (
     <Link to={`/product/${id}`} className="block">
-      <Card className="group bg-[var(--card)] rounded-xl sm:rounded-2xl border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden">
+      <Card className="group bg-[var(--card)] rounded-lg sm:rounded-2xl border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden">
         <CardContent className="p-0">
           {/* Image */}
-          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '160px' }}>
+          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '120px' }}>
             <img
               src={image}
               alt={name}
@@ -49,14 +49,14 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
             />
 
             {/* Badges */}
-            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
               {safeDiscountPercent > 0 && (
-                <Badge variant="destructive" className="text-[10px] font-extrabold px-2.5 py-1">
+                <Badge variant="destructive" className="text-[8px] font-extrabold px-2 py-0.5">
                   {safeDiscountPercent}% OFF
                 </Badge>
               )}
               {badge && (
-                <Badge variant="secondary" className="text-[10px] font-extrabold px-2.5 py-1">
+                <Badge variant="secondary" className="text-[8px] font-extrabold px-2 py-0.5">
                   {badge}
                 </Badge>
               )}
@@ -65,48 +65,43 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
             {/* Favorite */}
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
-              className="absolute top-3 right-3 w-9 h-9 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10"
+              className="absolute top-2 right-2 w-7 h-7 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10"
             >
-              <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
+              <Heart className={`w-3 h-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
             </button>
           </div>
         </CardContent>
 
-        <CardContent className="flex-1 flex flex-col p-3 sm:p-5">
-          <h3 className="text-sm sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1 leading-snug line-clamp-2">
+        <CardContent className="flex-1 flex flex-col p-2 sm:p-5">
+          <h3 className="text-[11px] sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] leading-tight line-clamp-1">
             {name}
           </h3>
 
-          {description && (
-            <p className="text-[10px] sm:text-xs text-[var(--muted-foreground)] mt-1 line-clamp-1">{description}</p>
-          )}
-
           {/* Rating */}
-          <div className="flex items-center mt-3 gap-1.5">
-            <div className="flex gap-0.5">
+          <div className="flex items-center mt-1.5 gap-1">
+            <div className="flex gap-0">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className={`w-3.5 h-3.5 ${i < Math.floor(safeRating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
+                <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(safeRating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
               ))}
             </div>
-            <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)] font-medium">({safeReviewsCount})</span>
+            <span className="text-[9px] sm:text-xs text-[var(--muted-foreground)] font-medium">({safeReviewsCount})</span>
           </div>
 
           {/* Price */}
-          <div className="mt-auto pt-4 flex items-center justify-between gap-2 border-t border-[var(--border)]">
-            <div className="flex items-baseline gap-1 sm:gap-2">
-              <span className="text-base sm:text-lg font-extrabold text-[var(--primary)]">{fmt(safePrice)}</span>
+          <div className="mt-auto pt-2 flex items-center justify-between gap-1.5 border-t border-[var(--border)]">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xs sm:text-lg font-extrabold text-[var(--primary)]">{fmt(safePrice)}</span>
               {safeDiscountPercent > 0 && (
-                <span className="text-xs text-[var(--muted-foreground)] line-through">{calcOriginal(safePrice, safeDiscountPercent)}</span>
+                <span className="text-[9px] sm:text-xs text-[var(--muted-foreground)] line-through">{calcOriginal(safePrice, safeDiscountPercent)}</span>
               )}
-              <span className="text-[10px] sm:text-xs text-[var(--muted-foreground)]">/{unit}</span>
+              <span className="text-[8px] sm:text-xs text-[var(--muted-foreground)]">/{unit}</span>
             </div>
             <Button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
               size="sm"
-              className="h-8 px-3"
+              className="h-6 px-2"
             >
-              <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-              <span className="text-xs">Add</span>
+              <ShoppingCart className="w-3 h-3" />
             </Button>
           </div>
         </CardContent>
@@ -118,8 +113,9 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
 const Market = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToCart, cart } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -128,6 +124,7 @@ const Market = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
   // Define available categories
@@ -388,10 +385,10 @@ const Market = () => {
     <div className="min-h-screen bg-[var(--background)]">
       {/* Header */}
       <header className="bg-[var(--card)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3.5">
           <div className="flex items-center justify-between gap-2 md:gap-3">
             <button onClick={() => navigate(-1)} className="text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
-              <ChevronLeft className="w-5 sm:w-6 h-5 sm:h-6" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
             {/* Search Bar - Minimized Width */}
@@ -412,7 +409,7 @@ const Market = () => {
               {/* Theme Toggle */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl transition-all text-[var(--foreground)]">
+                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]">
                     {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
                       <Moon className="w-4 h-4" />
                     ) : (
@@ -436,14 +433,14 @@ const Market = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Favorites */}
+              {/* Favorites - Hidden on mobile */}
               <Link
                 to="/favorites"
-                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+                className="hidden sm:flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg relative transition-all"
               >
                 <Heart className="w-4 h-4 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
                 {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
                     {favorites.filter(f => !String(f).startsWith('cat-')).length}
                   </span>
                 )}
@@ -452,15 +449,23 @@ const Market = () => {
               {/* Cart */}
               <Link
                 to="/customer/cart"
-                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg relative transition-all"
               >
                 <ShoppingCart className="w-4 h-4 text-[var(--foreground)]" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
               </Link>
+
+              {/* Mobile Menu Toggle - Rightmost on mobile */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]"
+              >
+                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -502,6 +507,141 @@ const Market = () => {
         </div>
       </header>
 
+      {/* Mobile Menu Sidebar */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[1000] md:hidden">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-[var(--card)] shadow-2xl flex flex-col">
+            {/* Sidebar Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <div className="flex items-center gap-3">
+                {user ? (
+                  <div className="w-10 h-10 bg-[var(--primary)] rounded-full flex items-center justify-center text-white font-bold">
+                    {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 bg-[var(--secondary)] rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-[var(--muted-foreground)]" />
+                  </div>
+                )}
+                <div>
+                  {user ? (
+                    <p className="text-sm font-bold text-[var(--foreground)]">{user?.name || user?.email}</p>
+                  ) : (
+                    <p className="text-sm font-bold text-[var(--foreground)]">Guest User</p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+              <Link
+                to="/favorites"
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/favorites'
+                  ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                  : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                  }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Heart className="w-5 h-5" />
+                Favorites
+                <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/customer/profile"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/profile'
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Profile
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/customer/orders"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname.startsWith('/customer/orders')
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Package className="w-5 h-5" />
+                    My Orders
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/customer/settings"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/settings'
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Settings className="w-5 h-5" />
+                    Settings
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Logout
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Sign In
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Sign Up
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                </>
+              )}
+            </nav>
+
+            {/* Sidebar Footer */}
+            <div className="p-4 border-t border-[var(--border)]">
+              <p className="text-[10px] text-[var(--muted-foreground)] text-center">
+                © 2026 FarmConnect. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="grid grid-cols-1 gap-6">
           {/* Products Grid */}
@@ -522,7 +662,7 @@ const Market = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                 {filteredProducts.map((product) => (
                   <ProductCard
                     key={product.id}

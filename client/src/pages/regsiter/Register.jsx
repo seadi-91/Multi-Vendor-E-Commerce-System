@@ -301,7 +301,7 @@ const Register = () => {
       const payload = buildRegistrationPayload(formData, files);
       const result = await registerUser(payload);
       toast.dismiss();
-      toast.success(`Welcome, ${registrationData.name?.trim()}!`);
+      toast.success(`Welcome, ${formData.name?.trim() || 'there'}!`);
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
       setFiles({ landMap: null, nationalId: null });
 

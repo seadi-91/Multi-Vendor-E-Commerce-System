@@ -32,7 +32,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
       <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 border-[var(--border)] ${className}`}>
         <CardContent className="p-0">
           {/* Image Container */}
-          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '180px' }}>
+          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '120px' }}>
             <img
               src={image}
               alt={name}
@@ -44,15 +44,15 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
             />
 
             {/* Badges Overlay */}
-            <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
               {discountPercent > 0 && (
-                <Badge variant="destructive" className="text-[10px] font-extrabold px-2.5 py-1">
+                <Badge variant="destructive" className="text-[8px] font-extrabold px-2 py-0.5">
                   {discountPercent}% OFF
                 </Badge>
               )}
               {badge && (
-                <Badge variant="secondary" className="text-[10px] font-extrabold px-2.5 py-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> {badge}
+                <Badge variant="secondary" className="text-[8px] font-extrabold px-2 py-0.5 flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5" /> {badge}
                 </Badge>
               )}
             </div>
@@ -60,60 +60,47 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
             {/* Favorite Button */}
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
-              className="absolute top-3 right-3 w-9 h-9 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10 border border-[var(--border)]"
+              className="absolute top-2 right-2 w-7 h-7 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10 border border-[var(--border)]"
             >
-              <Heart className={`w-4 h-4 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
+              <Heart className={`w-3 h-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
             </button>
           </div>
         </CardContent>
 
-        <CardContent className="flex-1 flex flex-col p-4 sm:p-5">
+        <CardContent className="flex-1 flex flex-col p-2.5 sm:p-5">
           {/* Vendor and Verification */}
-          <div className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] mb-1">
-            <Sprout className="w-3.5 h-3.5 text-[var(--primary)]" />
-            <span className="font-medium truncate max-w-[120px]">{vendor}</span>
-            {vendorVerified && (
-              <Badge variant="outline" className="text-[10px] text-[var(--primary)] border-[var(--border)]">
-                Verified
-              </Badge>
-            )}
+          <div className="flex items-center gap-1 text-[10px] text-[var(--muted-foreground)] mb-0.5">
+            <Sprout className="w-2.5 h-2.5 text-[var(--primary)]" />
+            <span className="font-medium truncate max-w-[80px]">{vendor}</span>
           </div>
 
-          <h3 className="text-sm sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] mt-1 leading-snug line-clamp-2">
+          <h3 className="text-[11px] sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] leading-tight line-clamp-1">
             {name}
           </h3>
 
-          {description && (
-            <p className="text-xs text-[var(--muted-foreground)] mt-1 line-clamp-1">{description}</p>
-          )}
-
           {/* Rating */}
-          <div className="flex items-center mt-3 gap-1.5">
-            <div className="flex gap-0.5">
+          <div className="flex items-center mt-1.5 gap-1">
+            <div className="flex gap-0">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className={`w-3.5 h-3.5 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
+                <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
               ))}
             </div>
-            <span className="text-xs text-[var(--muted-foreground)] font-medium">({reviewsCount})</span>
+            <span className="text-[9px] text-[var(--muted-foreground)] font-medium">({reviewsCount})</span>
           </div>
 
           {/* Price & Cart */}
-          <div className="mt-auto pt-4 flex items-center justify-between gap-2 border-t border-[var(--border)]">
-            <div className="flex flex-col">
-              <span className="text-xs text-[var(--muted-foreground)]">Price</span>
-              <div className="flex items-baseline gap-0.5">
-                <span className="text-base sm:text-lg font-black text-[var(--primary)]">{fmt(price)}</span>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold">Birr/{unit}</span>
-              </div>
+          <div className="mt-auto pt-2 flex items-center justify-between gap-1.5 border-t border-[var(--border)]">
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xs sm:text-lg font-black text-[var(--primary)]">{fmt(price)}</span>
+              <span className="text-[8px] sm:text-xs text-[var(--muted-foreground)] font-semibold">/{unit}</span>
             </div>
 
             <Button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
               size="sm"
-              className="px-3 sm:px-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90"
+              className="h-6 px-2 bg-[var(--primary)] hover:bg-[var(--primary)]/90"
             >
-              <ShoppingCart className="w-4 h-4 mr-1.5" />
-              Add to Cart
+              <ShoppingCart className="w-3 h-3" />
             </Button>
           </div>
         </CardContent>
@@ -535,21 +522,21 @@ const Home = () => {
 
       {/* ── Sticky Header ── */}
       <header className="bg-[var(--card)] backdrop-blur-md sticky top-0 z-50 shadow-sm transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-          <div className="flex items-center justify-between gap-4 md:gap-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3.5">
+          <div className="flex items-center justify-between gap-2 md:gap-8">
 
-            {/* Logo */}
+            {/* Logo - Icon only on mobile, full on desktop */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
-                <Leaf className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[var(--primary)] rounded-lg sm:rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
+                <Leaf className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-black tracking-tight leading-none video-text-flow">FarmConnect</span>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold tracking-wider">DIRECT FROM SOIL</span>
+              <div className="hidden sm:flex flex-col">
+                <span className="text-base sm:text-lg font-black tracking-tight leading-none video-text-flow">FarmConnect</span>
+                <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] font-semibold tracking-wider">DIRECT FROM SOIL</span>
               </div>
             </Link>
 
-            {/* Advanced Search Bar */}
+            {/* Advanced Search Bar - Hidden on mobile */}
             <div className="flex-1 max-w-xs hidden md:block">
               <form
                 onSubmit={(e) => {
@@ -572,15 +559,15 @@ const Home = () => {
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-2.5 md:gap-5 flex-shrink-0 ml-auto">
+            <div className="flex items-center gap-1.5 md:gap-5 flex-shrink-0 ml-auto">
               {/* Theme Toggle */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-9 h-9 hover:bg-[var(--secondary)] rounded-xl transition-all text-[var(--foreground)]">
+                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]">
                     {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
-                      <Moon className="w-4.5 h-4.5" />
+                      <Moon className="w-4 h-4" />
                     ) : (
-                      <Sun className="w-4.5 h-4.5" />
+                      <Sun className="w-4 h-4" />
                     )}
                   </button>
                 </DropdownMenuTrigger>
@@ -600,10 +587,10 @@ const Home = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Favorites Wishlist */}
+              {/* Favorites Wishlist - Hidden on mobile */}
               <Link
                 to="/favorites"
-                className="flex items-center justify-center w-9 h-9 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+                className="hidden md:flex items-center justify-center w-10 h-10 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
               >
                 <Heart className="w-5 h-5 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
                 {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
@@ -616,21 +603,29 @@ const Home = () => {
               {/* Cart */}
               <Link
                 to="/customer/cart"
-                className="flex items-center justify-center w-10 h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-xl font-bold transition-all relative"
+                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-lg sm:rounded-xl font-bold transition-all relative"
               >
-                <ShoppingCart className="w-4.5 h-4.5" />
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-[var(--primary)] text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] sm:text-[10px] font-black rounded-full min-w-[16px] sm:min-w-[20px] h-[16px] sm:h-[20px] flex items-center justify-center px-0.5 sm:px-1">
                     {cartCount}
                   </span>
                 )}
               </Link>
 
-              {/* Auth actions */}
+              {/* Mobile Menu Toggle - Rightmost on mobile */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]"
+              >
+                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </button>
+
+              {/* Auth actions - Hidden on mobile */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all mr-2" aria-label="Profile menu">
+                    <button className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all" aria-label="Profile menu">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-white font-bold text-sm">
                         {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
@@ -662,97 +657,174 @@ const Home = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-[var(--secondary)]/70 px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all mr-2"
+                  className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[var(--secondary)]/70 px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
                 >
                   <User className="w-4 h-4" />
                   Sign In
                 </Link>
               )}
-
-              {/* Mobile Menu Toggle */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex items-center justify-center w-9 h-9 bg-[var(--secondary)] rounded-xl hover:bg-[var(--border)] transition-all"
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5 text-[var(--foreground)]" /> : <Menu className="w-5 h-5 text-[var(--foreground)]" />}
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Sidebar Overlay */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[var(--border)] px-4 py-4 bg-[var(--card)] space-y-3 animate-slide-down">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
-              }}
-              className="flex items-center bg-[var(--secondary)] rounded-xl border border-[var(--border)]"
-            >
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-2.5 text-xs text-[var(--foreground)] bg-transparent focus:outline-none"
-              />
-              <button type="submit" className="p-2.5 bg-[var(--primary)] rounded-xl m-1">
-                <Search className="w-4 h-4 text-white" />
-              </button>
-            </form>
-
-            <button
-              onClick={() => setLocationOpen(!locationOpen)}
-              className="w-full flex items-center justify-between px-3 py-2.5 bg-[var(--secondary)] rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--foreground)]"
-            >
-              <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[var(--primary)]" />
-                Deliver to: {selectedLocation}
-              </span>
-              <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
-            </button>
-            {locationOpen && (
-              <div className="bg-white dark:bg-white rounded-xl p-2 grid grid-cols-2 gap-1 border border-[var(--border)]">
-                {locations.map((loc) => (
-                  <button
-                    key={loc.code}
-                    onClick={() => { setSelectedLocation(loc.name); setLocationOpen(false); }}
-                    className="text-left px-3 py-2 text-[11px] font-bold text-gray-700 dark:text-gray-700 hover:text-[var(--primary)] rounded-lg hover:bg-[var(--primary)]/10 transition-all"
-                  >
-                    {loc.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {user ? (
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  onClick={handleDashboardRedirect}
-                  className="py-2.5 text-center bg-[var(--primary)]/10 text-[var(--primary)] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="py-2.5 text-center bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full py-2.5 text-center bg-[var(--primary)] text-white font-bold text-xs rounded-xl"
-              >
-                Sign In / Register
-              </button>
-            )}
-          </div>
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+          />
         )}
+
+        {/* Mobile Sidebar */}
+        <div
+          className={`md:hidden fixed top-0 left-0 h-full w-[280px] max-w-[85vw] bg-[var(--card)] z-50 shadow-2xl transform transition-transform duration-300 ease-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+        >
+          <div className="flex flex-col h-full">
+            {/* Sidebar Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  {user ? (
+                    <>
+                      <p className="text-sm font-bold text-[var(--foreground)] line-clamp-1">
+                        {user.name || user.email}
+                      </p>
+                      <p className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">
+                        {user.role}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-bold text-[var(--foreground)]">Guest User</p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+              {user ? (
+                <>
+                  <Link
+                    to="/customer/profile"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/profile'
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Profile
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/customer/orders"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname.startsWith('/customer/orders')
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Package className="w-5 h-5" />
+                    My Orders
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/favorites"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/favorites'
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Heart className="w-5 h-5" />
+                    Favorites
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/customer/dashboard/reviews"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname.startsWith('/customer/dashboard/reviews')
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Star className="w-5 h-5" />
+                    My Reviews
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/customer/settings"
+                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/settings'
+                      ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                      }`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Settings className="w-5 h-5" />
+                    Settings
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Logout
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Sign In
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    Sign Up
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                  <Link
+                    to="/favorites"
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Heart className="w-5 h-5" />
+                    Favorites
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-50" />
+                  </Link>
+                </>
+              )}
+            </nav>
+
+            {/* Sidebar Footer */}
+            <div className="p-4 border-t border-[var(--border)]">
+              <p className="text-[10px] text-[var(--muted-foreground)] text-center">
+                © 2026 FarmConnect. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* ── Beautiful Hero Carousel Section ── */}
@@ -867,7 +939,7 @@ const Home = () => {
           </div>
 
           {/* Categories Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             {categoryData.map((cat, i) => (
               <Link
                 key={i}
@@ -931,23 +1003,23 @@ const Home = () => {
 
           {/* Loading Skeletal State */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 space-y-4 animate-pulse">
-                  <div className="bg-slate-200 h-40 rounded-2xl w-full" />
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3 space-y-3 animate-pulse">
+                  <div className="bg-slate-200 h-24 rounded-xl w-full" />
                   <div className="space-y-2">
-                    <div className="bg-slate-200 h-4 rounded w-2/3" />
-                    <div className="bg-slate-200 h-3 rounded w-1/2" />
+                    <div className="bg-slate-200 h-3 rounded w-2/3" />
+                    <div className="bg-slate-200 h-2 rounded w-1/2" />
                   </div>
-                  <div className="flex justify-between items-center pt-4">
-                    <div className="bg-slate-200 h-6 rounded w-1/3" />
-                    <div className="bg-slate-200 h-9 rounded w-1/3" />
+                  <div className="flex justify-between items-center pt-2">
+                    <div className="bg-slate-200 h-4 rounded w-1/3" />
+                    <div className="bg-slate-200 h-6 rounded w-1/4" />
                   </div>
                 </div>
               ))}
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
               {filteredProducts.map((prod) => (
                 <ProductCard
                   key={prod.id}

@@ -4,6 +4,8 @@ import {
   CalendarDays, ShieldCheck, Globe2, BadgeCheck, FileText, Clock3,
 } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { useAuth } from '../../../context/AuthContext';
+import { customerAPI } from '../../../api';
 
 /*
   ── Design notes ─────────────────────────────────────────────
@@ -60,26 +62,6 @@ const formatStatus = (value) => {
   if (value === true) return 'Active';
   if (value === false) return 'Inactive';
   return 'Not provided';
-};
-
-const LOCAL_PROFILE = {
-  id: 'CUS-224871',
-  name: 'Selam Bekele',
-  username: 'selam',
-  email: 'selam.bekele@example.com',
-  phone: '+251 91 234 5678',
-  gender: 'Female',
-  dateOfBirth: '1992-04-18',
-  address: 'Bole Road, near Edna Mall, House No. 14',
-  city: 'Addis Ababa',
-  fullAddress: 'Bole Road, near Edna Mall, House No. 14',
-  country: 'Ethiopia',
-  role: 'Customer',
-  profileImage: '',
-  isActive: true,
-  bio: 'Enjoys shopping for local products and supporting small businesses.',
-  registrationDate: '2023-03-10',
-  lastLogin: '2026-07-06',
 };
 
 function useCopy() {
@@ -237,8 +219,8 @@ const ProfileDetails = ({ profile, COLORS }) => {
     { label: 'Role', value: profile?.role, icon: ShieldCheck },
     { label: 'Account status', value: formatStatus(profile?.isActive), icon: BadgeCheck },
     { label: 'Bio', value: profile?.bio, icon: FileText },
-    { label: 'Registration date', value: profile?.registrationDate ? formatDate(profile.registrationDate) : 'Not provided', icon: CalendarDays },
-    { label: 'Last login', value: profile?.lastLogin ? formatDate(profile.lastLogin) : 'Not provided', icon: Clock3 },
+    { label: 'Registration date', value: profile?.createdAt || profile?.registrationDate ? formatDate(profile.createdAt || profile.registrationDate) : 'Not provided', icon: CalendarDays },
+    { label: 'Last login', value: profile?.updatedAt || profile?.lastLogin ? formatDate(profile.updatedAt || profile.lastLogin) : 'Not provided', icon: Clock3 },
   ];
 
   return (
@@ -266,12 +248,38 @@ const ProfileDetails = ({ profile, COLORS }) => {
 const Profile = () => {
   const { resolvedTheme } = useTheme();
   const COLORS = getColors(resolvedTheme);
-  const [profile] = useState(LOCAL_PROFILE);
-  const loading = false;
-  const profileError = '';
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
   const { copiedKey, copy } = useCopy();
 
-  const displayName = profile?.name || 'Your profile';
+  // Fetch profile data from API
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        setProfileError('');
+        
+        const response = await customerAPI.getProfile();
+        
+        if (response.data) {
+          setProfile(response.data);
+        } else {
+          setProfileError('Unable to load profile data');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setProfileError(error.response?.data?.message || 'Failed to load profile. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const displayName = profile?.name || user?.name || 'Your profile';
   const initials = useMemo(() => displayName.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase() || 'U', [displayName]);
 
   const handleBack = () => {
@@ -303,13 +311,17 @@ const Profile = () => {
           <div style={{ background: 'rgba(193,73,75,0.15)', color: '#F3C6C7', borderRadius: 12, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
             {profileError}
           </div>
-        ) : (
+        ) : profile ? (
           <>
             <ProfileHeader profile={profile} COLORS={COLORS} copiedKey={copiedKey} onCopy={copy} initials={initials} />
             <div style={{ marginTop: 18 }}>
               <ProfileDetails profile={profile} COLORS={COLORS} />
             </div>
           </>
+        ) : (
+          <div style={{ background: 'rgba(193,73,75,0.15)', color: '#F3C6C7', borderRadius: 12, padding: '10px 14px', fontSize: 13 }}>
+            No profile data available
+          </div>
         )}
       </div>
     </div>

@@ -130,36 +130,36 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
     <>
       <header className="sticky top-0 z-[1000] bg-white shadow-[0_2px_20px_rgba(0,0,0,0.08)] font-sans">
         {/* Top Bar - Desktop & Mobile */}
-        <div className="py-3 border-b border-slate-100">
-          <div className="max-w-[1400px] mx-auto px-4">
-            <div className="flex items-center justify-between gap-4 relative">
+        <div className="py-2 sm:py-3 border-b border-slate-100">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 relative">
               {/* Logo Section */}
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 {/* Back Button - navigates to home */}
                 <button
                   onClick={() => navigate('/')}
-                  className="flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="flex items-center justify-center p-1.5 sm:p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-100 transition-colors"
                   aria-label="Back to home"
                   title="Back to home"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
 
                 <button
-                  className="hidden md:flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-50"
+                  className="md:hidden flex items-center justify-center p-1.5 sm:p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-50"
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   aria-label="Toggle menu"
                 >
-                  <Menu size={24} />
+                  <Menu size={20} />
                 </button>
 
-                <div className="flex items-center gap-3 cursor-pointer transition-transform hover:scale-[1.02]" onClick={() => navigate('/customer/dashboard')}>
-                  <span className="text-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 bg-clip-text text-transparent">🌾</span>
-                  <div className="flex flex-col">
-                    <h1 className="text-xl font-extrabold text-slate-800 m-0 leading-tight tracking-tight">FarmFresh</h1>
-                    <span className="text-xs text-slate-500 font-medium">Direct from Farm</span>
+                <div className="flex items-center gap-2 sm:gap-3 cursor-pointer transition-transform hover:scale-[1.02]" onClick={() => navigate('/customer/dashboard')}>
+                  <span className="text-xl sm:text-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 bg-clip-text text-transparent">🌾</span>
+                  <div className="hidden sm:flex flex-col">
+                    <h1 className="text-base sm:text-xl font-extrabold text-slate-800 m-0 leading-tight tracking-tight">FarmFresh</h1>
+                    <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Direct from Farm</span>
                   </div>
                 </div>
               </div>
@@ -185,8 +185,8 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
               </div>
 
               {/* User Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Mobile Search Toggle */}
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                {/* Mobile Search Toggle - Hidden on mobile */}
                 <button
                   className="hidden md:flex items-center justify-center p-2 rounded-lg border-none bg-transparent cursor-pointer text-slate-600 hover:bg-slate-50"
                   onClick={() => setIsSearchExpanded(!isSearchExpanded)}
@@ -195,8 +195,8 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                   <Search size={22} />
                 </button>
 
-                {/* Notifications */}
-                <div className="relative">
+                {/* Notifications - Hidden on mobile */}
+                <div className="relative hidden sm:block">
                   <button
                     className="relative w-10 h-10 rounded-xl border border-slate-200 bg-white cursor-pointer flex items-center justify-center transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => navigate('/customer/notifications')}
@@ -212,13 +212,13 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                 {/* Cart */}
                 <div className="relative" ref={cartRef}>
                   <button
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
+                    className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 sm:gap-2 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl border border-slate-200 bg-white cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => navigate('/customer/cart')}
                     aria-label={`Cart (${cartCount} items)`}
                   >
-                    <ShoppingCart size={22} className="text-slate-600" />
+                    <ShoppingCart size={18} sm:size={22} className="text-slate-600" />
                     {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-[3px]">{cartCount}</span>
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold min-w-[14px] sm:min-w-[16px] h-3.5 sm:h-4 rounded-full flex items-center justify-center px-[2px] sm:px-[3px]">{cartCount}</span>
                     )}
                     <span className="text-sm font-medium text-slate-600 hidden sm:inline">Cart</span>
                   </button>
@@ -284,8 +284,8 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                   )}
                 </div>
 
-                {/* User Profile */}
-                <div className="relative" ref={userMenuRef}>
+                {/* User Profile - Hidden on mobile */}
+                <div className="relative hidden sm:block" ref={userMenuRef}>
                   <button
                     className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-xl cursor-pointer transition-all hover:bg-slate-50 hover:border-slate-300"
                     onClick={() => setShowUserMenu(!showUserMenu)}
