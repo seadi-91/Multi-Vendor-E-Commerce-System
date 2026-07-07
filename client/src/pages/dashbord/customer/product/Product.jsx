@@ -42,13 +42,21 @@ const Product = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      let url = '/projects';
+      const params = {};
       if (activeCategory !== 'all') {
-        const backendCategory = getBackendCategoryName(activeCategory);
-        url += `?category=${encodeURIComponent(backendCategory)}`;
+        params.category = getBackendCategoryName(activeCategory);
       }
-      const res = await api.get(url);
-      setProducts(res.data);
+      const res = await api.get('/products', { params });
+      const payload = res.data;
+      const productsData = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+      setProducts(productsData.map((product) => ({
+        ...product,
+        id: product.id ?? product._id,
+        price: Number(product.price) || 0,
+        rating: Number(product.rating) || 0,
+        reviewsCount: Number(product.reviewsCount) || 0,
+        discountPercent: Number(product.discountPercent) || 0,
+      })));
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
@@ -74,58 +82,58 @@ const Product = () => {
           </select>
         </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {loading ? (
-          <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
-            Loading...
-          </div>
-        ) : products.length === 0 ? (
-          <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
-            No products found.
-          </div>
-        ) : (
-          products.map(product => (
-            <Link
-              key={product._id}
-              to="/market"
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <div className="flex h-44 items-center justify-center bg-slate-50 p-4">
-                {product.image ? (
-                  <img src={product.image} alt={product.name} className="h-full w-full max-w-full object-cover" />
-                ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-3xl">
-                    {CATEGORY_CONFIG[product.category]?.icon || '📦'}
-                  </div>
-                )}
-              </div>
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {loading ? (
+            <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
+              Loading...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="col-span-full rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">
+              No products found.
+            </div>
+          ) : (
+            products.map(product => (
+              <Link
+                key={product._id}
+                to="/market"
+                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-44 items-center justify-center bg-slate-50 p-4">
+                  {product.image ? (
+                    <img src={product.image} alt={product.name} className="h-full w-full max-w-full object-cover" />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-3xl">
+                      {CATEGORY_CONFIG[product.category]?.icon || '📦'}
+                    </div>
+                  )}
+                </div>
 
-              <div className="space-y-4 p-5">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{product.description}</p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-emerald-700">
-                    <span>ETB {product.price}</span>
-                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-800">{product.stock} {product.unit}</span>
+                <div className="space-y-4 p-5">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 line-clamp-3">{product.description}</p>
                   </div>
-                  <button
-                    type="button"
-                    className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert(`Added ${product.name} to cart!`);
-                    }}
-                  >
-                    Add to Cart
-                  </button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-emerald-700">
+                      <span>ETB {product.price}</span>
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-800">{product.stock} {product.unit}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        alert(`Added ${product.name} to cart!`);
+                      }}
+                    >
+                      Add to Cart
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))
-        )}
-      </div>
+              </Link>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

@@ -98,7 +98,8 @@ const Login = () => {
     }
 
     if (role === ROLES.CUSTOMER) {
-      return ROUTES_BY_ROLE.customer;
+      // Redirect customers to Home page, not Orders
+      return '/';
     }
 
     return '/';

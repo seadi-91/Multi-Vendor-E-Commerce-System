@@ -7,16 +7,20 @@ const buildProductPayload = (product) => {
     ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
     : Number(product.rating || 4.5);
 
+  const normalizedReviews = reviews.map((review) => ({
+    ...review,
+    user: review.user?.name || review.userName || 'Anonymous',
+    userName: review.user?.name || review.userName || 'Anonymous',
+    profileImage: review.user?.profileImage || null,
+    privateAccount: review.user?.privateAccount || false,
+    date: review.createdAt
+      ? new Date(review.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+      : 'Recently added',
+  }));
+
   return {
     ...product,
-    reviews: reviews.map((review) => ({
-      ...review,
-      user: review.user?.name || review.userName || 'Anonymous',
-      userName: review.user?.name || review.userName || 'Anonymous',
-      date: review.createdAt
-        ? new Date(review.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })
-        : 'Recently added',
-    })),
+    reviews: normalizedReviews,
     vendor: product.farmer?.farmName || product.farmer?.name || 'Fresh Vendor',
     vendorVerified: product.farmer?.isVerified || false,
     rating: averageRating,

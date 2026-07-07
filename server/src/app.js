@@ -72,6 +72,7 @@ const farmerRouter = require('./router/farmerRouter');
 const customerRouter = require('./router/customerRouter');
 const orderRouter = require('./router/orderRouter');
 const productsRouter = require('./router/productsRouter');
+const reviewRouter = require('./router/reviewRouter');
 const paymentRouter = require('./router/paymentRouter');
 const notificationRouter = require('./router/notificationRouter');
 
@@ -83,6 +84,7 @@ app.use('/api/farmer', apiLimiter, farmerRouter);
 app.use('/api/customer', apiLimiter, customerRouter);
 app.use('/api/orders', apiLimiter, orderRouter);
 app.use('/api/products', apiLimiter, productsRouter);
+app.use('/api/reviews', apiLimiter, reviewRouter);
 app.use('/api/payments', apiLimiter, paymentRouter);
 app.use('/api/notifications', apiLimiter, notificationRouter);
 

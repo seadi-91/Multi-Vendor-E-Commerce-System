@@ -20,6 +20,7 @@ import Market from './pages/market/Market';
 import ProductDetail from './pages/product/ProductDetail';
 import Receipt from './pages/orders/Receipt';
 import CustomerProfile from './pages/dashbord/customer/profile';
+import MyReviews from './pages/dashbord/customer/reviews/Reviews';
 import { ROLES } from './context/roles';
 
 function App() {
@@ -127,6 +128,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
                 <CustomerProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customer/dashboard/reviews"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.CUSTOMER]}>
+                <MyReviews />
               </ProtectedRoute>
             }
           />

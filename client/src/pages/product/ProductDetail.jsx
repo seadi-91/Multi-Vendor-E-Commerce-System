@@ -24,6 +24,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState('detail');
+  const [reviews, setReviews] = useState([]);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -133,11 +134,16 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get(`/products/${id}`);
-        setProduct(res.data?.data || res.data || null);
+        const [productRes, reviewsRes] = await Promise.all([
+          api.get(`/products/${id}`),
+          api.get(`/reviews/product/${id}`)
+        ]);
+        setProduct(productRes.data?.data || productRes.data || null);
+        setReviews(Array.isArray(reviewsRes.data?.data) ? reviewsRes.data.data : []);
       } catch (error) {
         console.error('Error fetching product:', error);
         setProduct(null);
+        setReviews([]);
       } finally {
         setLoading(false);
       }
@@ -177,8 +183,14 @@ const ProductDetail = () => {
     </div>
   );
 
-  const reviews = product?.reviews || [];
-  const reviewCount = product?.reviewsCount || reviews.length || 0;
+  const reviewCount = reviews.length || product?.reviewsCount || 0;
+  const averageRating = reviewCount
+    ? (reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1)
+    : Number(product?.rating || 0).toFixed(1);
+  const ratingBreakdown = [5, 4, 3, 2, 1].reduce((acc, star) => {
+    acc[star] = reviews.filter((review) => Number(review.rating) === star).length;
+    return acc;
+  }, {});
 
   if (!product) return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
@@ -332,8 +344,8 @@ const ProductDetail = () => {
                       ))}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-[var(--foreground)] text-xs">{product.rating} out of 5</span>
-                      <span className="text-[10px] text-[var(--muted-foreground)]">{Math.floor(Math.random() * 100 + 20)} reviews</span>
+                      <span className="font-bold text-[var(--foreground)] text-xs">{averageRating} out of 5</span>
+                      <span className="text-[10px] text-[var(--muted-foreground)]">{reviewCount} reviews</span>
                     </div>
                   </div>
                 </div>
@@ -439,9 +451,9 @@ const ProductDetail = () => {
                     <div className="bg-[var(--secondary)] p-6 rounded-xl border border-[var(--border)]">
                       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                         <div className="flex flex-col items-center">
-                          <span className="text-4xl font-black text-[var(--primary)]">{product.rating}</span>
+                          <span className="text-4xl font-black text-[var(--primary)]">{averageRating}</span>
                           <div className="flex gap-1 mt-2">
-                            {[...Array(5)].map((_, i) => <Star key={i} className={`w-4.5 h-4.5 ${i < Math.floor(product.rating) ? 'text-amber-500 fill-amber-500' : 'text-[var(--muted-foreground)]'}`} />)}
+                            {[...Array(5)].map((_, i) => <Star key={i} className={`w-4.5 h-4.5 ${i < Math.floor(Number(averageRating)) ? 'text-amber-500 fill-amber-500' : 'text-[var(--muted-foreground)]'}`} />)}
                           </div>
                           <span className="text-xs text-[var(--muted-foreground)] mt-1 font-semibold">{reviewCount} reviews</span>
                         </div>
@@ -453,8 +465,9 @@ const ProductDetail = () => {
                               <div key={star} className="flex items-center gap-2">
                                 <span className="text-xs text-[var(--muted-foreground)] w-8">{star}★</span>
                                 <div className="flex-1 h-1 bg-[var(--border)] rounded-full overflow-hidden">
-                                  <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${star === 5 ? 70 : star === 4 ? 20 : 5}%` }} />
+                                  <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${reviewCount ? (ratingBreakdown[star] / reviewCount) * 100 : 0}%` }} />
                                 </div>
+                                <span className="text-[10px] text-[var(--muted-foreground)]">{ratingBreakdown[star]}</span>
                               </div>
                             ))}
                           </div>
@@ -463,29 +476,34 @@ const ProductDetail = () => {
                     </div>
 
                     <div className="space-y-4">
-                      {reviews.length > 0 ? reviews.map(review => (
-                        <div key={review.id} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-[var(--primary)] rounded-full flex items-center justify-center text-white font-bold text-xs">
-                                {(review.user || 'A').charAt(0)}
+                      {reviews.length > 0 ? reviews.map(review => {
+                        const reviewerName = review.user?.name || review.user?.userName || review.userName || review.user || 'Anonymous';
+                        const reviewDate = review.createdAt ? new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : review.date;
+
+                        return (
+                          <div key={review.id} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-sm">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-[var(--primary)] rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                  {reviewerName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-black text-[var(--foreground)]">{reviewerName}</p>
+                                  <p className="text-[10px] text-[var(--muted-foreground)] font-semibold">{reviewDate}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-black text-[var(--foreground)]">{review.user || 'Anonymous'}</p>
-                                <p className="text-[10px] text-[var(--muted-foreground)] font-semibold">{review.date}</p>
+                              <div className="bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-md">
+                                <div className="flex gap-0.5">
+                                  {[...Array(5)].map((_, i) =>
+                                    <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-[var(--muted-foreground)]'}`} />
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <div className="bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-md">
-                              <div className="flex gap-0.5">
-                                {[...Array(5)].map((_, i) =>
-                                  <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-[var(--muted-foreground)]'}`} />
-                                )}
-                              </div>
-                            </div>
+                            <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">{review.comment || 'No comment provided.'}</p>
                           </div>
-                          <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">{review.comment || 'No comment provided.'}</p>
-                        </div>
-                      )) : (
+                        );
+                      }) : (
                         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 text-sm text-[var(--muted-foreground)]">
                           No reviews yet for this product.
                         </div>

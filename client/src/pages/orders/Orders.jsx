@@ -24,6 +24,8 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import ReviewModal from '../../components/reviews/ReviewModal';
+import { toast } from 'react-hot-toast';
 
 const Orders = () => {
   const { user } = useAuth();
@@ -36,6 +38,12 @@ const Orders = () => {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [myReviews, setMyReviews] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedReviewItem, setSelectedReviewItem] = useState(null);
+  const [selectedReviewOrder, setSelectedReviewOrder] = useState(null);
+  const [currentReview, setCurrentReview] = useState(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -77,6 +85,7 @@ const Orders = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchMyReviews();
   }, []);
 
   useEffect(() => {
@@ -87,6 +96,16 @@ const Orders = () => {
       });
     }
   }, [location.state?.latestOrder]);
+
+  const fetchMyReviews = async () => {
+    try {
+      const response = await api.get('/reviews/me');
+      setMyReviews(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      console.warn('Unable to load your reviews', error);
+      setMyReviews([]);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -158,6 +177,46 @@ const Orders = () => {
 
   const viewReceipt = (order) => {
     navigate(`/customer/orders/receipt/${order.id || order.orderNumber}`, { state: { order } });
+  };
+
+  const openReviewModal = (order, item) => {
+    const productId = item.productId || item.id || item._id || item.product?.id;
+    const existingReview = myReviews.find((review) => Number(review.productId) === Number(productId) && Number(review.orderId) === Number(order.id));
+
+    setSelectedReviewItem({ ...item, name: item.name || 'Product', productId });
+    setSelectedReviewOrder(order);
+    setCurrentReview(existingReview || null);
+    setReviewModalOpen(true);
+  };
+
+  const closeReviewModal = () => {
+    setReviewModalOpen(false);
+    setSelectedReviewItem(null);
+    setSelectedReviewOrder(null);
+    setCurrentReview(null);
+  };
+
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    if (!selectedReviewItem || !selectedReviewOrder) {
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      await api.post('/reviews', {
+        productId: selectedReviewItem.productId,
+        orderId: selectedReviewOrder.id,
+        rating,
+        comment
+      });
+      toast.success(currentReview ? 'Review updated successfully' : 'Review submitted successfully');
+      closeReviewModal();
+      fetchMyReviews();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to save your review right now.');
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   return (
@@ -340,22 +399,51 @@ const Orders = () => {
                                 </div>
                               </div>
                             </div>
-                            <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 text-[11px]">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[var(--muted-foreground)]">Subtotal</span>
-                                <span>{formatPrice(order.subtotal || order.total || 0)} ETB</span>
+                            <div className="space-y-2">
+                              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 text-[11px]">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[var(--muted-foreground)]">Subtotal</span>
+                                  <span>{formatPrice(order.subtotal || order.total || 0)} ETB</span>
+                                </div>
+                                <div className="mt-1.5 flex items-center justify-between">
+                                  <span className="text-[var(--muted-foreground)]">Delivery</span>
+                                  <span>{formatPrice(order.deliveryFee || 0)} ETB</span>
+                                </div>
+                                <div className="mt-1.5 flex items-center justify-between">
+                                  <span className="text-[var(--muted-foreground)]">Tax</span>
+                                  <span>{formatPrice(order.tax || 0)} ETB</span>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-1.5 font-semibold">
+                                  <span>Total</span>
+                                  <span>{formatPrice(order.total || 0)} ETB</span>
+                                </div>
                               </div>
-                              <div className="mt-1.5 flex items-center justify-between">
-                                <span className="text-[var(--muted-foreground)]">Delivery</span>
-                                <span>{formatPrice(order.deliveryFee || 0)} ETB</span>
-                              </div>
-                              <div className="mt-1.5 flex items-center justify-between">
-                                <span className="text-[var(--muted-foreground)]">Tax</span>
-                                <span>{formatPrice(order.tax || 0)} ETB</span>
-                              </div>
-                              <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-1.5 font-semibold">
-                                <span>Total</span>
-                                <span>{formatPrice(order.total || 0)} ETB</span>
+
+                              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 text-[11px]">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <span className="font-semibold">Review your purchases</span>
+                                  <span className="text-[var(--muted-foreground)]">{order.status === 'delivered' ? 'Eligible' : 'Pending delivery'}</span>
+                                </div>
+                                <div className="space-y-2">
+                                  {Array.isArray(order.items) && order.items.length > 0 ? order.items.map((item, index) => {
+                                    const productId = item.productId || item.id || item._id || item.product?.id;
+                                    const existingReview = myReviews.find((review) => Number(review.productId) === Number(productId) && Number(review.orderId) === Number(order.id));
+                                    return (
+                                      <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-2 py-2">
+                                        <span className="max-w-[180px] truncate text-xs font-medium">{item.name || 'Product'}</span>
+                                        {order.status === 'delivered' ? (
+                                          <Button size="sm" variant="outline" className="h-7 rounded-md border-[var(--border)] bg-[var(--card)] px-2 text-[10px]" onClick={() => openReviewModal(order, item)}>
+                                            {existingReview ? 'Edit Review' : 'Write Review'}
+                                          </Button>
+                                        ) : (
+                                          <span className="text-[10px] text-[var(--muted-foreground)]">Awaiting delivery</span>
+                                        )}
+                                      </div>
+                                    );
+                                  }) : (
+                                    <p className="text-[10px] text-[var(--muted-foreground)]">No purchased items to review.</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -369,6 +457,15 @@ const Orders = () => {
           </div>
         )}
       </main>
+      <ReviewModal
+        open={reviewModalOpen}
+        onClose={closeReviewModal}
+        item={selectedReviewItem}
+        initialReview={currentReview}
+        onSubmit={handleReviewSubmit}
+        loading={reviewSubmitting}
+        theme={theme}
+      />
     </div>
   );
 };

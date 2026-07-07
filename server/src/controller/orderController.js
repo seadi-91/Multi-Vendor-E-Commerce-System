@@ -8,7 +8,7 @@ async function generateOrderCode(id) {
 const serializeOrder = (order) => {
     // Parse the JSON items field
     const items = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : Array.isArray(order.items) ? order.items : [];
-    
+
     // If we have orderItems with product data, use that; otherwise fall back to items
     const orderItems = Array.isArray(order.orderItems) && order.orderItems.length > 0
         ? order.orderItems.map((item) => ({
@@ -46,17 +46,32 @@ const serializeOrder = (order) => {
 /**
  * Create an inventory change log entry for auditing purposes
  */
-async function logInventoryChange(tx, productId, changeType, quantity, previousStock, newStock, reason, orderId = null) {
-    await tx.notification.create({
-        data: {
-            type: 'INVENTORY_CHANGE',
-            title: `Inventory ${changeType}`,
-            message: `Product ID ${productId}: Stock changed from ${previousStock} to ${newStock} (${changeType === 'REDUCTION' ? '-' : '+'}${quantity} units). Reason: ${reason}${orderId ? ` (Order: ${orderId})` : ''}`,
-            productId: productId,
-            userId: null, // System-generated
-            read: true
+async function logInventoryChange(tx, productId, changeType, quantity, previousStock, newStock, reason, orderId = null, userId = null) {
+    const notificationData = {
+        type: 'INVENTORY_CHANGE',
+        title: `Inventory ${changeType}`,
+        message: `Product ID ${productId}: Stock changed from ${previousStock} to ${newStock} (${changeType === 'REDUCTION' ? '-' : '+'}${quantity} units). Reason: ${reason}${orderId ? ` (Order: ${orderId})` : ''}`,
+        productId,
+        read: true
+    };
+
+    if (Number.isInteger(userId) && userId > 0) {
+        notificationData.userId = userId;
+    } else {
+        const adminUser = await tx.user.findFirst({
+            where: { role: 'ADMIN' },
+            select: { id: true },
+            orderBy: { id: 'asc' }
+        });
+
+        if (!adminUser) {
+            return;
         }
-    });
+
+        notificationData.userId = adminUser.id;
+    }
+
+    await tx.notification.create({ data: notificationData });
 }
 
 /**
@@ -65,12 +80,12 @@ async function logInventoryChange(tx, productId, changeType, quantity, previousS
  */
 async function updateProductStockStatus(tx, productId, currentStock) {
     const newStatus = currentStock <= 0 ? 'out_of_stock' : 'approved';
-    
+
     await tx.product.update({
         where: { id: productId },
         data: { status: newStatus }
     });
-    
+
     return newStatus;
 }
 
@@ -140,7 +155,7 @@ exports.createOrder = async (req, res) => {
                 }
 
                 // Lock the product record and fetch current stock (Prisma handles row-level locking in transactions)
-                const product = await tx.product.findUnique({ 
+                const product = await tx.product.findUnique({
                     where: { id: productId },
                     select: {
                         id: true,
@@ -261,7 +276,8 @@ exports.createOrder = async (req, res) => {
                     update.previousStock,
                     update.newStock,
                     `Order placed (${updated.orderCode})`,
-                    updated.orderCode
+                    updated.orderCode,
+                    normalizedCustomerId || req.user?.id || null
                 );
                 
                 // **BUSINESS RULE 2: Send notification to seller about new order**
@@ -288,10 +304,11 @@ exports.createOrder = async (req, res) => {
         res.status(201).json(serializeOrder(createdOrder));
     } catch (error) {
         console.error('Failed to create order:', error);
-        res.status(500).json({
-            message: 'Failed to create order',
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            message: error.message || 'Failed to create order',
             error: error.message,
-            details: error.toString()
+            details: error.stack || error.toString()
         });
     }
 };
@@ -608,7 +625,7 @@ exports.refundOrder = async (req, res) => {
 
             const updated = await tx.order.update({
                 where: { id: orderId },
-                data: { 
+                data: {
                     status: 'refunded',
                     paymentStatus: 'refunded',
                     additionalInfo: reason ? `${order.additionalInfo || ''} | Refund reason: ${reason}`.trim() : order.additionalInfo

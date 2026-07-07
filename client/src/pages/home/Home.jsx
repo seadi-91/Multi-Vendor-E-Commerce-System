@@ -98,9 +98,11 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
             <Button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
               size="sm"
-              className="h-6 px-2 bg-[var(--primary)] hover:bg-[var(--primary)]/90"
+              variant="default"
+              className="h-7 px-2.5 gap-1.5 text-xs font-bold"
             >
-              <ShoppingCart className="w-3 h-3" />
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add to Cart</span>
             </Button>
           </div>
         </CardContent>
@@ -1048,49 +1050,64 @@ const Home = () => {
 
       {/* ── Footer ── */}
       <footer className="bg-[var(--card)] border-t border-[var(--border)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
-
-            {/* Column 1: Info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center">
-                  <Leaf className="w-4 h-4 text-white" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            
+            {/* Brand */}
+            <div className="col-span-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 bg-[var(--primary)] rounded-md flex items-center justify-center">
+                  <Leaf className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="text-base font-black tracking-tight video-text-flow">FarmConnect</span>
+                <span className="text-sm font-black text-[var(--foreground)]">FarmConnect</span>
               </div>
-              <p className="text-xs text-[var(--muted-foreground)] leading-relaxed font-medium">Enabling authentic direct trade between passionate local farmers and modern city households across Ethiopia.</p>
-              <p className="text-[10px] text-[var(--muted-foreground)] font-bold uppercase tracking-wider">&copy; 2026 FarmConnect Inc. All rights reserved.</p>
+              <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
+                Fresh from local farms to your table.
+              </p>
             </div>
 
-            {/* Column 2: Navigation */}
-            <div>
-              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Quick Navigation</h5>
-              <ul className="space-y-2.5 text-xs text-[var(--muted-foreground)] font-medium">
-                <li><Link to="/market" className="hover:text-[var(--primary)] transition-colors">Marketplace Catalog</Link></li>
-                <li><Link to="/favorites" className="hover:text-[var(--primary)] transition-colors">My Wishlist Favorites</Link></li>
-                <li><Link to="/contact" className="hover:text-[var(--primary)] transition-colors">Contact Support</Link></li>
-              </ul>
+            {/* Contact */}
+            <div className="col-span-1">
+              <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Contact</h4>
+              <div className="space-y-1">
+                <p className="text-[10px] text-[var(--muted-foreground)]">
+                  <a href="tel:+251911123456" className="hover:text-[var(--primary)] transition-colors">+251 911 123 456</a>
+                </p>
+                <p className="text-[10px] text-[var(--muted-foreground)]">
+                  <a href="mailto:contact@farmconnect.com" className="hover:text-[var(--primary)] transition-colors">contact@farmconnect.com</a>
+                </p>
+              </div>
             </div>
 
-            {/* Column 3: Contact */}
-            <div>
-              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Grower Support</h5>
-              <ul className="space-y-2.5 text-xs text-[var(--muted-foreground)] font-medium">
-                <li><button onClick={handleDashboardRedirect} className="hover:text-[var(--primary)] transition-colors">Register as Farmer</button></li>
-                <li><button onClick={handleDashboardRedirect} className="hover:text-[var(--primary)] transition-colors">Farmer Guide & Resources</button></li>
-              </ul>
+            {/* Quick Links */}
+            <div className="col-span-1">
+              <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Links</h4>
+              <div className="space-y-1">
+                <p className="text-[10px]">
+                  <Link to="/market" className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Marketplace</Link>
+                </p>
+                <p className="text-[10px]">
+                  <Link to="/favorites" className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Favorites</Link>
+                </p>
+              </div>
             </div>
 
-            {/* Column 4: Contact details */}
-            <div className="text-xs text-[var(--muted-foreground)] space-y-2">
-              <h5 className="text-xs font-black text-[var(--foreground)] uppercase tracking-widest mb-4">Contact Info</h5>
-              <p className="font-semibold text-[var(--foreground)]">FarmConnect HQ</p>
-              <p>Email: contact@farmconnect.com</p>
-              <p>Phone: +251 911 123 456</p>
-              <p>Address: Addis Ababa, Ethiopia</p>
+            {/* Location */}
+            <div className="col-span-1">
+              <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Location</h4>
+              <p className="text-[10px] text-[var(--muted-foreground)]">Addis Ababa, Ethiopia</p>
             </div>
+          </div>
 
+          {/* Bottom Bar */}
+          <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="text-[10px] text-[var(--muted-foreground)]">
+              &copy; 2026 FarmConnect. All rights reserved.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link to="/contact" className="text-[10px] text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
+            </div>
           </div>
         </div>
       </footer>

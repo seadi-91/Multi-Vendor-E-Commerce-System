@@ -115,6 +115,40 @@ const Checkout = () => {
     setError(null);
 
     try {
+      console.log('=== Starting order submission ===');
+      console.log('User:', user);
+      console.log('Cart:', cart);
+      console.log('FormData:', formData);
+
+      // ── Check authentication ─────────────────────────────────────────────
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token);
+      if (!token) {
+        throw new Error('You must be logged in to place an order. Please log in and try again.');
+      }
+
+      // ── Form Validation ────────────────────────────────────────────────
+      if (!formData.fullName || formData.fullName.trim() === '') {
+        throw new Error('Full name is required');
+      }
+      if (!formData.phone || formData.phone.trim() === '') {
+        throw new Error('Phone number is required');
+      }
+      if (!formData.email || formData.email.trim() === '') {
+        throw new Error('Email address is required');
+      }
+      if (formData.isDelivery) {
+        if (!formData.city || formData.city.trim() === '') {
+          throw new Error('City is required for delivery');
+        }
+        if (!formData.address || formData.address.trim() === '') {
+          throw new Error('Address is required for delivery');
+        }
+      }
+      if (!cart || cart.length === 0) {
+        throw new Error('Your cart is empty');
+      }
+
       // ── Chapa payment: initiate transaction and redirect ──────────────
       if (formData.paymentMethod === 'chapa') {
         const nameParts = formData.fullName.trim().split(' ');
@@ -133,11 +167,32 @@ const Checkout = () => {
         return; // stop further execution
       }
 
+      // ── Prepare order items with proper productId field ─────────────────
+      const orderItems = cart.map(item => {
+        const productId = item.id || item._id || item.productId;
+        console.log(`Processing item: ${item.name}, productId: ${productId}`);
+        return {
+          productId: productId,
+          name: item.name || item.productName || 'Product',
+          description: item.description || '',
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+          image: item.image || '',
+          unit: item.unit || 'kg'
+        };
+      });
+
+      // Validate all items have productId
+      const invalidItems = orderItems.filter(item => !item.productId);
+      if (invalidItems.length > 0) {
+        throw new Error(`Some items are missing product ID: ${invalidItems.map(i => i.name).join(', ')}`);
+      }
+
       // subtotal, deliveryFee, and total are already computed at component scope
 
       const orderPayload = {
         customerId: user?.id || null,
-        items: cart,
+        items: orderItems,
         total: parseFloat(total.toFixed(2)),
         subtotal: parseFloat(subtotal.toFixed(2)),
         deliveryFee: parseFloat(deliveryFee.toFixed(2)),
@@ -156,33 +211,39 @@ const Checkout = () => {
 
       console.log('Order payload:', JSON.stringify(orderPayload, null, 2));
 
-      let response = null;
+      const response = await api.post('/orders', orderPayload);
 
-      response = await api.post('/orders', orderPayload);
+      console.log('Response received:', response);
+
+      if (!response || !response.data) {
+        throw new Error('No response received from server');
+      }
 
       const createdOrder = {
-        ...response?.data,
-        id: response?.data?.id || Date.now(),
-        orderNumber: response?.data?.orderCode || `ORD-${String(response?.data?.id || Date.now()).padStart(5, '0')}`,
-        orderCode: response?.data?.orderCode || `ORD-${String(response?.data?.id || Date.now()).padStart(5, '0')}`,
+        ...response.data,
+        id: response.data.id || Date.now(),
+        orderNumber: response.data.orderCode || `ORD-${String(response.data.id || Date.now()).padStart(5, '0')}`,
+        orderCode: response.data.orderCode || `ORD-${String(response.data.id || Date.now()).padStart(5, '0')}`,
         date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         timestamp: new Date().toISOString(),
-        status: response?.data?.status || 'processing',
-        paymentStatus: response?.data?.paymentStatus || (formData.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
-        paymentMethod: response?.data?.paymentMethod || formData.paymentMethod || 'cash',
-        fullName: response?.data?.fullName || formData.fullName || 'Customer',
-        email: response?.data?.email || formData.email || '',
-        phone: response?.data?.phone || formData.phone || '',
-        city: response?.data?.city || formData.city || '',
-        address: response?.data?.address || formData.address || '',
-        additionalInfo: response?.data?.additionalInfo || formData.address || '',
-        estimatedDelivery: response?.data?.estimatedDelivery || '30-45 minutes',
-        items: cart.map(item => ({ ...item, name: item.name || item.productName || 'Product', price: Number(item.price || 0), quantity: Number(item.quantity || 1), image: item.image || '🛒' })),
+        status: response.data.status || 'processing',
+        paymentStatus: response.data.paymentStatus || (formData.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
+        paymentMethod: response.data.paymentMethod || formData.paymentMethod || 'cash',
+        fullName: response.data.fullName || formData.fullName || 'Customer',
+        email: response.data.email || formData.email || '',
+        phone: response.data.phone || formData.phone || '',
+        city: response.data.city || formData.city || '',
+        address: response.data.address || formData.address || '',
+        additionalInfo: response.data.additionalInfo || formData.address || '',
+        estimatedDelivery: response.data.estimatedDelivery || '30-45 minutes',
+        items: orderItems,
         subtotal: parseFloat(subtotal.toFixed(2)),
         deliveryFee: parseFloat(deliveryFee.toFixed(2)),
         tax: 0,
         total: parseFloat(total.toFixed(2)),
       };
+
+      console.log('Created order:', createdOrder);
 
       const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
       const nextOrders = [createdOrder, ...savedOrders.filter((entry) => String(entry.id) !== String(createdOrder.id))];
@@ -196,13 +257,19 @@ const Checkout = () => {
       }, 2500);
     } catch (error) {
       console.error('Order submission failed:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
       const errMsg =
         error?.response?.data?.chapaError?.message ||
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
         'Order submission failed. Please try again.';
-      alert(errMsg);
+      
+      console.error('Final error message:', errMsg);
+      setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }

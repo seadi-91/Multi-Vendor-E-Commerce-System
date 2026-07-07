@@ -124,8 +124,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('auth-storage');
-    // Force redirect to home page
-    window.location.href = '/';
+    // Note: Redirect is handled by the calling component using React Router
   };
 
   return (

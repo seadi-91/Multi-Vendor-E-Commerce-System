@@ -103,6 +103,23 @@ const QUICK_STATS = [
   { label: 'Cities', value: '4', icon: '🏙️' }
 ];
 
+const normalizeProducts = (payload) => {
+  const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+  return list.map((product) => ({
+    ...product,
+    id: product.id ?? product._id,
+    price: Number(product.price) || 0,
+    rating: Number(product.rating) || 0,
+    reviewsCount: Number(product.reviewsCount) || 0,
+    discountPercent: Number(product.discountPercent) || 0,
+  }));
+};
+
+const getBackendCategoryName = (categoryId) => {
+  const match = CATEGORIES.find((category) => category.id === categoryId);
+  return match?.name || categoryId;
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('grid');
@@ -158,13 +175,13 @@ const Home = () => {
       setError(null);
       // Fetch all products (no limit, no featured)
       const [productsRes, statsRes] = await Promise.allSettled([
-        api.get('/projects'),
+        api.get('/products', { params: { limit: 12 } }),
         api.get('/stats')
       ]);
 
       // Handle products response
       if (productsRes.status === 'fulfilled') {
-        setProducts(Array.isArray(productsRes.value.data) ? productsRes.value.data : []);
+        setProducts(normalizeProducts(productsRes.value.data));
         setFeaturedProducts([]); // No featured in backend, skip for now
       }
 
@@ -187,10 +204,13 @@ const Home = () => {
       setError(null);
 
       const backendCategory = getBackendCategoryName(categoryId);
-      console.log('[DEBUG] Filtering categoryId:', categoryId, '| backendCategory:', backendCategory);
-      const response = await api.get(`/projects?category=${encodeURIComponent(backendCategory)}&limit=12`);
-      console.log('[DEBUG] API response for category', backendCategory, ':', response.data);
-      setProducts(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get('/products', {
+        params: {
+          category: backendCategory,
+          limit: 12
+        }
+      });
+      setProducts(normalizeProducts(response.data));
     } catch (err) {
       console.error('[DEBUG] Error fetching products for category', categoryId, err);
       setError(`Failed to load ${getCategoryInfo(categoryId).name}.`);

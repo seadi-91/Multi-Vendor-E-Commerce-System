@@ -99,9 +99,11 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
             <Button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
               size="sm"
-              className="h-6 px-2"
+              variant="default"
+              className="h-7 px-2.5 gap-1.5 text-xs font-bold"
             >
-              <ShoppingCart className="w-3 h-3" />
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add to Cart</span>
             </Button>
           </div>
         </CardContent>
