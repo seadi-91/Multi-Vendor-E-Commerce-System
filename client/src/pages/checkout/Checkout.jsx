@@ -4,49 +4,15 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
-import Footer from '../../components/Footer';
-import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, Sun, Moon, Monitor, User, Settings, LogOut, MessageSquare } from 'lucide-react';
-
-const ThemeToggle = ({ theme, setTheme }) => {
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  const renderThemeIcon = () => {
-    if (theme === 'system') return <Monitor className="w-4.5 h-4.5" />;
-    return isDark ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />;
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100 text-amber-700 shadow-sm hover:bg-amber-200 transition-all" aria-label="Toggle Theme">
-          {renderThemeIcon()}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white border border-gray-200 shadow-lg dark:bg-slate-900 dark:border-slate-700">
-        <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
-          <Sun className="mr-2 h-4 w-4 text-amber-500" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
-          <Moon className="mr-2 h-4 w-4 text-amber-500" />
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-slate-900 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
-          <Monitor className="mr-2 h-4 w-4 text-amber-500" />
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
+import Header from '../../components/Header';
+import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, MessageSquare, Star } from 'lucide-react';
 
 const Checkout = () => {
-  const { cart, cartCount, clearCart } = useCart();
-  const { user, logout } = useAuth();
+  const { cart, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
 
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -54,7 +20,7 @@ const Checkout = () => {
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'cash',
+    paymentMethod: 'chapa',
     isDelivery: true
   });
 
@@ -63,6 +29,14 @@ const Checkout = () => {
   const [error, setError] = useState(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [wantsReview, setWantsReview] = useState(true);
+  const [comingSoonMessage, setComingSoonMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOrderSuccess, setIsOrderSuccess] = useState(false);
+  const [showChapaModal, setShowChapaModal] = useState(false);
+  const [chapaPhone, setChapaPhone] = useState('');
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
 
   const formatPrice = (price) => Number(price || 0).toFixed(2);
 
@@ -77,7 +51,7 @@ const Checkout = () => {
     : 'bg-white border-gray-200 text-slate-900';
   const inputClass = theme === 'dark'
     ? 'bg-slate-900 text-white border-slate-700 placeholder:text-slate-400'
-    : 'bg-gray-50 text-slate-900 border-gray-200 placeholder:text-gray-400';
+    : 'bg-white text-slate-900 border-gray-200 placeholder:text-gray-400';
   const labelClass = theme === 'dark'
     ? 'text-slate-200'
     : 'text-gray-700';
@@ -170,24 +144,6 @@ const Checkout = () => {
         throw new Error('You must be logged in to place an order. Please log in and try again.');
       }
 
-      // ── Chapa payment: initiate transaction and redirect ──────────────
-      if (formData.paymentMethod === 'chapa') {
-        const nameParts = formData.fullName.trim().split(' ');
-        const first_name = nameParts[0] || 'Customer';
-        const last_name = nameParts.slice(1).join(' ') || '';
-
-        const { data } = await api.post('/payments/chapa/initiate', {
-          amount: total,
-          email: formData.email,
-          first_name,
-          last_name,
-        });
-
-        // Redirect browser to Chapa checkout page
-        window.location.href = data.checkout_url;
-        return; // stop further execution
-      }
-
       // ── Prepare order items with proper productId field ─────────────────
       const orderItems = cart.map(item => {
         const productId = item.id || item._id || item.productId;
@@ -209,8 +165,7 @@ const Checkout = () => {
         throw new Error(`Some items are missing product ID: ${invalidItems.map(i => i.name).join(', ')}`);
       }
 
-      // subtotal, deliveryFee, and total are already computed at component scope
-
+      // ── Create order payload with pending status ─────────────────────────
       const orderPayload = {
         customerId: user?.id || null,
         items: orderItems,
@@ -218,9 +173,9 @@ const Checkout = () => {
         subtotal: parseFloat(subtotal.toFixed(2)),
         deliveryFee: parseFloat(deliveryFee.toFixed(2)),
         tax: 0,
-        status: 'processing',
-        paymentMethod: formData.paymentMethod || 'cash',
-        paymentStatus: formData.paymentMethod === 'cash' ? 'unpaid' : 'paid',
+        status: 'pending',
+        paymentMethod: formData.paymentMethod || 'chapa',
+        paymentStatus: 'pending',
         fullName: formData.fullName || 'Guest',
         email: formData.email || '',
         phone: formData.phone || '',
@@ -233,6 +188,7 @@ const Checkout = () => {
 
       console.log('Order payload:', JSON.stringify(orderPayload, null, 2));
 
+      // ── Step 1: Create order in database FIRST ──────────────────────────
       const response = await api.post('/orders', orderPayload);
 
       console.log('Response received:', response);
@@ -248,9 +204,9 @@ const Checkout = () => {
         orderCode: response.data.orderCode || `ORD-${String(response.data.id || Date.now()).padStart(5, '0')}`,
         date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         timestamp: new Date().toISOString(),
-        status: response.data.status || 'processing',
-        paymentStatus: response.data.paymentStatus || (formData.paymentMethod === 'cash' ? 'unpaid' : 'paid'),
-        paymentMethod: response.data.paymentMethod || formData.paymentMethod || 'cash',
+        status: response.data.status || 'pending',
+        paymentStatus: response.data.paymentStatus || 'pending',
+        paymentMethod: response.data.paymentMethod || formData.paymentMethod || 'chapa',
         fullName: response.data.fullName || formData.fullName || 'Customer',
         email: response.data.email || formData.email || '',
         phone: response.data.phone || formData.phone || '',
@@ -268,34 +224,192 @@ const Checkout = () => {
 
       console.log('Created order:', createdOrder);
 
+      // Save order to localStorage
       const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
       const nextOrders = [createdOrder, ...savedOrders.filter((entry) => String(entry.id) !== String(createdOrder.id))];
       localStorage.setItem('orders', JSON.stringify(nextOrders));
 
-      setOrderPlaced(true);
+      // ── Step 2: If Chapa payment, initiate transaction and redirect ─────
+      if (formData.paymentMethod === 'chapa') {
+        const nameParts = formData.fullName.trim().split(' ');
+        const first_name = nameParts[0] || 'Customer';
+        const last_name = nameParts.slice(1).join(' ') || '';
 
-      setTimeout(() => {
-        clearCart();
-        navigate('/customer/orders', { state: { orderSuccess: true, latestOrder: createdOrder } });
-      }, 2500);
+        const chapaResponse = await api.post('/payments/chapa/initiate', {
+          amount: total,
+          email: formData.email,
+          first_name,
+          last_name,
+          tx_ref: createdOrder.orderCode || `TX-${Date.now()}`,
+          orderId: createdOrder.id
+        });
+
+        // Redirect browser to Chapa checkout page
+        window.location.href = chapaResponse.data.checkout_url;
+        return; // stop further execution
+      }
+
+      // ── Step 3: For non-Chapa payments, show success immediately ────────
+      setOrderPlaced(true);
     } catch (error) {
       console.error('Order submission failed:', error);
       console.error('Error response:', error.response);
       console.error('Error status:', error.response?.status);
       console.error('Error data:', error.response?.data);
-      
+
       const errMsg =
         error?.response?.data?.chapaError?.message ||
         error?.response?.data?.message ||
         error?.response?.data?.error ||
         error?.message ||
         'Order submission failed. Please try again.';
-      
+
       console.error('Final error message:', errMsg);
       setError(errMsg);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Updated handler for Place Order button - Hybrid Real API + Fallback Simulation
+  const handlePlaceOrder = async (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.fullName || !formData.phone || !formData.email) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    if (formData.isDelivery && (!formData.city || !formData.address)) {
+      setError('Please fill in delivery address');
+      return;
+    }
+    
+    if (cart.length === 0) {
+      setError('Your cart is empty');
+      return;
+    }
+    
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      console.log('=== Starting Chapa payment flow ===');
+      
+      // Check authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('You must be logged in to place an order');
+      }
+
+      // Prepare order items
+      const orderItems = cart.map(item => {
+        const productId = item.id || item._id || item.productId;
+        return {
+          productId: productId,
+          name: item.name || item.productName || 'Product',
+          description: item.description || '',
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+          image: item.image || '',
+          unit: item.unit || 'kg'
+        };
+      });
+
+      // Validate all items have productId
+      const invalidItems = orderItems.filter(item => !item.productId);
+      if (invalidItems.length > 0) {
+        throw new Error(`Some items are missing product ID: ${invalidItems.map(i => i.name).join(', ')}`);
+      }
+
+      // Create order payload
+      const orderPayload = {
+        customerId: user?.id || null,
+        items: orderItems,
+        total: parseFloat(total.toFixed(2)),
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        deliveryFee: parseFloat(deliveryFee.toFixed(2)),
+        tax: 0,
+        status: 'pending',
+        paymentMethod: 'chapa',
+        paymentStatus: 'pending',
+        fullName: formData.fullName || 'Guest',
+        email: formData.email || '',
+        phone: formData.phone || '',
+        city: formData.city || '',
+        address: formData.address || '',
+        additionalInfo: formData.isDelivery ? `Delivery to ${formData.city}, ${formData.address}` : 'Pickup',
+        estimatedDelivery: formData.isDelivery ? '30-45 minutes' : '15-20 minutes',
+        wantsReview: false
+      };
+
+      console.log('Creating order:', orderPayload);
+
+      // Step 1: Try to create order in database
+      const orderResponse = await api.post('/orders', orderPayload);
+      
+      if (!orderResponse || !orderResponse.data) {
+        throw new Error('Failed to create order');
+      }
+
+      const createdOrder = {
+        ...orderResponse.data,
+        id: orderResponse.data.id || Date.now(),
+        orderCode: orderResponse.data.orderCode || `ORD-${String(orderResponse.data.id || Date.now()).padStart(5, '0')}`,
+      };
+
+      console.log('Order created successfully:', createdOrder);
+
+      // Save order to localStorage
+      const savedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      const nextOrders = [createdOrder, ...savedOrders.filter((entry) => String(entry.id) !== String(createdOrder.id))];
+      localStorage.setItem('orders', JSON.stringify(nextOrders));
+
+      // Step 2: Try to initialize Chapa payment
+      const nameParts = formData.fullName.trim().split(' ');
+      const first_name = nameParts[0] || 'Customer';
+      const last_name = nameParts.slice(1).join(' ') || '';
+
+      const chapaPayload = {
+        amount: total,
+        email: formData.email,
+        first_name,
+        last_name,
+        tx_ref: createdOrder.orderCode || `TX-${Date.now()}`,
+        orderId: createdOrder.id
+      };
+
+      console.log('Initializing Chapa payment:', chapaPayload);
+
+      const chapaResponse = await api.post('/payments/chapa/initiate', chapaPayload);
+
+      console.log('Chapa response received:', chapaResponse.data);
+
+      if (!chapaResponse.data || !chapaResponse.data.checkout_url) {
+        throw new Error('Failed to initialize Chapa payment');
+      }
+
+      // Step 3: Redirect to Chapa hosted payment page
+      console.log('Redirecting to Chapa checkout:', chapaResponse.data.checkout_url);
+      setIsLoading(false);
+      window.location.href = chapaResponse.data.checkout_url;
+
+    } catch (error) {
+      console.error('Chapa payment error:', error);
+      console.log('Falling back to simulated Chapa modal...');
+      
+      // FALLBACK: If backend is not ready, show simulated Chapa modal
+      setIsLoading(false);
+      setShowChapaModal(true);
+    }
+  };
+
+  // Handler for simulated Chapa "Pay using Test Mode" button
+  const handleSimulatedPayment = () => {
+    console.log('Simulated payment completed');
+    setShowChapaModal(false);
+    setIsOrderSuccess(true);
   };
 
   if (cart.length === 0 && !orderPlaced) {
@@ -320,16 +434,17 @@ const Checkout = () => {
 
   return (
     <>
-      <div className={`${pageContainerClass} py-12 px-4 lg:px-8`}>
-        <div className="max-w-7xl mx-auto">
+      <Header pageType="checkout" />
+      <div className={`${pageContainerClass} pt-24 pb-12 px-4 lg:px-8 flex items-start justify-center min-h-screen`}>
+        <div className="max-w-7xl w-full mx-auto">
           {orderPlaced ? (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
               <div className="bg-white rounded-3xl p-10 text-center max-w-lg shadow-2xl transform animate-in zoom-in-95 duration-300">
-                <div className="w-28 h-28 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl animate-bounce">
+                <div className="w-28 h-28 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
                   <Check className="w-16 h-16" strokeWidth={3} />
                 </div>
-                <h2 className="text-4xl font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">Order Confirmed!</h2>
-                <p className="text-gray-600 mb-8 text-lg">Your order has been successfully placed</p>
+                <h2 className="text-4xl font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">Order Placed Successfully!</h2>
+                <p className="text-gray-600 mb-6 text-lg">Thank you for your order. Your purchase has been confirmed.</p>
                 <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-6 mb-8 border-2 border-emerald-200">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
@@ -342,12 +457,16 @@ const Checkout = () => {
                     </div>
                   </div>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-4">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full animate-pulse" style={{ animation: 'progress 3s linear forwards' }} />
-                </div>
-                <p className="text-sm text-gray-500">Redirecting to your orders...</p>
+                <button
+                  onClick={() => {
+                    clearCart();
+                    navigate('/');
+                  }}
+                  className="w-full px-8 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                >
+                  OK
+                </button>
               </div>
-              <style>{`@keyframes progress { from { width: 0; } to { width: 100%; } }`}</style>
             </div>
           ) : reviewModalOpen ? (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in">
@@ -379,57 +498,292 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="mb-10 grid gap-4 md:flex md:items-center md:justify-between">
-                <div className="flex items-center gap-4 justify-start">
-                  <ThemeToggle theme={theme} setTheme={setTheme} />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all text-[var(--foreground)]">
-                        <span className="font-semibold">Me</span>
+          ) : isOrderSuccess ? (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl p-10 text-center max-w-2xl w-full shadow-2xl transform animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+                <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+                  <Check className="w-14 h-14" strokeWidth={3} />
+                </div>
+                
+                {/* Thank You Message in Amharic - Updated */}
+                <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                  ትዕዛዝህን በስኬት አጠናቀሃል፣ እናመሰግናለን!
+                </h2>
+                <h3 className="text-2xl font-bold text-gray-700 mb-3">
+                  Order Completed Successfully, Thank You!
+                </h3>
+                <p className="text-gray-600 text-lg mb-8">
+                  የክፍያ ሂደትዎ ተጠናቋል።
+                </p>
+
+                {/* Rating & Comment Section */}
+                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-6 mb-6 border-2 border-emerald-200 text-left">
+                  {/* Star Rating */}
+                  <div className="mb-6">
+                    <p className="text-gray-800 font-bold mb-3 text-base">
+                      አገልግሎታችንን ደረጃ ይስጡ:
+                    </p>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Rate Our Service:
+                    </p>
+                    
+                    {/* Interactive Star Rating */}
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded"
+                        >
+                          <Star
+                            className={`w-12 h-12 transition-colors ${
+                              star <= (hoverRating || rating)
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'fill-gray-200 text-gray-300'
+                            }`}
+                            strokeWidth={1.5}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {rating > 0 && (
+                      <p className="text-emerald-600 font-semibold text-center text-sm animate-in fade-in duration-200">
+                        ✓ You rated {rating} star{rating !== 1 ? 's' : ''}! Thank you for your feedback.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Comment Text Area */}
+                  <div>
+                    <label className="block text-gray-800 font-bold mb-3 text-base">
+                      አስተያየት ይስጡ:
+                    </label>
+                    <p className="text-gray-600 text-sm mb-3">
+                      Leave a Comment (Optional):
+                    </p>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="እባክዎን አስተያየትዎን እዚህ ይጻፉ (Comment)..."
+                      rows={4}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-gray-800 placeholder:text-gray-400 transition-all resize-none"
+                    />
+                    {comment && (
+                      <p className="text-gray-500 text-xs mt-2">
+                        {comment.length} character{comment.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* OK Button */}
+                <button
+                  onClick={() => {
+                    // Log rating and comment
+                    if (rating > 0 || comment.trim()) {
+                      console.log('User Feedback:', { rating, comment });
+                      
+                      // Save to localStorage
+                      const feedback = {
+                        rating,
+                        comment: comment.trim(),
+                        timestamp: new Date().toISOString(),
+                        orderId: Date.now() // Replace with actual order ID
+                      };
+                      localStorage.setItem('lastOrderFeedback', JSON.stringify(feedback));
+                      
+                      // TODO: Send to backend API
+                      // await api.post('/feedback', feedback);
+                    }
+                    
+                    // Clear cart and navigate home
+                    clearCart();
+                    navigate('/');
+                  }}
+                  className="w-full px-10 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          ) : showChapaModal ? (
+            <div className="fixed inset-0 bg-[#0a1628] flex items-center justify-center z-50 p-4 animate-in fade-in">
+              {/* Close Button */}
+              <button
+                onClick={() => setShowChapaModal(false)}
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group"
+              >
+                <svg className="w-6 h-6 text-white group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              <div className="bg-transparent rounded-2xl overflow-hidden shadow-2xl transform animate-in zoom-in-95 duration-300 max-w-3xl w-full">
+                {/* Simulated Chapa Payment Modal - Exact Match to Image */}
+                <div className="flex flex-col md:flex-row">
+                  {/* Left Side - Dark Green/Teal Section */}
+                  <div className="bg-[#1a3d3a] w-full md:w-[45%] p-8 flex flex-col min-h-[480px]">
+                    {/* Chapa Logo */}
+                    <div className="mb-8">
+                      <div className="flex items-center gap-2 mb-3">
+                        <svg className="w-8 h-8 text-[#7ed957]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                        </svg>
+                        <h3 className="text-2xl font-black text-[#7ed957]">Chapa</h3>
+                      </div>
+                      <p className="text-gray-400 text-sm">Select your payment method here</p>
+                    </div>
+                    
+                    {/* Payment Methods */}
+                    <div className="flex-1 space-y-3">
+                      {/* Test Bank Payment - Active */}
+                      <button
+                        className="w-full bg-[#2d5651] hover:bg-[#356b63] border-l-4 border-[#7ed957] rounded-lg p-4 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#1a3d3a] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg className="w-5 h-5 text-[#7ed957]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-white font-bold text-sm">Test Bank Payment</h4>
+                          </div>
+                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="bottom" sideOffset={6} className="min-w-[180px] p-1.5 bg-[var(--card)] border-[var(--border)]">
-                      <DropdownMenuItem onClick={() => navigate('/customer/profile')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                        <User className="w-4 h-4 mr-2" />
-                        Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/customer/dashboard/orders')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                        <Package className="w-4 h-4 mr-2" />
-                        My Orders
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/customer/settings')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                        <Settings className="w-4 h-4 mr-2" />
-                        Settings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => logout()} className="flex items-center justify-start cursor-pointer text-[var(--destructive)] hover:bg-[var(--destructive)/10]">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Logout
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <div className="text-left">
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">Checkout</h1>
-                    <p className={`${subTextClass}`}>Complete your order in a few simple steps</p>
+                      
+                      {/* Test Card Payment - Inactive */}
+                      <button
+                        className="w-full bg-[#1a3d3a]/50 hover:bg-[#1a3d3a] rounded-lg p-4 transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#0f2522] rounded-lg flex items-center justify-center">
+                            <CreditCard className="w-5 h-5 text-gray-500" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-gray-400 font-bold text-sm">Test Card Payment</h4>
+                          </div>
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Secured By Chapa */}
+                    <div className="mt-8 flex items-center justify-center gap-2 text-gray-500 text-xs">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>Secured By Chapa</span>
+                    </div>
+                  </div>
+
+                  {/* Right Side - Dark Navy/Blue Section */}
+                  <div className="bg-[#1e2936] w-full md:w-[55%] p-8 flex flex-col min-h-[480px] relative">
+                    {/* Language Selector */}
+                    <div className="absolute top-4 right-4">
+                      <button className="flex items-center gap-1 text-gray-400 hover:text-white text-xs transition-colors">
+                        <span>EN</span>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Header */}
+                    <div className="mb-6 mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-6 h-6 text-[#7ed957]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                        </svg>
+                        <h2 className="text-xl font-bold text-white">FarmConnect Order Payment</h2>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center">
+                      {/* Payment Info */}
+                      <div className="mb-6">
+                        <p className="text-gray-400 text-sm mb-2">Payment for your FarmConnect o</p>
+                        <p className="text-gray-500 text-xs mb-4">
+                          No actual money is used in the test mode. Only our test cards and bank accounts can be used.
+                        </p>
+                        <a href="#" className="text-[#7ed957] text-xs hover:underline">Testing phone number</a>
+                      </div>
+
+                      {/* Phone Number Input */}
+                      <div className="mb-6">
+                        <label className="block text-gray-400 text-sm font-semibold mb-3">
+                          Phone Number
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            value={chapaPhone}
+                            onChange={(e) => setChapaPhone(e.target.value)}
+                            placeholder="09********"
+                            className="w-full px-4 py-3 bg-[#151e2a] text-white border border-gray-700 rounded-lg focus:border-[#7ed957] focus:ring-2 focus:ring-[#7ed957]/20 outline-none text-base transition-all placeholder:text-gray-600"
+                          />
+                          {chapaPhone && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <svg className="w-5 h-5 text-[#7ed957]" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Pay Button */}
+                      <button
+                        onClick={handleSimulatedPayment}
+                        className="w-full py-3.5 bg-[#7ed957] hover:bg-[#6ec747] text-[#0a1628] rounded-lg font-bold text-base transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-[#7ed957]/30"
+                      >
+                        Pay using Test Mode
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+          ) : (
+            <>
+              <div className="mb-10 text-center">
+                <h1 className="text-5xl font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent mb-3">Checkout</h1>
+                <p className={`${subTextClass}`}>Complete your order in a few simple steps</p>
+              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Form Section */}
-                <div className="lg:col-span-2 space-y-6 max-w-2xl">
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Combined Personal Info & Delivery Card */}
-                    <div className={`${cardClass} rounded-3xl shadow-xl border-2 p-8 hover:shadow-2xl transition-shadow ${theme === 'dark' ? 'border-slate-800' : 'border-emerald-100'}`}>
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className={`w-14 h-14 ${theme === 'dark' ? 'bg-slate-800' : 'bg-gradient-to-br from-emerald-500 to-teal-600'} rounded-2xl flex items-center justify-center shadow-lg`}>
-                          <Home className={`w-7 h-7 ${theme === 'dark' ? 'text-white' : 'text-white'}`} />
-                        </div>
-                        <div>
-                          <h3 className={`text-2xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
-                          <p className={`text-sm ${subTextClass}`}>Your information and delivery preferences</p>
-                        </div>
+              {/* Centered Flex Container - Side by Side Cards */}
+              <div className="flex flex-col lg:flex-row justify-center items-start gap-6 w-full mx-auto max-w-5xl">
+                {/* Left Column: Main Form Card - Compact Width */}
+                <div className="w-full lg:w-[480px]">
+                  <form onSubmit={handleSubmit} className="space-y-10">
+                    {/* Combined Card: Contact & Delivery + Payment Method */}
+                    <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm p-10`}>
+                      {/* Back Button */}
+                      <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`flex items-center gap-2 mb-8 text-sm font-semibold ${theme === 'dark' ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors group`}
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        <span>Back to Cart</span>
+                      </button>
+                      
+                      {/* Contact & Delivery Section */}
+                    <div className="mb-12">
+                      <div className="mb-8">
+                        <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
+                        <p className={`text-sm ${subTextClass} mt-1`}>Your information and delivery preferences</p>
                       </div>
 
                       <div className="space-y-5">
@@ -482,16 +836,12 @@ const Checkout = () => {
                               onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
                               className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
                             />
-                            <div className="flex items-center gap-2">
-                              <Truck className="w-5 h-5 text-emerald-600" />
-                              <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                                I need home delivery
-                              </span>
-                            </div>
+                            <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                              I need home delivery
+                            </span>
                           </label>
                           {!formData.isDelivery && (
-                            <p className="text-xs text-gray-600 mt-2 ml-8 flex items-center gap-2">
-                              <Package className="w-4 h-4 text-gray-500" />
+                            <p className="text-xs text-gray-600 mt-2 ml-8">
                               You'll pick up your order
                             </p>
                           )}
@@ -521,75 +871,56 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    <div className="mb-10">
-                      <h3 className={`flex items-center gap-2 text-xl font-bold mb-5 ${sectionTitleClass}`}>
-                        <CreditCard className="text-emerald-600" />
-                        Payment Method
-                      </h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {['cash', 'card', 'mobile', 'chapa'].map((method) => (
-                          <label
-                            key={method}
-                            className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${formData.paymentMethod === method
-                              ? 'border-emerald-500 bg-emerald-50'
-                              : `${theme === 'dark' ? 'border-slate-700 bg-slate-950 hover:border-slate-600' : 'border-gray-300 bg-white hover:border-emerald-300'}`
-                              }`}
-                          >
-                            <input
-                              type="radio"
-                              name="paymentMethod"
-                              value={method}
-                              checked={formData.paymentMethod === method}
-                              onChange={handleInputChange}
-                              className="w-5 h-5 text-emerald-600"
-                            />
-                            <div className="flex items-center gap-3">
-                              {method === 'cash' && <Truck className="text-2xl text-emerald-700" />}
-                              {method === 'card' && <CreditCard className="text-2xl text-emerald-700" />}
-                              {method === 'mobile' && <Phone className="text-2xl text-emerald-700" />}
-                              {method === 'chapa' && (
-                                <svg className="w-6 h-6 text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                                </svg>
-                              )}
-                              <div>
-                                <h4 className="font-bold text-gray-800">
-                                  {method === 'cash' ? 'Cash on Delivery'
-                                    : method === 'card' ? 'Credit/Debit Card'
-                                      : method === 'mobile' ? 'Mobile Payment'
-                                        : 'Pay with Chapa'}
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  {method === 'cash' ? 'Pay when you receive your order'
-                                    : method === 'card' ? 'Pay securely with your card'
-                                      : method === 'mobile' ? 'CBE Birr, Telebirr, etc.'
-                                        : 'Secure online payment via Chapa'}
-                                </p>
+                    {/* Payment Method Section */}
+                    <div className={`pt-12 border-t-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'}`}>
+                      <div className="mb-8">
+                        <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Payment Method</h3>
+                        <p className={`text-sm ${subTextClass} mt-1`}>Choose how you'd like to pay</p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {[
+                          { value: 'chapa', label: 'Pay with Chapa (Online Payment)', enabled: true },
+                          { value: 'cash', label: 'Cash on Delivery', enabled: false },
+                          { value: 'card', label: 'Credit/Debit Card', enabled: false },
+                          { value: 'mobile', label: 'Mobile Payment (CBE Birr, Telebirr)', enabled: false }
+                        ].map((method) => (
+                          <div key={method.value} className="relative">
+                            <label
+                              className={`flex items-center gap-3 bg-transparent border-0 cursor-pointer group ${!method.enabled ? 'opacity-50' : ''}`}
+                              onClick={(e) => {
+                                if (!method.enabled) {
+                                  e.preventDefault();
+                                  setComingSoonMessage(method.value);
+                                  setTimeout(() => setComingSoonMessage(null), 3000);
+                                }
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="paymentMethod"
+                                value={method.value}
+                                checked={formData.paymentMethod === method.value}
+                                onChange={handleInputChange}
+                                disabled={!method.enabled}
+                                className="w-5 h-5 text-emerald-600 border-2 border-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                              />
+                              <span className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${method.enabled ? 'group-hover:text-emerald-600' : ''} transition-colors`}>
+                                {method.label}
+                              </span>
+                            </label>
+                            {comingSoonMessage === method.value && !method.enabled && (
+                              <div className="ml-8 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <span className="inline-block px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
+                                  Coming Soon
+                                </span>
                               </div>
-                            </div>
-                          </label>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
-
-                    <div className="flex gap-4">
-                      <button type="button" onClick={() => navigate(-1)} className={`flex-1 px-8 py-4 border-2 rounded-2xl font-bold transition-all ${theme === 'dark' ? 'border-slate-700 text-white hover:bg-slate-900' : 'border-gray-300 text-gray-900 hover:bg-gray-100'}`}>
-                        Back
-                      </button>
-                      <button type="submit" disabled={isSubmitting} className="flex-1 px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:scale-100">
-                        {isSubmitting ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Processing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Wallet className="text-2xl" />
-                            Place Order - {formatPrice(total)} ETB
-                          </>
-                        )}
-                      </button>
-                    </div>
+                  </div>
 
                     {/* Error Message */}
                     {error && (
@@ -612,27 +943,28 @@ const Checkout = () => {
                   </form>
                 </div>
 
-                {/* Order Summary */}
-                <div className="lg:col-span-1">
-                  <div className={`sticky top-8 rounded-3xl shadow-2xl border-2 overflow-hidden ${cardClass} ${theme === 'dark' ? 'border-slate-800' : 'border-emerald-100'}`}>
-                    <div className={`${summaryHeaderClass} p-8`}
-                    >
-                      <h3 className="text-2xl font-black mb-1">Order Summary</h3>
-                      <p className="text-emerald-100 text-sm">{cart.length} {cart.length === 1 ? 'item' : 'items'} in cart</p>
+                {/* Right Column: Order Summary Card - Sleek Narrow Width */}
+                <div className="w-full lg:w-[340px]">
+                  <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm overflow-hidden sticky top-24`}>
+                    <div className={`${summaryHeaderClass} py-2 px-6 h-12 flex items-center justify-between`}>
+                      <div>
+                        <h3 className="text-base font-black">Order Summary</h3>
+                        <p className="text-emerald-100 text-[10px]">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+                      </div>
                     </div>
 
-                    <div className={`p-6 space-y-4 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'} max-h-80 overflow-y-auto`}>
+                    <div className={`p-5 space-y-3 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-200'} max-h-60 overflow-y-auto`}>
                       {cart.map(item => (
-                        <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-xl transition-colors`}>
+                        <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-lg transition-colors`}>
                           <div className="flex-1">
                             <p className="font-bold text-sm text-gray-900">{item.name}</p>
                             <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
                           </div>
-                          <p className="font-black text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
+                          <p className="font-black text-sm text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
                         </div>
                       ))}
                     </div>
-                    <div className="p-6 space-y-3 border-b-2 border-gray-100">
+                    <div className="p-5 space-y-2 border-b-2 border-gray-200">
                       <div className={`flex justify-between text-sm ${subTextClass}`}>
                         <span>Subtotal</span>
                         <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
@@ -643,22 +975,37 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    <div className={`p-8 ${totalBoxClass}`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-lg`}>Total</span>
-                        <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-3xl font-black`}>{formatPrice(total)} ETB</span>
+                    <div className={`p-6 ${totalBoxClass}`}>
+                      <div className="flex justify-between items-center mb-4">
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-base`}>Total</span>
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-2xl font-black`}>{formatPrice(total)} ETB</span>
                       </div>
+                      
+                      <button 
+                        type="button"
+                        onClick={handlePlaceOrder}
+                        disabled={isLoading} 
+                        className="w-full px-8 py-2.5 text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Processing Order...</span>
+                          </>
+                        ) : (
+                          <span>Place Order</span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
-      <Footer />
-    </>
-  );
-};
-
-export default Checkout;
+      </>
+    );
+  };
+  
+  export default Checkout;

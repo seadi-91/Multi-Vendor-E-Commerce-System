@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
-import Footer from '../../components/Footer';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, NavLink, Link } from 'react-router-dom';
-import { Heart, Star, ShoppingCart, Package, ChevronLeft, BadgeCheck, Sparkles, Sun, Moon, Monitor } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sparkles } from 'lucide-react';
+import Header from '../../components/Header';
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
@@ -102,193 +101,6 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
         </div>
       </aside>
     </>
-  );
-};
-
-// ─── Cart Dashboard Header (Custom for Cart Page) ─────────────────────────────
-const CartDashboardHeader = ({ user, cartCount, onLogout, onMenuToggle, favoritesCount, theme, setTheme }) => {
-  const navigate = useNavigate();
-  const menuRef = React.useRef(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
-  };
-
-  return (
-    <header className="sticky top-0 z-40 flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-4 text-[var(--foreground)] sm:px-8">
-      {/* Left: Mobile Menu Toggle + Back Button */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onMenuToggle}
-          className="p-2 text-[var(--foreground)] hover:text-[var(--primary)] lg:hidden"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)]"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-medium hidden sm:inline">Back</span>
-        </button>
-      </div>
-
-      {/* Global Action Icons */}
-      <div className="flex items-center gap-3 sm:gap-5">
-        <ThemeToggle theme={theme} setTheme={setTheme} />
-        <div onClick={() => navigate('/favorites')} className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
-          <span className="text-xl">🤍</span>
-          {favoritesCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-white">{favoritesCount}</span>
-          )}
-        </div>
-        <Link to="/customer/cart" className="relative cursor-pointer p-1 text-[var(--foreground)] hover:text-[var(--primary)]">
-          <span className="text-xl">🛒</span>
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-[var(--primary-foreground)]">{cartCount || 0}</span>
-        </Link>
-
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(prev => !prev)}
-            className="rounded-full border border-[var(--border)] bg-[var(--secondary)] p-1 shadow-sm"
-          >
-            <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100&auto=format&fit=crop'}
-              alt="User profile"
-              className="h-9 w-9 rounded-full object-cover sm:h-10 sm:w-10"
-            />
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 shadow-xl">
-              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                Profile
-              </button>
-              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/orders'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                My Orders
-              </button>
-              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/reviews'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                My Reviews
-              </button>
-              <button onClick={() => { setMenuOpen(false); navigate('/customer/dashboard/settings'); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                Settings
-              </button>
-              <div className="my-1 h-px bg-[var(--border)]" />
-              <button onClick={() => { setMenuOpen(false); onLogout(); }} className="w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--destructive)] hover:bg-[var(--destructive)/10]">
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-};
-
-// ─── Cart Public Header (Custom for Cart Page) ───────────────────────────────
-const CartPublicHeader = ({ cartCount, theme, setTheme }) => {
-  const navigate = useNavigate();
-
-  const handleBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
-  };
-
-  return (
-    <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-        {/* Logo — left */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-extrabold text-sm">FC</span>
-          </div>
-          <span className="text-lg font-extrabold text-emerald-600 tracking-tight">FarmConnect</span>
-        </Link>
-
-        {/* Back button */}
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)]"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-
-        {/* Right actions */}
-        <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
-          <ThemeToggle theme={theme} setTheme={setTheme} />
-          <Link
-            to="/favorites"
-            className="flex items-center gap-2 text-[var(--foreground)] hover:text-[var(--primary)] relative"
-          >
-            <Heart className="w-5 h-5" />
-          </Link>
-          <Link
-            to="/customer/cart"
-            className="flex items-center gap-1.5 text-[var(--foreground)] hover:text-[var(--primary)] relative"
-          >
-            <div className="relative">
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
-              )}
-            </div>
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-const ThemeToggle = ({ theme, setTheme }) => {
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  const renderThemeIcon = () => {
-    if (theme === 'system') return <Monitor className="w-4.5 h-4.5" />;
-    return isDark ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />;
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--primary)]/15 text-[var(--primary)] hover:bg-[var(--primary)]/25 transition-all" aria-label="Toggle Theme">
-          {renderThemeIcon()}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
-        <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)] px-3 py-2">
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 };
 
@@ -457,7 +269,7 @@ const Cart = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <CartPublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
+        <Header pageType="cart" />
         <div className="max-w-4xl mx-auto bg-[var(--card)]/95 rounded-3xl border border-[var(--border)] p-4 md:p-6 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto">
           <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
             <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
@@ -603,15 +415,7 @@ const Cart = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)]">
-      <CartDashboardHeader
-        user={user}
-        cartCount={cartCount}
-        onLogout={logout}
-        onMenuToggle={() => setSidebarOpen(true)}
-        favoritesCount={favoritesCount}
-        theme={theme}
-        setTheme={setTheme}
-      />
+      <Header pageType="cart" />
 
       <main className="flex-1 overflow-y-auto">
         <section className="px-6 py-6">
@@ -750,8 +554,6 @@ const Cart = () => {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 };

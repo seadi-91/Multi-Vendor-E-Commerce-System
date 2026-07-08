@@ -21,6 +21,7 @@ import ProductDetail from './pages/product/ProductDetail';
 import Receipt from './pages/orders/Receipt';
 import CustomerProfile from './pages/dashbord/customer/profile';
 import MyReviews from './pages/dashbord/customer/reviews/Reviews';
+import PaymentSuccess from './pages/payment/PaymentSuccess';
 import { ROLES } from './context/roles';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/products" element={<Product />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
 
           {/* Guest Routes - Only accessible when not authenticated */}
           <Route

@@ -2,21 +2,18 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { ROLES, ROUTES_BY_ROLE } from '../../context/roles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Header from '../../components/Header';
 import {
-  Leaf, Search, Heart, ShoppingCart, Mail, Lock,
-  Eye, EyeOff, Sparkles, CheckCircle2, ChevronRight, Sun, Moon, Monitor
+  Mail, Lock, Eye, EyeOff, Sparkles, CheckCircle2, ChevronRight
 } from 'lucide-react';
-import Footer from '../../components/Footer';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const Login = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -33,24 +30,16 @@ const Login = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const handleThemeChange = (newTheme) => {
-    setTheme(newTheme);
-  };
-
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
-  const { cart } = useCart();
+  const { login, loading, user } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
-
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Sync Favorites
   useEffect(() => {
@@ -78,13 +67,6 @@ const Login = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
   };
 
   const getRedirectPath = (userData) => {
@@ -135,104 +117,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[var(--background)] flex flex-col transition-colors duration-300">
 
-      {/* ── Header ── */}
-      <header className="bg-[var(--card)] backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-[var(--border)] transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-          <div className="flex items-center justify-between gap-4 md:gap-8">
-
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
-                <Leaf className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-black tracking-tight leading-none video-text-flow text-[var(--foreground)]">FarmConnect</span>
-                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold tracking-wider">DIRECT FROM SOIL</span>
-              </div>
-            </Link>
-
-            {/* Search Bar */}
-            <div className="flex-1 max-w-lg hidden md:block">
-              <form
-                onSubmit={handleSearchSubmit}
-                className="flex items-center bg-slate-50 rounded-xl border border-slate-100 focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-inner overflow-hidden"
-              >
-                <input
-                  type="text"
-                  placeholder="Search fresh vegetables, organic grains, local products..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-xs font-medium text-slate-800 focus:outline-none bg-transparent"
-                />
-                <button type="submit" className="p-2.5 bg-emerald-600 hover:bg-emerald-700 transition-colors mr-1 my-1 rounded-lg">
-                  <Search className="w-4 h-4 text-white" />
-                </button>
-              </form>
-            </div>
-
-            {/* Header Right Icons */}
-            <div className="flex items-center gap-2.5 md:gap-5 flex-shrink-0">
-
-              {/* Theme Toggle Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95 text-[var(--foreground)]"
-                    aria-label="Toggle Theme"
-                  >
-                    {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
-                      <Moon className="w-4.5 h-4.5" />
-                    ) : (
-                      <Sun className="w-4.5 h-4.5" />
-                    )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
-                  <DropdownMenuItem onClick={() => handleThemeChange('dark')} className="cursor-pointer">
-                    <Moon className="w-4 h-4 mr-2" />
-                    Dark
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleThemeChange('system')} className="cursor-pointer">
-                    <Monitor className="w-4 h-4 mr-2" />
-                    System
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleThemeChange('light')} className="cursor-pointer">
-                    <Sun className="w-4 h-4 mr-2" />
-                    Light
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Favorites Wishlist */}
-              <Link
-                to="/favorites"
-                className="flex items-center justify-center w-9 h-9 rounded-xl relative transition-all text-[var(--foreground)]"
-              >
-                <Heart className="w-4.5 h-4.5 text-slate-600 hover:text-rose-500 transition-colors" />
-                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center animate-pulse">
-                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
-                  </span>
-                )}
-              </Link>
-
-              {/* Cart */}
-              <Link
-                to="/customer/cart"
-                className="flex items-center gap-1 px-3 py-2 rounded-xl font-bold transition-all relative text-[var(--foreground)]"
-              >
-                <ShoppingCart className="w-4.5 h-4.5" />
-                <span className="text-xs hidden sm:inline">Cart</span>
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header pageType="login" />
 
       {/* ── Main Content Area ── */}
       <main className="flex-1 flex items-center justify-center p-4 relative overflow-hidden my-8 sm:my-12">
@@ -403,9 +288,6 @@ const Login = () => {
 
         </div>
       </main>
-
-      {/* ── Footer ── */}
-      <Footer />
 
     </div>
   );

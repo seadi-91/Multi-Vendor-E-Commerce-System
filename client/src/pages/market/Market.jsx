@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import Footer from '../../components/Footer';
+import Header from '../../components/Header';
 
 const fmt = (n) => {
   const value = Number(n);
@@ -132,131 +133,9 @@ const Market = () => {
 
   // Define available categories
   const categories = ['All', 'Vegetables', 'Fruits', 'Coffee', 'Legumes', 'Other'];
-
+  // URL params
   const categoryParam = searchParams.get('cat');
   const searchParam = searchParams.get('search');
-
-  // Apply theme
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'dark') {
-      root.style.setProperty('--background', 'oklch(0.25 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--card', 'oklch(0.30 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--popover', 'oklch(0.30 0 0)');
-      root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--primary', '#059669');
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
-      root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--muted', 'oklch(0.35 0 0)');
-      root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
-      root.style.setProperty('--accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-      root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
-      root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
-      root.style.setProperty('--ring', '#059669');
-      root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
-      root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-primary', '#059669');
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
-      root.style.setProperty('--sidebar-ring', '#059669');
-    } else if (theme === 'light') {
-      root.style.setProperty('--background', 'oklch(1 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.12 0 0)');
-      root.style.setProperty('--card', 'oklch(0.995 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.12 0 0)');
-      root.style.setProperty('--popover', 'oklch(0.995 0 0)');
-      root.style.setProperty('--popover-foreground', 'oklch(0.12 0 0)');
-      root.style.setProperty('--primary', '#059669');
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
-      root.style.setProperty('--secondary-foreground', 'oklch(0.18 0 0)');
-      root.style.setProperty('--muted', 'oklch(0.97 0 0)');
-      root.style.setProperty('--muted-foreground', 'oklch(0.55 0 0)');
-      root.style.setProperty('--accent', 'oklch(0.97 0 0)');
-      root.style.setProperty('--accent-foreground', 'oklch(0.18 0 0)');
-      root.style.setProperty('--destructive', 'oklch(0.6 0.22 25)');
-      root.style.setProperty('--border', 'oklch(0.92 0 0)');
-      root.style.setProperty('--input', 'oklch(0.92 0 0)');
-      root.style.setProperty('--ring', '#059669');
-      root.style.setProperty('--sidebar', 'oklch(0.995 0 0)');
-      root.style.setProperty('--sidebar-foreground', 'oklch(0.12 0 0)');
-      root.style.setProperty('--sidebar-primary', '#059669');
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
-      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.18 0 0)');
-      root.style.setProperty('--sidebar-border', 'oklch(0.92 0 0)');
-      root.style.setProperty('--sidebar-ring', '#059669');
-    } else {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      if (systemTheme === 'dark') {
-        root.style.setProperty('--background', 'oklch(0.145 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--card', 'oklch(0.205 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--popover', 'oklch(0.205 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--primary', '#059669');
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.25 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.25 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.75 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.25 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.628 0.258 25.331)');
-        root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
-        root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
-        root.style.setProperty('--ring', '#059669');
-        root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669');
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.25 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
-        root.style.setProperty('--sidebar-ring', '#059669');
-      } else {
-        root.style.setProperty('--background', 'oklch(1 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.12 0 0)');
-        root.style.setProperty('--card', 'oklch(0.995 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.12 0 0)');
-        root.style.setProperty('--popover', 'oklch(0.995 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.12 0 0)');
-        root.style.setProperty('--primary', '#059669');
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.18 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.97 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.55 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.18 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.6 0.22 25)');
-        root.style.setProperty('--border', 'oklch(0.92 0 0)');
-        root.style.setProperty('--input', 'oklch(0.92 0 0)');
-        root.style.setProperty('--ring', '#059669');
-        root.style.setProperty('--sidebar', 'oklch(0.995 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.12 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669');
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.18 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(0.92 0 0)');
-        root.style.setProperty('--sidebar-ring', '#059669');
-      }
-    }
-  }, [theme]);
-
-  // Save theme to localStorage
   useEffect(() => {
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -402,129 +281,9 @@ const Market = () => {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      {/* Header */}
-      <header className="bg-[var(--card)] sticky top-0 z-50 shadow-sm border-b border-[var(--border)]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3.5">
-          <div className="flex items-center justify-between gap-2 md:gap-3">
-            <button onClick={() => navigate(-1)} className="text-[var(--foreground)] hover:text-[var(--primary)] transition-colors">
-              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-
-            {/* Search Bar - Minimized Width */}
-            <div className="flex-1 max-w-xs min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-                <Input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-3 py-2 text-xs sm:text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {/* Theme Toggle */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]">
-                    {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
-                      <Moon className="w-4 h-4" />
-                    ) : (
-                      <Sun className="w-4 h-4" />
-                    )}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
-                  <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Sun className="w-4 h-4 mr-2" />
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Moon className="w-4 h-4 mr-2" />
-                    Dark
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Monitor className="w-4 h-4 mr-2" />
-                    System
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Favorites - Hidden on mobile */}
-              <Link
-                to="/favorites"
-                className="hidden sm:flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg relative transition-all"
-              >
-                <Heart className="w-4 h-4 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
-                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
-                  </span>
-                )}
-              </Link>
-
-              {/* Cart */}
-              <Link
-                to="/customer/cart"
-                className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg relative transition-all"
-              >
-                <ShoppingCart className="w-4 h-4 text-[var(--foreground)]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Mobile Menu Toggle - Rightmost on mobile */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]"
-              >
-                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Sort Dropdown and Title/Count */}
-          <div className="mt-3 sm:mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-[var(--foreground)]">
-                {selectedCategory && selectedCategory !== 'All' ? `${selectedCategory}` : 'All Products'}
-              </h1>
-              <p className="text-xs sm:text-sm text-[var(--muted-foreground)] mt-0.5">{filteredProducts.length} products found</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 justify-end">
-              {/* Category Dropdown */}
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[120px] sm:w-[140px] bg-[var(--secondary)] hover:bg-[var(--secondary)] border-[var(--border)]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent className="bg-[var(--card)] border-[var(--border)]">
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat} className="text-[var(--foreground)]">{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[120px] sm:w-[140px] bg-[var(--secondary)] hover:bg-[var(--secondary)] border-[var(--border)]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent className="bg-[var(--card)] border-[var(--border)]">
-                  <SelectItem value="newest" className="text-[var(--foreground)]">Newest</SelectItem>
-                  <SelectItem value="price-low" className="text-[var(--foreground)]">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high" className="text-[var(--foreground)]">Price: High to Low</SelectItem>
-                  <SelectItem value="rating" className="text-[var(--foreground)]">Top Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 shadow-sm">
+        <Header pageType="market" />
+      </div>
 
       {/* Mobile Menu Sidebar */}
       {mobileMenuOpen && (

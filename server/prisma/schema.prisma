@@ -94,6 +94,17 @@ model User {
   @@index([createdAt])
 }
 
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  image       String?
+  categoryKey String    @unique
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model Product {
   id                Int      @id @default(autoincrement())
   name              String
@@ -104,6 +115,8 @@ model Product {
   minOrderQuantity  Int      @default(1)
   unit              String?
   category          String?
+  categoryId        Int?
+  categoryRel       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   brand             String?
   sku               String?
   discountPrice     Float?
@@ -120,6 +133,7 @@ model Product {
   notifications     Notification[]
   reviews           Review[]
   favorites         Favorite[]
+  views             Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

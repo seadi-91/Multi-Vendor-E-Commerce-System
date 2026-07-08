@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import Header from '../../../components/Header';
 import Footer from '../../../components/Footer';
+import { useTheme } from '../../../context/ThemeContext';
+import api, { customerAPI } from '../../../api';
 import {
   User, Mail, Phone, MapPin, Package, Heart, Star, Store, Copy,
   Check, X, ShoppingBag, ArrowLeft, Loader2, ChevronRight, Plus,
@@ -35,27 +38,15 @@ const COLORS = {
   inkLine: '#2A3150',
   paper: '#FBF8F1',
   paperDim: '#F1ECDE',
-  gold: '#C9A227',
-  goldDeep: '#8B6F1D',
+  gold: 'var(--primary)',
+  goldDeep: '#10B981',
   slate: '#6B7280',
   cream: '#EDE7D9',
   success: '#2F7D5D',
   coral: '#C1494B',
 };
 
-// ---- Mock data (swap for customerAPI.getProfile() / useAuth() in production) ----
-const MOCK_USER = {
-  id: 'CUS-224871',
-  name: 'Selam Bekele',
-  email: 'selam.bekele@example.com',
-  phone: '+251 91 234 5678',
-  city: 'Addis Ababa',
-  subcity: 'Bole',
-  fullAddress: 'Bole Road, near Edna Mall, House No. 14',
-  tier: 'Gold Member',
-  memberSince: 'Mar 2023',
-};
-
+// ---- Static data used only for non-profile-specific sections ----
 const MOCK_STATS = [
   { label: 'Orders placed', value: 47, icon: Package },
   { label: 'Wishlist items', value: 12, icon: Heart },
@@ -70,6 +61,21 @@ const MOCK_ORDERS = [
   { id: 'ORD-87996', vendor: 'Habesha Home Decor', date: 'May 30, 2026', status: 'Cancelled', total: 1320 },
 ];
 
+const normalizeOrder = (order) => {
+  const orderDate = new Date(order.createdAt || order.updatedAt || Date.now());
+  const date = orderDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return {
+    ...order,
+    orderNumber: order.orderCode || `ORD-${String(order.id || '').padStart(5, '0')}`,
+    date,
+    status: order.status || 'processing',
+    total: Number(order.total || order.subtotal || 0),
+    vendor: order.orderItems?.[0]?.product?.farmer?.name || order.vendor || 'Marketplace',
+    orderItems: order.orderItems || order.items || [],
+    reviews: order.reviews || [],
+  };
+};
+
 const MOCK_ADDRESSES = [
   { label: 'Home', city: 'Addis Ababa', subcity: 'Bole', fullAddress: 'Bole Road, near Edna Mall, House No. 14', isDefault: true },
   { label: 'Office', city: 'Addis Ababa', subcity: 'Kirkos', fullAddress: 'Dembel City Center, 4th Floor, Suite 402', isDefault: false },
@@ -77,14 +83,14 @@ const MOCK_ADDRESSES = [
 
 const STATUS_STYLE = {
   'Delivered': { bg: 'rgba(47,125,93,0.12)', fg: COLORS.success },
-  'In transit': { bg: 'rgba(201,162,39,0.15)', fg: COLORS.goldDeep },
+  'In transit': { bg: 'rgba(5,150,105,0.12)', fg: COLORS.goldDeep },
   'Cancelled': { bg: 'rgba(193,73,75,0.12)', fg: COLORS.coral },
 };
 
 function useCopy() {
   const [copiedKey, setCopiedKey] = useState('');
   const copy = (key, text) => {
-    if (navigator?.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    if (navigator?.clipboard) navigator.clipboard.writeText(text).catch(() => { });
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(''), 1500);
   };
@@ -106,7 +112,7 @@ const Fonts = () => (
     .order-row:hover { background: ${COLORS.paperDim}; }
     .fade-in { animation: fadeIn 0.35s ease both; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    ::selection { background: ${COLORS.gold}55; }
+    ::selection { background: #05966955; }
   `}</style>
 );
 
@@ -141,15 +147,15 @@ const StatTile = ({ icon: Icon, label, value }) => (
     className="stat-tile"
     style={{
       background: COLORS.paper,
-      borderRadius: 14,
-      padding: '16px 16px',
+      borderRadius: 16,
+      padding: '14px 14px',
       border: `1px solid ${COLORS.paperDim}`,
-      transition: 'transform 0.18s ease',
+      transition: 'transform 0.18s ease, box-shadow 0.18s ease',
     }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-      <div style={{ width: 30, height: 30, borderRadius: 9, background: COLORS.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon size={15} color={COLORS.gold} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: COLORS.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={16} color={COLORS.gold} />
       </div>
     </div>
     <p className="f-mono" style={{ fontSize: 24, fontWeight: 600, color: COLORS.ink, lineHeight: 1 }}>{value}</p>
@@ -182,37 +188,42 @@ const CopyField = ({ icon: Icon, label, value, copyKey, copiedKey, onCopy }) => 
 );
 
 const MembershipTicket = ({ user }) => {
-  const initials = useMemo(
-    () => user.name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase(),
-    [user.name]
-  );
+  const initials = useMemo(() => {
+    const name = user?.name || 'Customer';
+    return name.split(' ').map((s) => s[0] || '').slice(0, 2).join('').toUpperCase();
+  }, [user?.name]);
+
+  const tierLabel = (user?.tier || 'Member').toUpperCase();
+  const memberSinceLabel = user?.memberSince || 'Unknown';
 
   return (
     <div style={{
-      position: 'relative', display: 'flex', background: COLORS.paper, borderRadius: 18,
-      overflow: 'visible', boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
+      position: 'relative', display: 'flex', background: COLORS.paper, borderRadius: 20,
+      overflow: 'visible', boxShadow: '0 8px 24px rgba(2,6,23,0.08)',
     }}>
       <div className="notch" style={{ left: -13, top: '50%', transform: 'translateY(-50%)' }} />
       <div className="notch" style={{ right: -13, top: '50%', transform: 'translateY(-50%)' }} />
 
       {/* Stub */}
       <div style={{
-        width: 168, flexShrink: 0, padding: '22px 16px', display: 'flex', flexDirection: 'column',
+        width: 168, flexShrink: 0, padding: '22px 18px', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center',
       }}>
         <div style={{
-          width: 58, height: 58, borderRadius: '50%', background: COLORS.ink,
+          width: 64, height: 64, borderRadius: '50%', background: COLORS.ink,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `2px solid ${COLORS.gold}`,
+          boxShadow: '0 6px 18px rgba(2,6,23,0.12)',
         }}>
           <span className="f-display" style={{ color: COLORS.gold, fontSize: 20 }}>{initials}</span>
         </div>
         <span className="f-mono" style={{
-          fontSize: 10, letterSpacing: 0.8, color: COLORS.goldDeep, background: 'rgba(201,162,39,0.15)',
+          fontSize: 10, letterSpacing: 0.8, color: COLORS.goldDeep, background: 'rgba(5,150,105,0.12)',
           padding: '4px 9px', borderRadius: 999, fontWeight: 600,
         }}>
-          {user.tier.toUpperCase()}
+          {tierLabel}
         </span>
-        <p className="f-body" style={{ fontSize: 10.5, color: COLORS.slate }}>Member since {user.memberSince}</p>
+        <p className="f-body" style={{ fontSize: 10.5, color: COLORS.slate }}>Member since {memberSinceLabel}</p>
       </div>
 
       <div className="tear-divider" />
@@ -239,28 +250,42 @@ const MembershipTicket = ({ user }) => {
   );
 };
 
-const OverviewTab = ({ user, copiedKey, onCopy }) => (
-  <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-    {MOCK_STATS.map((s) => <StatTile key={s.label} {...s} />)}
-    <div style={{ gridColumn: '1 / -1', background: COLORS.paper, borderRadius: 16, padding: '6px 16px', border: `1px solid ${COLORS.paperDim}`, marginTop: 4 }}>
-      <p className="f-body" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: COLORS.slate, textTransform: 'uppercase', padding: '12px 4px 0' }}>Contact details</p>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <CopyField icon={User} label="Customer ID" value={user.id} copyKey="id" copiedKey={copiedKey} onCopy={onCopy} />
-        <div style={{ height: 1, background: COLORS.paperDim }} />
-        <CopyField icon={Mail} label="Email address" value={user.email} copyKey="email" copiedKey={copiedKey} onCopy={onCopy} />
-        <div style={{ height: 1, background: COLORS.paperDim }} />
-        <CopyField icon={Phone} label="Phone number" value={user.phone} copyKey="phone" copiedKey={copiedKey} onCopy={onCopy} />
+const OverviewTab = ({ user, orders, copiedKey, onCopy }) => {
+  const totalReviews = orders.reduce((count, order) => count + (order.reviews?.length || 0), 0);
+  const uniqueVendors = new Set(
+    orders.flatMap((order) => order.orderItems?.map((item) => item.product?.farmer?.id).filter(Boolean) || [])
+  ).size;
+
+  const stats = [
+    { label: 'Orders placed', value: orders.length, icon: Package },
+    { label: 'Wishlist items', value: user?.wishlistCount ?? 0, icon: Heart },
+    { label: 'Vendors followed', value: uniqueVendors, icon: Store },
+    { label: 'Reviews written', value: totalReviews, icon: Star },
+  ];
+
+  return (
+    <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+      {stats.map((s) => <StatTile key={s.label} {...s} />)}
+      <div style={{ gridColumn: '1 / -1', background: COLORS.paper, borderRadius: 16, padding: '6px 16px', border: `1px solid ${COLORS.paperDim}`, marginTop: 4 }}>
+        <p className="f-body" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: COLORS.slate, textTransform: 'uppercase', padding: '12px 4px 0' }}>Contact details</p>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <CopyField icon={User} label="Customer ID" value={user.id || 'N/A'} copyKey="id" copiedKey={copiedKey} onCopy={onCopy} />
+          <div style={{ height: 1, background: COLORS.paperDim }} />
+          <CopyField icon={Mail} label="Email address" value={user.email || 'N/A'} copyKey="email" copiedKey={copiedKey} onCopy={onCopy} />
+          <div style={{ height: 1, background: COLORS.paperDim }} />
+          <CopyField icon={Phone} label="Phone number" value={user.phone || 'N/A'} copyKey="phone" copiedKey={copiedKey} onCopy={onCopy} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const OrdersTab = () => (
+const OrdersTab = ({ orders }) => (
   <div className="fade-in" style={{ background: COLORS.paper, borderRadius: 16, border: `1px solid ${COLORS.paperDim}`, overflow: 'hidden' }}>
-    {MOCK_ORDERS.map((o, i) => {
-      const st = STATUS_STYLE[o.status];
+    {(orders.length === 0 ? MOCK_ORDERS : orders).map((o, i) => {
+      const st = STATUS_STYLE[o.status] || STATUS_STYLE['In transit'];
       return (
-        <div key={o.id} className="order-row" style={{
+        <div key={o.id || o.orderNumber || i} className="order-row" style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
           borderBottom: i < MOCK_ORDERS.length - 1 ? `1px solid ${COLORS.paperDim}` : 'none',
           transition: 'background 0.15s ease',
@@ -291,7 +316,7 @@ const AddressesTab = ({ addresses, showAddressForm, addressForm, setAddressForm,
       {addresses.map((a) => (
         <div key={a.id || a.label} style={{ background: COLORS.paper, borderRadius: 16, padding: 18, border: `1px solid ${COLORS.paperDim}`, position: 'relative' }}>
           {a.isDefault && (
-            <span className="f-body" style={{ position: 'absolute', top: 14, right: 14, fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: COLORS.goldDeep, background: 'rgba(201,162,39,0.15)', padding: '3px 8px', borderRadius: 999 }}>
+            <span className="f-body" style={{ position: 'absolute', top: 14, right: 14, fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: COLORS.goldDeep, background: 'rgba(5,150,105,0.12)', padding: '3px 8px', borderRadius: 999 }}>
               DEFAULT
             </span>
           )}
@@ -382,20 +407,65 @@ const AddressesTab = ({ addresses, showAddressForm, addressForm, setAddressForm,
 );
 
 const Profile = () => {
-  const [customerData] = useState(MOCK_USER);
+  const [customerData, setCustomerData] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState('');
   const [tab, setTab] = useState('overview');
-  const [addresses, setAddresses] = useState(MOCK_ADDRESSES);
+  const [addresses, setAddresses] = useState([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressForm, setAddressForm] = useState({ label: 'Home', fullAddress: '', city: '', subcity: '', isDefault: false });
   const [addressSaving, setAddressSaving] = useState(false);
   const { copiedKey, copy } = useCopy();
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    // In production: customerAPI.getProfile().then(...)
-    const t = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(t);
+    let active = true;
+
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+
+        const [profileRes, addressesRes, ordersRes] = await Promise.all([
+          customerAPI.getProfile(),
+          customerAPI.getAddresses(),
+          api.get('/orders'),
+        ]);
+
+        if (!active) return;
+
+        const profile = profileRes.data;
+        setCustomerData(profile);
+
+        const storedAddresses = addressesRes.data?.addresses || [];
+        const resolvedAddresses = storedAddresses.length > 0
+          ? storedAddresses
+          : profile.fullAddress || profile.address
+            ? [{
+              label: 'Home',
+              city: profile.city || '',
+              subcity: profile.subcity || '',
+              fullAddress: profile.fullAddress || profile.address || '',
+              isDefault: true,
+            }]
+            : [];
+        setAddresses(resolvedAddresses);
+
+        const serverOrders = Array.isArray(ordersRes.data) ? ordersRes.data.map(normalizeOrder) : [];
+        setOrders(serverOrders);
+      } catch (error) {
+        console.error('Error fetching customer profile or orders:', error);
+        if (!active) return;
+        setProfileError('Unable to load your profile information. Please refresh the page.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchProfile();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleBack = () => {
@@ -421,62 +491,70 @@ const Profile = () => {
     setAddressForm({ label: 'Home', fullAddress: '', city: '', subcity: '', isDefault: false });
   };
 
+  const pageBackground = resolvedTheme === 'dark' ? COLORS.ink : '#f8fafc';
+  const pageTextColor = resolvedTheme === 'dark' ? COLORS.cream : '#111827';
+
   return (
-    <div className="f-body" style={{ minHeight: '100vh', background: COLORS.ink, padding: '28px 16px 60px' }}>
+    <div className="f-body min-h-screen flex flex-col" style={{ background: pageBackground, color: pageTextColor }}>
       <Fonts />
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button
-          onClick={handleBack}
-          className="f-body"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent',
-            border: `1px solid ${COLORS.inkLine}`, color: COLORS.cream, borderRadius: 999,
-            padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 20,
-          }}
-        >
-          <ArrowLeft size={15} /> Back
-        </button>
-
-        {loading ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 220,
-            color: COLORS.cream, fontSize: 14,
-          }}>
-            <Loader2 size={18} className="animate-spin" /> Loading your profile…
-          </div>
-        ) : (
-          <>
-            {profileError && (
-              <div style={{ background: 'rgba(193,73,75,0.15)', color: '#F3C6C7', borderRadius: 12, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
-                {profileError}
-              </div>
-            )}
-
-            <MembershipTicket user={customerData} />
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 26, marginBottom: 18, overflowX: 'auto', paddingBottom: 2 }}>
-              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} icon={User}>Overview</Tab>
-              <Tab active={tab === 'orders'} onClick={() => setTab('orders')} icon={Package}>Orders</Tab>
-              <Tab active={tab === 'addresses'} onClick={() => setTab('addresses')} icon={MapPin}>Addresses</Tab>
-            </div>
-
-            {tab === 'overview' && <OverviewTab user={customerData} copiedKey={copiedKey} onCopy={copy} />}
-            {tab === 'orders' && <OrdersTab />}
-            {tab === 'addresses' && (
-              <AddressesTab
-                addresses={addresses}
-                showAddressForm={showAddressForm}
-                addressForm={addressForm}
-                setAddressForm={setAddressForm}
-                onAddAddress={handleAddAddress}
-                onToggleForm={() => setShowAddressForm(true)}
-                onCancelForm={resetAddressForm}
-                addressSaving={addressSaving}
-              />
-            )}
-          </>
-        )}
+      <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 shadow-sm">
+        <Header pageType="profile" />
       </div>
+      <main className="flex-1" style={{ padding: '32px 16px 60px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', paddingTop: 20 }}>
+          <button
+            onClick={handleBack}
+            className="f-body"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent',
+              border: `1px solid ${COLORS.inkLine}`, color: COLORS.cream, borderRadius: 999,
+              padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 20,
+            }}
+          >
+            <ArrowLeft size={15} /> Back
+          </button>
+
+          {loading ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 220,
+              color: COLORS.cream, fontSize: 14,
+            }}>
+              <Loader2 size={18} className="animate-spin" /> Loading your profile…
+            </div>
+          ) : customerData ? (
+            <>
+              {profileError && (
+                <div style={{ background: 'rgba(193,73,75,0.15)', color: '#F3C6C7', borderRadius: 12, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
+                  {profileError}
+                </div>
+              )}
+
+              <MembershipTicket user={customerData} />
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 26, marginBottom: 18, overflowX: 'auto', paddingBottom: 2 }}>
+                <Tab active={tab === 'overview'} onClick={() => setTab('overview')} icon={User}>Overview</Tab>
+                <Tab active={tab === 'orders'} onClick={() => setTab('orders')} icon={Package}>Orders</Tab>
+                <Tab active={tab === 'addresses'} onClick={() => setTab('addresses')} icon={MapPin}>Addresses</Tab>
+              </div>
+
+              {tab === 'overview' && <OverviewTab user={customerData} orders={orders} copiedKey={copiedKey} onCopy={copy} />}
+              {tab === 'orders' && <OrdersTab orders={orders} />}
+              {tab === 'addresses' && (
+                <AddressesTab
+                  addresses={addresses}
+                  showAddressForm={showAddressForm}
+                  addressForm={addressForm}
+                  setAddressForm={setAddressForm}
+                  onAddAddress={handleAddAddress}
+                  onToggleForm={() => setShowAddressForm(true)}
+                  onCancelForm={resetAddressForm}
+                  addressSaving={addressSaving}
+                />
+              )}
+            </>
+          ) : null}
+        </div>
+      </main>
       <Footer />
     </div>
   );

@@ -43,8 +43,19 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
 // GET /api/auth/users/:id
 router.get('/users/:id', protect, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: parseInt(req.params.id) } });
+    const targetId = parseInt(req.params.id);
+    const user = await prisma.user.findUnique({ where: { id: targetId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Enforce privacy rules: private accounts visible only to owner, admins, and permitted roles
+    const requester = req.user; // set by protect middleware
+    const isOwner = requester && requester.id === targetId;
+    const isAdmin = requester && requester.role === 'ADMIN';
+
+    if (user.privateAccount && !isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Profile is private' });
+    }
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });

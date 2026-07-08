@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import Footer from '../../../components/Footer';
+import Header from '../../../components/Header';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { customerAPI } from '../../../api';
 import {
   Lock, Check, AlertCircle, Eye, EyeOff, Loader2, ArrowLeft, Sun, Moon, Monitor,
-  User, MapPin, Bell, ShieldCheck, Trash2, Plus, Pencil, X, Star,
+  User, MapPin, Bell, ShieldCheck, Trash2, Plus, Pencil, X, Star, Globe,
   Mail, Phone as PhoneIcon, ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -28,7 +29,7 @@ const ToggleSwitch = ({ checked, onChange, disabled, label }) => (
     disabled={disabled}
     onClick={() => onChange(!checked)}
     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50
-      ${checked ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+        ${checked ? 'bg-emerald-600' : 'bg-slate-200 dark:bg-slate-700'}`}
   >
     <span
       className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200
@@ -38,10 +39,10 @@ const ToggleSwitch = ({ checked, onChange, disabled, label }) => (
 );
 
 const SectionCard = ({ icon: Icon, title, description, children, dense }) => (
-  <Card className="overflow-hidden border-slate-200/70 shadow-sm rounded-xl">
-    <CardHeader className={`border-b border-slate-100 dark:border-slate-800/60 ${dense ? 'py-3.5 px-4' : 'py-4 px-5'}`}>
+  <Card className="overflow-hidden shadow-md rounded-xl bg-[var(--card)]">
+    <CardHeader className={`${dense ? 'py-3.5 px-4' : 'py-4 px-5'}`}>
       <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
           <Icon className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0">
@@ -95,21 +96,21 @@ const Settings = () => {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100 transition-colors" aria-label="Toggle Theme">
+          <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors" aria-label="Toggle Theme">
             {renderThemeIcon()}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="border border-[var(--border)] bg-[var(--card)] shadow-lg">
-          <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Sun className="mr-2 h-4 w-4 text-amber-500" />
+          <DropdownMenuItem onClick={() => { setTheme('light'); saveAccountPreferences({ theme: 'light' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+            <Sun className="mr-2 h-4 w-4 text-emerald-500" />
             Light
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Moon className="mr-2 h-4 w-4 text-amber-500" />
+          <DropdownMenuItem onClick={() => { setTheme('dark'); saveAccountPreferences({ theme: 'dark' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+            <Moon className="mr-2 h-4 w-4 text-emerald-500" />
             Dark
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Monitor className="mr-2 h-4 w-4 text-amber-500" />
+          <DropdownMenuItem onClick={() => { setTheme('system'); saveAccountPreferences({ theme: 'system' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
+            <Monitor className="mr-2 h-4 w-4 text-emerald-500" />
             System
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -118,7 +119,7 @@ const Settings = () => {
   };
 
   // ---- Profile / account ---------------------------------------------------
-  const [profileData, setProfileData] = useState({ email: '', phone: '', name: '', profileImage: '', bio: '', address: '', location: '' });
+  const [profileData, setProfileData] = useState({ email: '', phone: '', name: '', username: '', profileImage: '', bio: '', address: '', location: '' });
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
@@ -176,6 +177,7 @@ const Settings = () => {
           email: settings.email || user.email || '',
           phone: settings.phone || user.phone || '',
           name: settings.name || user.name || '',
+          username: settings.username || user.username || '',
           profileImage: settings.profileImage || user.profileImage || '',
           bio: settings.bio || '',
           address: settings.address || '',
@@ -278,10 +280,13 @@ const Settings = () => {
   // ---- Account handlers --------------------------------------------------------------
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (!profileData.name || !profileData.name.trim()) return showError('Full name is required');
     setLoading(true);
     try {
       await customerAPI.updateProfile({
         name: profileData.name,
+        username: profileData.username,
+        profileImage: profileData.profileImage,
         bio: profileData.bio,
         address: profileData.address,
         location: profileData.location,
@@ -557,30 +562,14 @@ const Settings = () => {
 
   return (
     <div className={pageContainerClass}>
-      {/* Header */}
-      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200/70">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm font-medium">Back</span>
-              </button>
-              <div className="h-5 w-px bg-slate-200" />
-              <h1 className="text-lg font-semibold text-slate-900">Settings</h1>
-            </div>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 shadow-sm">
+        <Header pageType="settings" />
+      </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Profile summary — compact */}
-        <div className="flex items-center gap-3.5 mb-6 rounded-xl border border-slate-200/70 bg-white px-4 py-3.5 shadow-sm">
-          <div className="w-11 h-11 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg font-semibold shrink-0">
+        <div className="flex items-center gap-3.5 mb-6 rounded-xl bg-white dark:bg-slate-800 px-4 py-3.5 shadow-md">
+          <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-lg font-semibold shrink-0">
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -594,13 +583,13 @@ const Settings = () => {
 
         {/* Success / Error toasts */}
         {success && (
-          <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">
+          <div className="mb-5 flex items-center gap-2.5 rounded-lg bg-emerald-50/20 px-3.5 py-2.5 text-sm text-emerald-700 shadow-sm">
             <Check className="h-4 w-4 shrink-0" />
             {success}
           </div>
         )}
         {error && (
-          <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
+          <div className="mb-5 flex items-center gap-2.5 rounded-lg bg-red-50/20 px-3.5 py-2.5 text-sm text-red-700 shadow-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
           </div>
@@ -615,7 +604,7 @@ const Settings = () => {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors
                   ${activeTab === id
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800/60'}`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -628,9 +617,59 @@ const Settings = () => {
           <div className="space-y-4 min-w-0">
             {activeTab === 'account' && (
               <>
+                <SectionCard icon={User} title="Profile" description="Name, username & profile photo">
+                  <form onSubmit={handleSaveProfile} className="space-y-3">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-[var(--card)] shadow-sm flex items-center justify-center">
+                        {profileImageUrl ? (
+                          <img src={profileImageUrl} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-2xl font-semibold text-emerald-600">{(profileData.name || user?.name || 'U').charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs">Full name</Label>
+                        <Input value={profileData.name} onChange={(e) => setProfileData((p) => ({ ...p, name: e.target.value }))} className="mt-1 h-9" />
+                        <div className="mt-2">
+                          <Label className="text-xs">Username</Label>
+                          <Input value={profileData.username || ''} onChange={(e) => setProfileData((p) => ({ ...p, username: e.target.value }))} className="mt-1 h-9" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Profile photo</Label>
+                      <input type="file" accept="image/*" onChange={handleProfileImageUpload} className="mt-2" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" size="sm" disabled={loading}>{loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null} Save profile</Button>
+                    </div>
+                  </form>
+                </SectionCard>
+
+                <SectionCard icon={Globe} title="Preferences" description="Language & display settings" dense>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Language</Label>
+                      <select value={accountSettings.language} onChange={(e) => {
+                        const nextLang = e.target.value;
+                        saveAccountPreferences({ language: nextLang });
+                      }} className="mt-1 h-9 w-full bg-[var(--card)] rounded-md px-2">
+                        <option>English</option>
+                        <option>Amharic</option>
+                        <option>Oromo</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Theme</Label>
+                      <div className="mt-1">
+                        <ThemeToggle />
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
                 <SectionCard icon={Mail} title="Email" description="Order receipts & recovery" dense>
                   <form onSubmit={handleChangeEmail} className="space-y-3">
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <div className="rounded-md bg-[var(--card)] px-3 py-2 text-sm text-slate-600 shadow-sm">
                       {profileData.email || user?.email || 'Not provided'}
                     </div>
                     <div>
@@ -654,7 +693,7 @@ const Settings = () => {
 
                 <SectionCard icon={PhoneIcon} title="Phone" description="Delivery & order updates" dense>
                   <form onSubmit={handleChangePhone} className="space-y-3">
-                    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <div className="rounded-md bg-[var(--card)] px-3 py-2 text-sm text-slate-600 shadow-sm">
                       {profileData.phone || user?.phone || 'Not provided'}
                     </div>
                     <div>
@@ -725,14 +764,14 @@ const Settings = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-red-300 text-red-600 hover:bg-red-50 shrink-0"
+                        className="text-red-600 hover:bg-red-50 shrink-0"
                         onClick={() => setShowDeleteConfirm(true)}
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete account
                       </Button>
                     </div>
                   ) : (
-                    <div className="rounded-lg border border-red-200 bg-red-50/60 p-3.5 space-y-3">
+                    <div className="rounded-lg bg-red-50/20 p-3.5 space-y-3 shadow-sm">
                       <p className="text-xs text-red-700">
                         This action is permanent. Type <span className="font-semibold">DELETE</span> to confirm.
                       </p>
@@ -740,7 +779,7 @@ const Settings = () => {
                         value={deleteConfirmText}
                         onChange={(e) => { setDeleteConfirmText(e.target.value); if (deleteError) setDeleteError(''); }}
                         placeholder="Type DELETE"
-                        className="h-9 bg-white"
+                        className="h-9 bg-[var(--card)]"
                       />
                       {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
                       <div className="flex gap-2">
@@ -775,7 +814,7 @@ const Settings = () => {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 transition-colors"
+                        className="flex w-full items-center justify-between rounded-lg bg-[var(--card)] px-3 py-2 text-sm transition-colors shadow-sm"
                       >
                         <span className="flex items-center gap-2">
                           <span className={`h-1.5 w-1.5 rounded-full ${privacy.profileVisibility === 'public' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
@@ -785,7 +824,7 @@ const Settings = () => {
                         <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-72 bg-white border border-gray-200 shadow-lg">
+                    <DropdownMenuContent align="start" className="w-72 bg-[var(--card)] shadow-lg">
                       <DropdownMenuItem onClick={() => setVisibility('public')} className="cursor-pointer flex-col items-start gap-0.5 py-2">
                         <span className="text-sm font-medium text-slate-900">Public</span>
                         <span className="text-xs text-slate-500">Visible to other shoppers & vendors</span>
@@ -827,7 +866,7 @@ const Settings = () => {
                   )}
 
                   {!addressesLoading && addresses.length === 0 && !showAddressForm && (
-                    <div className="rounded-lg border border-dashed border-slate-300 p-5 text-center">
+                    <div className="rounded-lg bg-[var(--card)] p-5 text-center shadow-sm">
                       <MapPin className="h-5 w-5 mx-auto text-slate-300" />
                       <p className="mt-2 text-sm text-slate-500">No saved addresses yet.</p>
                     </div>
@@ -836,14 +875,14 @@ const Settings = () => {
                   {addresses.map((address) => {
                     const id = address.id || address._id;
                     return (
-                      <div key={id} className="rounded-lg border border-slate-200 p-3.5">
+                      <div key={id} className="rounded-lg bg-[var(--card)] p-3.5 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-slate-900 text-sm">{address.label || 'Address'}</p>
                               {address.isDefault && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
-                                  <Star className="h-2.5 w-2.5 fill-indigo-600 text-indigo-600" /> Default
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                  <Star className="h-2.5 w-2.5 fill-emerald-600 text-emerald-600" /> Default
                                 </span>
                               )}
                             </div>
@@ -869,7 +908,7 @@ const Settings = () => {
                   })}
 
                   {showAddressForm && (
-                    <form onSubmit={handleSaveAddress} className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3">
+                    <form onSubmit={handleSaveAddress} className="rounded-lg bg-[var(--card)] p-3.5 space-y-3 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-slate-900 text-sm">{editingAddressId ? 'Edit address' : 'New address'}</p>
                         <button type="button" onClick={closeAddressForm} className="p-1 rounded-md text-slate-400 hover:bg-white">
@@ -925,7 +964,7 @@ const Settings = () => {
                       <label className="flex items-center gap-2 text-xs text-slate-600">
                         <input type="checkbox" checked={addressForm.isDefault}
                           onChange={(e) => setAddressForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
-                          className="rounded border-slate-300" />
+                          className="rounded" />
                         Set as default delivery address
                       </label>
 

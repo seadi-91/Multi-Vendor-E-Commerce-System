@@ -27,6 +27,7 @@ const normalizeSettingsPayload = (payload = {}) => {
 
 const buildCustomerSettingsResponse = (user) => ({
     name: user.name || '',
+    username: user.username || '',
     email: user.email || '',
     phone: user.phone || '',
     profileImage: user.profileImage || '',
@@ -103,6 +104,8 @@ const serializeStoredAddresses = (addresses) => JSON.stringify(Array.isArray(add
 const buildCustomerProfileUpdateData = (payload) => {
     const data = {};
 
+    if (payload.username) data.username = payload.username;
+
     if (payload.name) data.name = payload.name;
     if (payload.email) data.email = payload.email;
     if (payload.phone) data.phone = payload.phone;
@@ -124,6 +127,7 @@ const getCustomerProfile = async (req, res) => {
             where: { id: req.user.id },
             select: {
                 id: true,
+                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -165,6 +169,7 @@ const updateCustomerProfile = async (req, res) => {
             data,
             select: {
                 id: true,
+                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -202,6 +207,7 @@ const updateCustomerPhone = async (req, res) => {
             data: { phone },
             select: {
                 id: true,
+                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -281,6 +287,7 @@ const getCustomerSettings = async (req, res) => {
                 sessionTimeout: true,
                 email: true,
                 phone: true,
+                username: true,
                 name: true,
                 profileImage: true,
                 address: true,

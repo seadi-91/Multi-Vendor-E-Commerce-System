@@ -1,67 +1,204 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
+import { Leaf, ChevronRight, Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, Clock } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[var(--card)] border-t border-[var(--border)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          
-          {/* Brand */}
-          <div className="col-span-1">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 bg-[var(--primary)] rounded-md flex items-center justify-center">
-                <Leaf className="w-3.5 h-3.5 text-white" />
+    <footer className="bg-white border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-4">
+          <div className="space-y-4 md:col-span-1">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-[var(--primary)] rounded-lg flex items-center justify-center">
+                <Leaf className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-black text-[var(--foreground)]">FarmConnect</span>
+              <span className="text-xl font-black text-gray-900">FarmConnect</span>
             </div>
-            <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
-              Fresh from local farms to your table.
+            <p className="text-sm text-gray-600 leading-relaxed max-w-full">
+              Your trusted online marketplace for quality products. Shop from the comfort of your home with fast delivery across Ethiopia.
             </p>
-          </div>
 
-          {/* Contact */}
-          <div className="col-span-1">
-            <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Contact</h4>
-            <div className="space-y-1">
-              <p className="text-[10px] text-[var(--muted-foreground)]">
-                <a href="tel:+251911123456" className="hover:text-[var(--primary)] transition-colors">+251 911 123 456</a>
-              </p>
-              <p className="text-[10px] text-[var(--muted-foreground)]">
-                <a href="mailto:contact@farmconnect.com" className="hover:text-[var(--primary)] transition-colors">contact@farmconnect.com</a>
-              </p>
+            <div className="grid grid-cols-1 gap-2 pt-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Phone className="w-4 h-4 text-[var(--primary)]" />
+                <span>+251 911 123 456</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Mail className="w-4 h-4 text-[var(--primary)]" />
+                <span>support@farmconnect.com</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 text-[var(--primary)]" />
+                <span>Addis Ababa, Ethiopia</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Clock className="w-4 h-4 text-[var(--primary)]" />
+                <span>Mon-Sat: 9AM - 8PM</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <a href="#" className="w-9 h-9 bg-gray-100 hover:bg-[var(--primary)] rounded-full flex items-center justify-center transition-colors group">
+                <Facebook className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+              </a>
+              <a href="#" className="w-9 h-9 bg-gray-100 hover:bg-[var(--primary)] rounded-full flex items-center justify-center transition-colors group">
+                <Twitter className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+              </a>
+              <a href="#" className="w-9 h-9 bg-gray-100 hover:bg-[var(--primary)] rounded-full flex items-center justify-center transition-colors group">
+                <Instagram className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+              </a>
+              <a href="#" className="w-9 h-9 bg-gray-100 hover:bg-[var(--primary)] rounded-full flex items-center justify-center transition-colors group">
+                <Youtube className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
+              </a>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="col-span-1">
-            <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Links</h4>
-            <div className="space-y-1">
-              <p className="text-[10px]">
-                <Link to="/market" className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Marketplace</Link>
-              </p>
-              <p className="text-[10px]">
-                <Link to="/favorites" className="text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Favorites</Link>
-              </p>
+          <div className="grid grid-cols-3 gap-4 md:col-span-3">
+            <div className="space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide">Shop</h3>
+              <ul className="space-y-1.5 sm:space-y-2">
+                <li>
+                  <Link to="/market" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>All Products</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/market?sort=newest" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>New Arrivals</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/market?sort=popular" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Best Sellers</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/market?discount=true" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Hot Deals</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/market" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Categories</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/gift-cards" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Gift Cards</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+              </ul>
             </div>
-          </div>
 
-          {/* Location */}
-          <div className="col-span-1">
-            <h4 className="text-[10px] font-bold text-[var(--foreground)] uppercase tracking-wider mb-2">Location</h4>
-            <p className="text-[10px] text-[var(--muted-foreground)]">Addis Ababa, Ethiopia</p>
+            <div className="space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide">Customer Service</h3>
+              <ul className="space-y-1.5 sm:space-y-2">
+                <li>
+                  <Link to="/contact" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Contact Us</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/faq" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <div className="flex items-center gap-1">
+                      <span>FAQ</span>
+                      <span className="px-1 py-0.5 bg-[var(--primary)] text-white text-[8px] sm:text-[9px] font-bold rounded">New</span>
+                    </div>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/shipping" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Shipping Info</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/returns" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span className="line-clamp-1">Returns & Refunds</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/tracking" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Order Tracking</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/size-guide" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Size Guide</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide">Legal</h3>
+              <ul className="space-y-1.5 sm:space-y-2">
+                <li>
+                  <Link to="/privacy" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Privacy Policy</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Terms of Service</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/cookies" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Cookie Policy</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/accessibility" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Accessibility</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/disclaimer" className="flex flex-row justify-start items-center gap-2 text-[10px] sm:text-xs text-gray-600 hover:text-[var(--primary)] transition-colors group">
+                    <span>Disclaimer</span>
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-[var(--primary)] transition-colors flex-shrink-0" />
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-[10px] text-[var(--muted-foreground)]">
-            &copy; 2026 FarmConnect. All rights reserved.
-          </p>
-          <div className="flex items-center gap-3">
-            <Link to="/contact" className="text-[10px] text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">Contact Us</Link>
+        {/* Bottom Footer Bar */}
+        <div className="pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Left: Copyright */}
+            <p className="text-xs text-gray-600 text-center sm:text-left">
+              &copy; 2026 FarmConnect. All rights reserved.
+            </p>
+
+            {/* Center: Made with love */}
+            <p className="text-xs text-gray-600 hidden md:block">
+              Made with ❤️ for Ethiopian shoppers
+            </p>
+
+            {/* Right: Quick Links */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
+              <Link to="/privacy" className="text-xs text-gray-600 hover:text-[var(--primary)] transition-colors">Privacy</Link>
+              <Link to="/terms" className="text-xs text-gray-600 hover:text-[var(--primary)] transition-colors">Terms</Link>
+              <Link to="/cookies" className="text-xs text-gray-600 hover:text-[var(--primary)] transition-colors">Cookies</Link>
+              <Link to="/sitemap" className="text-xs text-gray-600 hover:text-[var(--primary)] transition-colors">Sitemap</Link>
+            </div>
           </div>
         </div>
       </div>

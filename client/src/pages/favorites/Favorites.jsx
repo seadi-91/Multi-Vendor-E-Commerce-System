@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
-import { Heart, Star, ShoppingCart, Package, BadgeCheck, Search, Sun, Moon, Monitor, User, Settings, LogOut, Leaf, ChevronLeft, ChevronDown, Filter, Tag } from 'lucide-react';
-import Footer from '../../components/Footer';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { Heart, Star, ShoppingCart, Package, BadgeCheck } from 'lucide-react';
 import api from '../../api';
+import Header from '../../components/Header';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
@@ -321,138 +320,14 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
   );
 };
 
-// ─── Public Header ───────────────────────────────────────────────────────────
-const PublicHeader = ({ cartCount, theme, setTheme }) => {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('Popular');
-
-  return (
-    <header className="bg-[var(--card)] text-[var(--foreground)] sticky top-0 z-50 shadow-md border-b border-[var(--border)]">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-        {/* Logo — left */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-md">
-            <span className="text-white font-extrabold text-sm">FC</span>
-          </div>
-          <span className="text-lg font-extrabold text-[var(--primary)] tracking-tight">FarmConnect</span>
-        </Link>
-
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-
-        {/* Search + Category + Sort */}
-        <div className="flex flex-1 flex-col gap-2 mx-4 max-w-3xl md:flex-row md:items-center md:gap-3">
-          <div className="flex items-center w-full bg-[var(--secondary)] border border-[var(--border)] rounded-xl overflow-hidden px-3 py-1 focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)]/20 transition-all">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products or sellers..."
-              className="flex-1 bg-transparent text-sm outline-none text-[var(--foreground)]"
-            />
-            <button
-              onClick={() => navigate(`/market?search=${encodeURIComponent(query)}&cat=${encodeURIComponent(category)}&sort=${encodeURIComponent(sortBy)}`)}
-              className="p-2 text-[var(--muted-foreground)] rounded-lg hover:bg-[var(--secondary)] transition-colors"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap md:justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)] hover:border-[var(--primary)] transition-colors">
-                  {category}
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-[var(--card)] border border-[var(--border)] shadow-lg">
-                {['All', 'Fruits', 'Vegetables', 'Coffee', 'Grains', 'Legumes'].map(cat => (
-                  <DropdownMenuItem key={cat} onClick={() => setCategory(cat)} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    {cat}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 border rounded-xl bg-[var(--card)] text-sm text-[var(--foreground)] border-[var(--border)] hover:border-[var(--primary)] transition-colors">
-                  Sort: {sortBy}
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-[var(--card)] border border-[var(--border)] shadow-lg">
-                {['Popular', 'Price: Low to High', 'Price: High to Low', 'Newest'].map(s => (
-                  <DropdownMenuItem key={s} onClick={() => setSortBy(s)} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    {s}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Right actions */}
-        <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
-          {/* Theme Toggle (bright/light) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center justify-center w-9 h-9 hover:bg-[var(--secondary)] rounded-xl transition-all text-[var(--foreground)]">
-                {(theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) ? (
-                  <Moon className="w-4.5 h-4.5" />
-                ) : (
-                  <Sun className="w-4.5 h-4.5" />
-                )}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[var(--card)] border border-[var(--border)] shadow-lg">
-              <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                <Sun className="w-4 h-4 mr-2" />
-                Light
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                <Moon className="w-4 h-4 mr-2" />
-                Dark
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                <Monitor className="w-4 h-4 mr-2" />
-                System
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Cart */}
-          <button
-            onClick={() => navigate('/customer/cart')}
-            className="relative flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:opacity-90 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">{cartCount}</span>
-            )}
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-};
-
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const { addToCart, cart } = useCart();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   // Calculate cart total from CartContext
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -691,8 +566,8 @@ const Favorites = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
-        <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
-        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+        <Header pageType="favorite" />
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 pt-24 sm:px-6 lg:px-8">
           <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -718,16 +593,15 @@ const Favorites = () => {
             </Link>
           </section>
         </main>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
-      <PublicHeader cartCount={cartCount} theme={theme} setTheme={setTheme} />
+      <Header pageType="favorite" />
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 pt-24 sm:px-6 lg:px-8">
         <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -798,8 +672,6 @@ const Favorites = () => {
           )}
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 };

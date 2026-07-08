@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -16,6 +16,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import Footer from '../../components/Footer';
+import Header from '../../components/Header';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
@@ -307,6 +308,16 @@ const Home = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Scroll handler for header state
+  const handleScroll = useCallback(() => {
+    setIsScrolled(window.scrollY > 0);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
@@ -314,8 +325,28 @@ const Home = () => {
   const [selectedLocation, setSelectedLocation] = useState('Addis Ababa');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState('All');
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const fallbackCategories = products.reduce((acc, product) => {
+    const categoryName = (product.category || '').trim();
+    if (!categoryName) return acc;
+    if (acc.some((item) => item.name.toLowerCase() === categoryName.toLowerCase())) return acc;
+
+    acc.push({
+      id: `fallback-${categoryName.toLowerCase().replace(/\s+/g, '-')}`,
+      name: categoryName,
+      categoryKey: categoryName.toLowerCase().replace(/\s+/g, '-'),
+      mosaicImages: [product.image || '', product.image || '', product.image || '', product.image || '']
+    });
+    return acc;
+  }, []);
+
+  const categoriesToDisplay = categories.length > 0 ? categories : (!categoriesLoading && fallbackCategories.length > 0 ? fallbackCategories : []);
 
   const { user, logout } = useAuth();
   const { addToCart, cart } = useCart();
@@ -323,7 +354,7 @@ const Home = () => {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Fetch products from API
+  // Fetch products and categories from API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -358,10 +389,57 @@ const Home = () => {
       }
     };
 
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/products/categories');
+        const data = response.data?.data || [];
+
+        console.log('Categories fetched from API:', data.map(c => ({ id: c.id, name: c.name, categoryKey: c.categoryKey })));
+
+        // For each category, get 4 product images for the mosaic using category ID
+        const categoriesWithMosaics = await Promise.all(
+          data.map(async (cat) => {
+            let mosaicImages = [];
+            try {
+              const productsRes = await api.get(`/products/category-id/${cat.id}`, {
+                params: { limit: 4 }
+              });
+              const catProducts = productsRes.data?.data || [];
+              console.log(`Category ${cat.name} (ID: ${cat.id}) products:`, catProducts.map(p => ({ id: p.id, name: p.name, categoryId: p.categoryId })));
+              mosaicImages = catProducts.map(p => p.image).filter(Boolean);
+            } catch (err) {
+              console.error('Error fetching category products for category ID', cat.id, ':', err);
+            }
+
+            return {
+              ...cat,
+              mosaicImages: mosaicImages.length >= 4 ? mosaicImages : [
+                cat.image || '',
+                '',
+                '',
+                ''
+              ]
+            };
+          })
+        );
+
+        console.log('Final categories with mosaics:', categoriesWithMosaics.map(c => ({ id: c.id, name: c.name, mosaicCount: c.mosaicImages.filter(Boolean).length })));
+        setCategories(categoriesWithMosaics);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategories([]);
+        toast.error('Unable to load categories right now.');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
     fetchProducts();
+    fetchCategories();
 
     const handleProductUpdate = () => {
       fetchProducts();
+      fetchCategories();
     };
 
     window.addEventListener('product-added', handleProductUpdate);
@@ -411,72 +489,6 @@ const Home = () => {
     { name: 'Dire Dawa', code: 'DD' },
   ];
 
-  const categories = [
-    {
-      name: 'Legumes & Pulses',
-      icon: '🫘',
-      image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=600&q=80',
-      categoryKey: 'legumes',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80',
-        'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&q=80',
-        'https://images.unsplash.com/photo-1508061253366-f7da158b6d46?w=400&q=80',
-        'https://images.unsplash.com/photo-1515543904379-3d757afe72e4?w=1400&q=80',
-      ]
-    },
-    {
-      name: 'Vegetables',
-      icon: '🥦',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&q=80',
-      categoryKey: 'vegetable',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=300&q=80',
-        'https://images.unsplash.com/photo-1590165482129-1b8b27698780?w=400&q=80',
-        'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80',
-        'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&q=80'
-      ]
-    },
-    {
-      name: 'Fruits',
-      icon: '🍎',
-      image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=600&q=80',
-      categoryKey: 'fruit',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80',
-        'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&q=80',
-        'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&q=80',
-        'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&q=80'
-      ]
-    },
-    {
-      name: 'Coffee',
-      icon: '☕',
-      image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&q=80',
-      categoryKey: 'coffee',
-      mosaicImages: [
-        'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&q=80',
-        'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=400&q=80',
-        'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=300&q=80',
-        'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=300&amp;q=80'
-      ]
-    },
-
-
-  ];
-
-  const categoryData = categories.map(cat => {
-    const categoryProducts = products.filter(p =>
-      p.category && p.category.toLowerCase().trim() === cat.name.toLowerCase().trim()
-    );
-    const mosaicImages = categoryProducts.slice(0, 4).map(p => p.image || cat.mosaicImages[0]);
-
-    return {
-      ...cat,
-      count: categoryProducts.length || Math.floor(Math.random() * 20) + 12,
-      mosaicImages: mosaicImages.length >= 4 ? mosaicImages : cat.mosaicImages
-    };
-  });
-
   const toggleFavorite = (id) => {
     const isFav = favorites.includes(id);
     const newFavorites = isFav ? favorites.filter(f => f !== id) : [...favorites, id];
@@ -523,54 +535,55 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[var(--background)]">
 
-      {/* ── Sticky Header ── */}
-      <header className="bg-[var(--card)] backdrop-blur-md sticky top-0 z-50 shadow-sm transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3.5">
-          <div className="flex items-center justify-between gap-2 md:gap-8">
+      {/* ── Fixed Header ── */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md border-b border-gray-200' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between gap-4">
 
             {/* Logo - Icon only on mobile, full on desktop */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[var(--primary)] rounded-lg sm:rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
-                <Leaf className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
+                <Leaf className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-base sm:text-lg font-black tracking-tight leading-none video-text-flow">FarmConnect</span>
-                <span className="text-[9px] sm:text-[10px] text-[var(--muted-foreground)] font-semibold tracking-wider">DIRECT FROM SOIL</span>
+                <span className={`text-base sm:text-lg font-black tracking-tight leading-none transition-colors duration-300 ${isScrolled ? 'text-gray-900' : 'text-white'}`}>FarmConnect</span>
+                <span className={`text-[10px] font-semibold tracking-wider transition-colors duration-300 ${isScrolled ? 'text-gray-600' : 'text-white/80'}`}>DIRECT FROM SOIL</span>
               </div>
             </Link>
 
-            {/* Advanced Search Bar - Hidden on mobile */}
-            <div className="flex-1 max-w-xs hidden md:block">
+            {/* Search Bar - Responsive, visible on tablet and above */}
+            <div className="flex-1 max-w-md sm:max-w-lg lg:max-w-xl hidden sm:flex justify-center">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
                 }}
-                className="flex items-center bg-[var(--secondary)] rounded-xl border border-[var(--border)] focus-within:border-[var(--primary)] focus-within:bg-[var(--secondary)] transition-all shadow-inner overflow-hidden"
+                className={`flex items-center w-full rounded-full border-2 transition-all duration-300 overflow-hidden backdrop-blur-xl ${isScrolled ? 'bg-white border-gray-300 focus-within:border-[var(--primary)]' : 'bg-black/20 border-white/30 focus-within:border-[var(--primary)]'}`}
               >
+                <Search className={`w-4 h-4 ml-3 transition-colors duration-300 ${isScrolled ? 'text-gray-600' : 'text-white/80'}`} />
                 <input
                   type="text"
-                  placeholder="Search fresh vegetables, organic grains, local products..."
+                  placeholder="Search products, brands, categories..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-xs font-medium text-[var(--foreground)] focus:outline-none bg-transparent"
+                  className={`flex-1 px-3 py-2 text-sm font-medium focus:outline-none bg-transparent transition-colors duration-300 ${isScrolled ? 'text-gray-900 placeholder:text-gray-500' : 'text-white placeholder:text-white/70'}`}
                 />
-                <button type="submit" className="p-2.5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 transition-colors mr-1 my-1 rounded-lg">
-                  <Search className="w-4 h-4 text-white" />
+                <button type="submit" className="p-1.5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 transition-colors mr-1.5 my-1.5 rounded-full shadow-lg">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </button>
               </form>
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-1.5 md:gap-5 flex-shrink-0 ml-auto">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               {/* Theme Toggle */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]">
+                  <button className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/20 text-white'}`}>
                     {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
-                      <Moon className="w-4 h-4" />
+                      <Moon className="w-5 h-5" />
                     ) : (
-                      <Sun className="w-4 h-4" />
+                      <Sun className="w-5 h-5" />
                     )}
                   </button>
                 </DropdownMenuTrigger>
@@ -590,45 +603,24 @@ const Home = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Favorites Wishlist - Hidden on mobile */}
+              {/* Favorites Wishlist */}
               <Link
                 to="/favorites"
-                className="hidden md:flex items-center justify-center w-10 h-10 hover:bg-[var(--secondary)] rounded-xl relative transition-all"
+                className={`hidden sm:flex items-center justify-center w-10 h-10 rounded-xl relative transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100' : 'hover:bg-white/20'}`}
               >
-                <Heart className="w-5 h-5 text-[var(--foreground)] hover:text-rose-500 transition-colors" />
+                <Heart className={`w-6 h-6 transition-colors duration-300 ${isScrolled ? 'text-gray-700 hover:text-rose-500' : 'text-white hover:text-rose-300'}`} />
                 {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
                     {favorites.filter(f => !String(f).startsWith('cat-')).length}
                   </span>
                 )}
               </Link>
 
-              {/* Cart */}
-              <Link
-                to="/customer/cart"
-                className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-lg sm:rounded-xl font-bold transition-all relative"
-              >
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] sm:text-[10px] font-black rounded-full min-w-[16px] sm:min-w-[20px] h-[16px] sm:h-[20px] flex items-center justify-center px-0.5 sm:px-1">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Mobile Menu Toggle - Rightmost on mobile */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex items-center justify-center w-8 h-8 hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--foreground)]"
-              >
-                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
-
-              {/* Auth actions - Hidden on mobile */}
+              {/* Auth actions */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-xl bg-[var(--secondary)]/70 hover:bg-[var(--secondary)] transition-all" aria-label="Profile menu">
+                    <button className={`hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-xl transition-all duration-300 ${isScrolled ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white/20 hover:bg-white/30'}`} aria-label="Profile menu">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-white font-bold text-sm">
                         {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
@@ -660,12 +652,33 @@ const Home = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden md:inline-flex items-center gap-2 rounded-xl bg-[var(--secondary)]/70 px-3 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                  className={`hidden sm:inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 ${isScrolled ? 'bg-gray-100 text-gray-900 hover:bg-gray-200' : 'bg-white/20 text-white hover:bg-white/30'}`}
                 >
                   <User className="w-4 h-4" />
                   Sign In
                 </Link>
               )}
+
+              {/* Cart */}
+              <Link
+                to="/customer/cart"
+                className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-xl font-bold transition-all relative"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Mobile Menu Toggle - Rightmost on mobile */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`sm:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/20 text-white'}`}
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </div>
@@ -831,7 +844,7 @@ const Home = () => {
       </header>
 
       {/* ── Beautiful Hero Carousel Section ── */}
-      <section className="relative overflow-hidden bg-[var(--card)] h-[550px] md:h-[680px]">
+      <section className="relative overflow-hidden bg-[var(--card)] h-screen w-full">
 
         {/* Slides Content */}
         {farmerSlides.map((slide, index) => {
@@ -877,16 +890,6 @@ const Home = () => {
                     {slide.story}
                   </p>
 
-                  {/* Call to Action Button */}
-                  <div className={`transition-all duration-800 delay-800 transform ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    <Link
-                      to={`/market?cat=${slide.categoryKey}`}
-                      className="inline-flex items-center gap-3 px-9 py-5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white font-bold rounded-2xl shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:shadow-emerald-500/40 active:scale-95"
-                    >
-                      <span>Explore Now</span>
-                      <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  </div>
                 </div>
               </div>
             </div>
@@ -942,36 +945,76 @@ const Home = () => {
           </div>
 
           {/* Categories Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-            {categoryData.map((cat, i) => (
-              <Link
-                key={i}
-                to={`/market?cat=${cat.name.toLowerCase().replace(' & ', '-')}`}
-                className="group"
-              >
-                <Card className="group relative h-[240px] md:h-[280px] overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-[var(--border)] hover:border-[var(--primary)]/30">
-                  <CardContent className="p-0 h-full">
-                    {/* 2x2 Mosaic Image Grid */}
-                    <div className="grid grid-cols-2 grid-rows-2 h-full overflow-hidden bg-[var(--secondary)]">
-                      {cat.mosaicImages.map((img, idx) => (
-                        <div key={idx} className="relative overflow-hidden">
-                          <img
-                            src={img}
-                            alt={`${cat.name} ${idx + 1}`}
-                            loading="lazy"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {categoriesLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-[240px] md:h-[280px] animate-pulse">
+                  <div className="grid grid-cols-2 grid-rows-2 h-full overflow-hidden">
+                    <div className="bg-slate-200" />
+                    <div className="bg-slate-300" />
+                    <div className="bg-slate-300" />
+                    <div className="bg-slate-200" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : categoriesToDisplay.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+              {categoriesToDisplay.map((cat, i) => (
+                <Link
+                  key={i}
+                  to={`/market?cat=${cat.categoryKey}`}
+                  className="group"
+                >
+                  <Card className="group relative h-[240px] md:h-[280px] overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border-[var(--border)] hover:border-[var(--primary)]/30">
+                    <CardContent className="p-0 h-full">
+                      {/* 2x2 Mosaic Image Grid */}
+                      <div className="grid grid-cols-2 grid-rows-2 h-full overflow-hidden bg-[var(--secondary)]">
+                        {cat.mosaicImages.map((img, idx) => (
+                          <div key={idx} className="relative overflow-hidden">
+                            <img
+                              src={img}
+                              alt={`${cat.name} ${idx + 1}`}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full bg-[var(--secondary)] flex items-center justify-center';
+                                fallback.innerHTML = '<div class="text-[var(--muted-foreground)] text-2xl">🌾</div>';
+                                e.target.parentNode.appendChild(fallback);
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+                        <span className="text-white font-semibold text-sm cursor-pointer relative group/link">
+                          Shop Now
+                          <span className="absolute left-0 bottom-0 w-0 h-[1px] bg-white transition-all duration-300 group-hover/link:w-full"></span>
+                        </span>
+                      </div>
+
+                      {/* Category Name at Bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-20">
+                        <h3 className="text-white font-bold text-lg">{cat.name}</h3>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sprout className="w-8 h-8" />
+              </div>
+              <h3 className="text-sm font-black text-slate-800">No categories found</h3>
+              <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto">Check back later for fresh categories!</p>
+            </div>
+          )}
 
         </div>
       </section>
