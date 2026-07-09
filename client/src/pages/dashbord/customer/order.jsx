@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Footer from '../../../components/Footer';
+import Header from '../../../components/Header';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
@@ -227,9 +228,8 @@ const MyOrders = () => {
             key={star}
             type="button"
             onClick={() => isEditable && onRatingChange(star)}
-            className={`${
-              isEditable ? 'cursor-pointer hover:text-yellow-500' : 'cursor-default'
-            } text-xl`}
+            className={`${isEditable ? 'cursor-pointer hover:text-yellow-500' : 'cursor-default'
+              } text-xl`}
             disabled={!isEditable}
           >
             <span className={star <= rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}>
@@ -273,7 +273,9 @@ const MyOrders = () => {
           }
         }
       `}</style>
-      
+
+      <Header pageType="orders" />
+
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 py-4 sm:py-6 px-3 sm:px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header Section */}
@@ -314,10 +316,10 @@ const MyOrders = () => {
             const filteredOrders = filter === 'all'
               ? orders
               : orders.filter(order => {
-                  const orderStatus = (order.status || '').toLowerCase();
-                  const filterStatus = filter.toLowerCase();
-                  return orderStatus === filterStatus;
-                });
+                const orderStatus = (order.status || '').toLowerCase();
+                const filterStatus = filter.toLowerCase();
+                return orderStatus === filterStatus;
+              });
 
             if (filteredOrders.length === 0) {
               return (
@@ -418,14 +420,14 @@ const MyOrders = () => {
                       <div className="border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 px-2.5 sm:px-4 pb-2.5 sm:pb-4">
                         <div className="mt-2 sm:mt-4 space-y-3 sm:space-y-4">
                           <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">Items</h4>
-                          
+
                           {/* Render each item */}
                           {(order.orderItems?.length ? order.orderItems : order.items).map((item, idx) => {
                             const productId = item.productId || item.id || item._id;
                             const existingReview = item.review;
                             const isOrderDelivered = order.status?.toLowerCase() === 'delivered';
-                            const isSubmittingThisProduct = 
-                              submittingProduct?.orderId === order.id && 
+                            const isSubmittingThisProduct =
+                              submittingProduct?.orderId === order.id &&
                               submittingProduct?.productId === productId;
                             const formData = productReviewForms[order.id]?.[productId];
                             const isReviewFormOpen = formData?.isEditing;
@@ -588,7 +590,7 @@ const MyOrders = () => {
                   Receipt {currentReceiptOrder.orderNumber}
                 </p>
               </div>
-              
+
               <div className="space-y-1 mb-3 text-[10px] text-gray-700">
                 <div className="flex justify-between items-center py-0.5 border-b border-gray-100">
                   <span className="font-medium text-gray-500">Customer:</span>
@@ -613,7 +615,7 @@ const MyOrders = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="border-y border-dashed border-gray-300 py-2 mb-3">
                 {(currentReceiptOrder.orderItems?.length ? currentReceiptOrder.orderItems : currentReceiptOrder.items).map((item, idx) => (
                   <div key={idx} className="flex justify-between py-0.5 text-[10px]">
@@ -626,7 +628,7 @@ const MyOrders = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mb-3">
                 <div className="flex justify-between pt-1 border-t border-dashed border-gray-300 text-xs font-bold text-gray-900">
                   <span>Subtotal</span>
@@ -641,7 +643,7 @@ const MyOrders = () => {
                   <span className="text-green-700">${formatPrice(currentReceiptOrder.total)}</span>
                 </div>
               </div>
-              
+
               <div className="border-t border-gray-200 pt-2 text-[10px] text-gray-600 flex justify-between items-center">
                 <span className="font-medium">Payment: {currentReceiptOrder.paymentMethod === 'cash' ? 'Cash on Delivery' : currentReceiptOrder.paymentMethod === 'card' ? 'Credit Card' : 'Mobile Payment'}</span>
                 <span
@@ -651,7 +653,7 @@ const MyOrders = () => {
                   {currentReceiptOrder.paymentStatus}
                 </span>
               </div>
-              
+
               <div className="mt-3 pt-2 border-t border-dashed border-gray-300 text-center text-[10px] text-gray-500">
                 <p>Thank you for your purchase!</p>
                 <p className="mt-0.5">Estimated Delivery: {currentReceiptOrder.estimatedDelivery}</p>

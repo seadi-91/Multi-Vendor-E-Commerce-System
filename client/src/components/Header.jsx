@@ -289,7 +289,7 @@ const Header = ({ pageType = 'home' }) => {
             </DropdownMenu>
 
             <Link to="/favorites" className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${iconButtonClass}`}>
-              <Heart className={`h-4.5 w-4.5 transition-colors ${isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (scrolled ? 'text-slate-700 hover:text-rose-500' : isDarkMode ? 'text-white hover:text-rose-400' : 'text-slate-700 hover:text-rose-500') : isOverlay ? 'text-white hover:text-rose-300' : 'text-slate-700 hover:text-rose-500 dark:text-slate-300 dark:hover:text-rose-400'}`} />
+              <Heart className={`h-4.5 w-4.5 transition-colors ${isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (scrolled ? 'text-slate-700 hover:text-emerald-600' : isDarkMode ? 'text-white hover:text-emerald-400' : 'text-slate-700 hover:text-emerald-600') : isOverlay ? 'text-white hover:text-emerald-300' : 'text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400'}`} />
             </Link>
 
             {user ? (
@@ -356,7 +356,7 @@ const Header = ({ pageType = 'home' }) => {
             <Link to="/customer/cart" className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${isCartPage || isCheckoutPage ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700' : 'bg-emerald-600/90 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-600'}`}>
               <ShoppingCart className="h-4.5 w-4.5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white">
+                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white">
                   {cartCount}
                 </span>
               )}

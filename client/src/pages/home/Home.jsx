@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -64,7 +64,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
               className="absolute top-2 right-2 w-7 h-7 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10 border border-[var(--border)]"
             >
-              <Heart className={`w-3 h-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
+              <Heart className={`w-3 h-3 transition-all ${isFavorite ? 'fill-[var(--primary)] text-[var(--primary)]' : 'text-[var(--muted-foreground)]'}`} />
             </button>
           </div>
         </CardContent>
@@ -351,6 +351,7 @@ const Home = () => {
   const { user, logout } = useAuth();
   const { addToCart, cart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -610,7 +611,7 @@ const Home = () => {
               >
                 <Heart className={`w-6 h-6 transition-colors duration-300 ${isScrolled ? 'text-gray-700 hover:text-rose-500' : 'text-white hover:text-rose-300'}`} />
                 {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
                     {favorites.filter(f => !String(f).startsWith('cat-')).length}
                   </span>
                 )}
@@ -923,7 +924,7 @@ const Home = () => {
       </section>
 
       {/* ── Showcase: Shop by Category ── */}
-      <section className="py-16 bg-[var(--card)]">
+      <section className="pt-16 pb-0 bg-[var(--card)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-14">
@@ -1020,7 +1021,7 @@ const Home = () => {
       </section>
 
       {/* ── Showcase: Products Grid ── */}
-      <section className="py-16 bg-[var(--background)]">
+      <section className="pt-0 pb-16 bg-[var(--background)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
