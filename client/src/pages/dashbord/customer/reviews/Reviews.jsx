@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Footer from '../../../../components/Footer';
+import Header from '../../../../components/Header';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../../context/ThemeContext';
 import api from '../../../../api';
@@ -77,8 +78,9 @@ const MyReviews = () => {
     };
 
     return (
-        <div className="flex min-h-screen flex-col bg-[var(--background)] px-3 py-4 text-[var(--foreground)] sm:px-4 lg:px-6">
-            <div className="flex-1">
+        <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)]">
+            <Header pageType="reviews" />
+            <div className="flex-1 px-3 py-4 sm:px-4 lg:px-6">
                 <div className="mx-auto flex max-w-5xl items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-3 shadow-sm">
                     <div className="flex items-center gap-2">
                         <Button variant="outline" className="h-9 rounded-xl border-[var(--border)] bg-[var(--secondary)]" onClick={() => navigate(-1)}>

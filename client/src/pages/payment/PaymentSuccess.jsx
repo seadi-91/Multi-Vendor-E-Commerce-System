@@ -37,23 +37,18 @@ const PaymentSuccess = () => {
       const transactionRef = tx_ref || trx_ref;
 
       // Call backend to verify payment with Chapa
-      const verifyResponse = await api.get(`/payments/chapa/verify/${transactionRef}`);
+      const verifyResponse = await api.get(`/payments/chapa/verify?tx_ref=${transactionRef}`);
       
       console.log('Verification response:', verifyResponse.data);
 
-      if (verifyResponse.data.status === 'success') {
+      const chapaStatus = verifyResponse.data?.data?.status || verifyResponse.data?.status;
+      if (chapaStatus === 'success') {
         setVerificationStatus('success');
-        setOrderDetails(verifyResponse.data.order || {});
-        
-        // Clear cart after successful payment
+        setOrderDetails(verifyResponse.data?.data || verifyResponse.data?.order || {});
         clearCart();
-        
-        // Auto-redirect to home after 3 seconds
-        setTimeout(() => {
-          navigate('/');
-        }, 3000);
+        setTimeout(() => navigate('/'), 5000);
       } else {
-        throw new Error('Payment verification failed');
+        throw new Error(`Payment not completed. Status: ${chapaStatus || 'unknown'}`);
       }
 
     } catch (error) {
@@ -252,7 +247,7 @@ const PaymentSuccess = () => {
         </button>
 
         <p className="text-sm text-gray-500 mt-4">
-          Redirecting to home page in 3 seconds...
+          Redirecting to home page in 5 seconds...
         </p>
       </div>
     </div>

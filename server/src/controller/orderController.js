@@ -232,7 +232,8 @@ exports.createOrder = async (req, res) => {
             // Create the order
             const created = await tx.order.create({
                 data: {
-                    customerId: customer ? normalizedCustomerId : null,
+                    // Connect customer relation if we have a valid user id
+                    ...(normalizedCustomerId ? { customer: { connect: { id: normalizedCustomerId } } } : {}),
                     items: itemsJson,
                     total: parseFloat(total) || 0,
                     subtotal: parseFloat(subtotal) || 0,
@@ -251,20 +252,23 @@ exports.createOrder = async (req, res) => {
                     restaurant: restaurant || null,
                     estimatedDelivery: estimatedDelivery || '30-45 minutes',
                     specialInstructions: specialInstructions || null,
-                    wantsReview: wantsReview || false,
                     orderCode: `TEMP-${Date.now()}`
                 }
             });
 
-            // Create order items
-            await Promise.all(orderItemsData.map((item) =>
-                tx.orderItem.create({
-                    data: {
+            // Create order items as nested creates to keep everything in the same transaction
+            // Prisma Order model has orderItems relation; create them here.
+            if (orderItemsData.length) {
+                await tx.orderItem.createMany({
+                    data: orderItemsData.map((item) => ({
                         orderId: created.id,
-                        ...item
-                    }
-                })
-            ));
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: item.price,
+                        farmerId: item.farmerId
+                    }))
+                });
+            }
 
             // Generate and update order code
             const orderCode = await generateOrderCode(created.id);
@@ -275,7 +279,7 @@ exports.createOrder = async (req, res) => {
 
             // Log all inventory changes and send notifications
             const uniqueFarmerIds = new Set();
-            
+
             for (const update of stockUpdates) {
                 await logInventoryChange(
                     tx,
@@ -288,7 +292,7 @@ exports.createOrder = async (req, res) => {
                     updated.orderCode,
                     normalizedCustomerId || req.user?.id || null
                 );
-                
+
                 // Track unique farmers involved in this order
                 if (update.farmerId) {
                     uniqueFarmerIds.add(update.farmerId);
@@ -321,7 +325,7 @@ exports.createOrder = async (req, res) => {
 
             const orderTotal = updated.total || 0;
             const itemCount = stockUpdates.length;
-            
+
             for (const admin of adminUsers) {
                 await tx.notification.create({
                     data: {

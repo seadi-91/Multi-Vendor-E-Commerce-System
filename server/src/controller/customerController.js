@@ -27,7 +27,6 @@ const normalizeSettingsPayload = (payload = {}) => {
 
 const buildCustomerSettingsResponse = (user) => ({
     name: user.name || '',
-    username: user.username || '',
     email: user.email || '',
     phone: user.phone || '',
     profileImage: user.profileImage || '',
@@ -60,29 +59,21 @@ const buildCustomerProfileResponse = (user) => {
     return {
         id: user.id,
         name: user.name,
-        username: user.username || null,
         email: user.email,
         phone: user.phone || '',
-        gender: user.gender || null,
-        dateOfBirth: user.dateOfBirth || null,
         city: user.location || '',
         subcity,
         fullAddress,
         address: fullAddress || user.address || '',
-        country: user.country || null,
         role: user.role,
         profileImage: user.profileImage || '',
         isActive: user.isActive,
         accountStatus: user.isActive === false ? 'Inactive' : user.isActive === true ? 'Active' : 'Not provided',
         bio: user.bio || '',
-        registrationDate: user.createdAt,
-        lastLogin: user.lastLogin || null,
         createdAt: user.createdAt,
-        isVerified: user.isVerified ?? null,
+        isVerified: user.isVerified ?? false,
         language: user.language || null,
         timezone: user.timezone || null,
-        farmName: user.farmName || null,
-        farmSize: user.farmSize || null,
     };
 };
 
@@ -104,18 +95,17 @@ const serializeStoredAddresses = (addresses) => JSON.stringify(Array.isArray(add
 const buildCustomerProfileUpdateData = (payload) => {
     const data = {};
 
-    if (payload.username) data.username = payload.username;
-
     if (payload.name) data.name = payload.name;
     if (payload.email) data.email = payload.email;
     if (payload.phone) data.phone = payload.phone;
     if (payload.location || payload.city) data.location = payload.location || payload.city;
     if (payload.bio !== undefined) data.bio = payload.bio;
     if (payload.profileImage !== undefined) data.profileImage = payload.profileImage;
-    if (payload.address !== undefined) data.address = payload.address;
     if (payload.subcity || payload.fullAddress) {
         const addressParts = [payload.subcity || '', payload.fullAddress || ''].filter(Boolean);
         data.address = addressParts.join(' | ');
+    } else if (payload.address !== undefined) {
+        data.address = payload.address;
     }
 
     return data;
@@ -123,11 +113,11 @@ const buildCustomerProfileUpdateData = (payload) => {
 
 const getCustomerProfile = async (req, res) => {
     try {
+        const userId = Number(req.user.id);
         const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: userId },
             select: {
                 id: true,
-                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -141,8 +131,6 @@ const getCustomerProfile = async (req, res) => {
                 isVerified: true,
                 language: true,
                 timezone: true,
-                farmName: true,
-                farmSize: true,
             },
         });
 
@@ -165,11 +153,10 @@ const updateCustomerProfile = async (req, res) => {
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data,
             select: {
                 id: true,
-                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -183,8 +170,6 @@ const updateCustomerProfile = async (req, res) => {
                 isVerified: true,
                 language: true,
                 timezone: true,
-                farmName: true,
-                farmSize: true,
             },
         });
 
@@ -203,11 +188,10 @@ const updateCustomerPhone = async (req, res) => {
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { phone },
             select: {
                 id: true,
-                username: true,
                 name: true,
                 email: true,
                 phone: true,
@@ -221,8 +205,6 @@ const updateCustomerPhone = async (req, res) => {
                 isVerified: true,
                 language: true,
                 timezone: true,
-                farmName: true,
-                farmSize: true,
             },
         });
 
@@ -242,7 +224,7 @@ const changeCustomerPassword = async (req, res) => {
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: { password: true },
         });
 
@@ -253,7 +235,7 @@ const changeCustomerPassword = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { password: hashedPassword },
         });
 
@@ -267,7 +249,7 @@ const changeCustomerPassword = async (req, res) => {
 const getCustomerSettings = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: {
                 id: true,
                 profileVisibility: true,
@@ -287,7 +269,6 @@ const getCustomerSettings = async (req, res) => {
                 sessionTimeout: true,
                 email: true,
                 phone: true,
-                username: true,
                 name: true,
                 profileImage: true,
                 address: true,
@@ -317,7 +298,7 @@ const updateCustomerSettings = async (req, res) => {
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data,
             select: {
                 id: true,
@@ -361,7 +342,7 @@ const uploadCustomerProfileImage = async (req, res) => {
         }
 
         const updatedUser = await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { profileImage: imageUrl.trim() },
             select: { profileImage: true },
         });
@@ -384,7 +365,7 @@ const revokeCustomerSession = async (req, res) => {
 const getCustomerAddresses = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: { address: true },
         });
 
@@ -403,7 +384,7 @@ const addCustomerAddress = async (req, res) => {
         }
 
         const currentUser = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: { address: true },
         });
 
@@ -422,7 +403,7 @@ const addCustomerAddress = async (req, res) => {
         }
 
         await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { address: serializeStoredAddresses(nextAddresses) },
         });
 
@@ -438,7 +419,7 @@ const updateCustomerAddress = async (req, res) => {
         const { id } = req.params;
         const updates = req.body || {};
         const currentUser = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: { address: true },
         });
 
@@ -457,7 +438,7 @@ const updateCustomerAddress = async (req, res) => {
 
         addresses[currentIndex] = nextAddress;
         await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { address: serializeStoredAddresses(addresses) },
         });
 
@@ -472,13 +453,13 @@ const deleteCustomerAddress = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUser = await prisma.user.findUnique({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             select: { address: true },
         });
 
         const addresses = parseStoredAddresses(currentUser?.address).filter((item) => item.id !== id && item._id !== id);
         await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { address: serializeStoredAddresses(addresses) },
         });
 
@@ -492,7 +473,7 @@ const deleteCustomerAddress = async (req, res) => {
 const deactivateCustomerAccount = async (req, res) => {
     try {
         await prisma.user.update({
-            where: { id: req.user.id },
+            where: { id: Number(req.user.id) },
             data: { isActive: false },
         });
 
@@ -505,7 +486,7 @@ const deactivateCustomerAccount = async (req, res) => {
 
 const deleteCustomerAccount = async (req, res) => {
     try {
-        await prisma.user.delete({ where: { id: req.user.id } });
+        await prisma.user.delete({ where: { id: Number(req.user.id) } });
         res.json({ message: 'Account deleted successfully' });
     } catch (error) {
         console.error('deleteCustomerAccount error:', error);

@@ -11,6 +11,7 @@ import {
   Leaf,
   Monitor,
   Moon,
+  Package,
   Search,
   ShoppingCart,
   Sparkles,
@@ -20,6 +21,7 @@ import {
   Menu,
   Settings,
   LogOut,
+  X,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
@@ -33,6 +35,7 @@ const Header = ({ pageType = 'home' }) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [customerProfile, setCustomerProfile] = useState(null);
+  const [favoritesCount, setFavoritesCount] = useState(0);
 
   const isSpecialPage = pageType === 'login' || pageType === 'register';
   const isFavoritePage = pageType === 'favorite';
@@ -84,33 +87,36 @@ const Header = ({ pageType = 'home' }) => {
       if (!user) return;
       try {
         const response = await customerAPI.getProfile();
-        if (isMounted) {
-          setCustomerProfile(response.data || null);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setCustomerProfile(null);
-        }
+        if (isMounted) setCustomerProfile(response.data || null);
+      } catch {
+        if (isMounted) setCustomerProfile(null);
+      }
+    };
+
+    const loadFavoritesCount = async () => {
+      if (!user) { setFavoritesCount(0); return; }
+      try {
+        const { default: api } = await import('../api');
+        const response = await api.get('/favorites');
+        const data = response.data?.data ?? response.data ?? [];
+        if (isMounted) setFavoritesCount(Array.isArray(data) ? data.length : 0);
+      } catch {
+        if (isMounted) setFavoritesCount(0);
       }
     };
 
     loadCustomerProfile();
+    loadFavoritesCount();
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [user]);
 
   const headerPositionClass = (isHomePage || isCheckoutPage) ? 'fixed top-0 left-0 right-0' : 'sticky top-0';
   const isOverlay = isHomePage && !scrolled;
 
   const logoTextClass = useMemo(() => {
-    if (isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage) {
-      return scrolled ? 'text-emerald-600' : isDarkMode ? 'text-white' : 'text-emerald-600';
-    }
-
-    return isOverlay ? 'text-white' : 'text-emerald-600 dark:text-white';
-  }, [isDarkMode, isOverlay, isFavoritePage, isSpecialPage, scrolled, isCartPage, isCheckoutPage]);
+    return 'text-emerald-600';
+  }, []);
 
   const logoSubtextClass = useMemo(() => {
     if (isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage) {
@@ -194,23 +200,111 @@ const Header = ({ pageType = 'home' }) => {
             : undefined
       }
     >
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <div className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600">
+              <Leaf className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-base font-black text-emerald-600">FarmConnect</span>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Drawer User Info (logged in) */}
+        {user && (
+          <div className="mx-4 mt-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-sm overflow-hidden flex-shrink-0">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
+                ) : (
+                  <span>{profileInitials}</span>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{profileName}</p>
+                <p className="text-xs text-slate-500 truncate">{user.email}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Drawer Nav Links */}
+        <nav className="mt-4 flex flex-col gap-1 px-3">
+          {user ? (
+            <>
+              <button onClick={() => { navigate('/customer/profile'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <User className="h-4 w-4 text-emerald-600" /> Profile
+              </button>
+              <button onClick={() => { navigate('/customer/orders'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <Package className="h-4 w-4 text-emerald-600" /> My Orders
+              </button>
+              <button onClick={() => { navigate('/favorites'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <Heart className="h-4 w-4 text-emerald-600" /> Favorites
+              </button>
+              <button onClick={() => { navigate('/customer/dashboard/reviews'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <Star className="h-4 w-4 text-emerald-600" /> My Reviews
+              </button>
+              <button onClick={() => { navigate('/customer/settings'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <Settings className="h-4 w-4 text-emerald-600" /> Settings
+              </button>
+              <div className="my-2 h-px bg-slate-100 dark:bg-slate-800" />
+              <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors w-full text-left">
+                <LogOut className="h-4 w-4" /> Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <User className="h-4 w-4 text-emerald-600" /> Sign In
+              </button>
+              <button onClick={() => { navigate('/register'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <User className="h-4 w-4 text-emerald-600" /> Sign Up
+              </button>
+              <button onClick={() => { navigate('/favorites'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
+                <Heart className="h-4 w-4 text-emerald-600" /> Favorites
+              </button>
+            </>
+          )}
+        </nav>
+      </div>
+
       <div className="mx-auto max-w-7xl px-4 py-3.5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-3 md:gap-8">
-          <div className="flex items-center">
-            {/* Mobile Hamburger Menu - Forced to Far Left with order-first */}
+          <div className="flex items-center gap-3">
+            {/* Hamburger - mobile only, far left */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`order-first mr-4 flex md:hidden h-9 w-9 items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${iconButtonClass}`}
+              className={`flex md:hidden h-9 w-9 items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${iconButtonClass}`}
               aria-label="Toggle Menu"
             >
               <Menu className="h-5 w-5" />
             </button>
 
-            <Link to="/" className="flex flex-shrink-0 items-center gap-2 order-2 md:order-none">
+            <Link to="/" className="flex flex-shrink-0 items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-md shadow-emerald-200 transition-transform hover:rotate-6">
                 <Leaf className="h-5 w-5 text-white" />
               </div>
-              <div className="flex flex-col">
+              {/* Text hidden on mobile, visible on desktop */}
+              <div className="hidden md:flex flex-col">
                 <span className={`text-lg font-black leading-none tracking-tight ${logoTextClass}`}>FarmConnect</span>
                 <span className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${logoSubtextClass}`}>Direct from soil</span>
               </div>
@@ -288,14 +382,19 @@ const Header = ({ pageType = 'home' }) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link to="/favorites" className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${iconButtonClass}`}>
+            <Link to="/favorites" className={`relative hidden md:flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${iconButtonClass}`}>
               <Heart className={`h-4.5 w-4.5 transition-colors ${isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (scrolled ? 'text-slate-700 hover:text-emerald-600' : isDarkMode ? 'text-white hover:text-emerald-400' : 'text-slate-700 hover:text-emerald-600') : isOverlay ? 'text-white hover:text-emerald-300' : 'text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400'}`} />
+              {favoritesCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white shadow-md ring-2 ring-white dark:ring-slate-900">
+                  {favoritesCount > 99 ? '99+' : favoritesCount}
+                </span>
+              )}
             </Link>
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className={`inline-flex items-center gap-2 rounded-full px-2 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 ${signInButtonClass}`} type="button">
+                  <button className={`hidden md:inline-flex items-center gap-2 rounded-full px-2 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 ${signInButtonClass}`} type="button">
                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white overflow-hidden">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
@@ -347,7 +446,7 @@ const Header = ({ pageType = 'home' }) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link to="/login" className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 sm:inline-flex ${signInButtonClass}`}>
+              <Link to="/login" className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 md:inline-flex ${signInButtonClass}`}>
                 <User className="h-4 w-4" />
                 <span>Sign In</span>
               </Link>
@@ -356,8 +455,8 @@ const Header = ({ pageType = 'home' }) => {
             <Link to="/customer/cart" className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${isCartPage || isCheckoutPage ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700' : 'bg-emerald-600/90 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-600'}`}>
               <ShoppingCart className="h-4.5 w-4.5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-black text-white">
-                  {cartCount}
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white shadow-md ring-2 ring-white dark:ring-slate-900">
+                  {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
             </Link>

@@ -32,8 +32,6 @@ const Checkout = () => {
   const [comingSoonMessage, setComingSoonMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderSuccess, setIsOrderSuccess] = useState(false);
-  const [showChapaModal, setShowChapaModal] = useState(false);
-  const [chapaPhone, setChapaPhone] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -274,29 +272,29 @@ const Checkout = () => {
   // Updated handler for Place Order button - Hybrid Real API + Fallback Simulation
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.fullName || !formData.phone || !formData.email) {
       setError('Please fill in all required fields');
       return;
     }
-    
+
     if (formData.isDelivery && (!formData.city || !formData.address)) {
       setError('Please fill in delivery address');
       return;
     }
-    
+
     if (cart.length === 0) {
       setError('Your cart is empty');
       return;
     }
-    
+
     setError(null);
     setIsLoading(true);
-    
+
     try {
       console.log('=== Starting Chapa payment flow ===');
-      
+
       // Check authentication
       const token = localStorage.getItem('token');
       if (!token) {
@@ -348,7 +346,7 @@ const Checkout = () => {
 
       // Step 1: Try to create order in database
       const orderResponse = await api.post('/orders', orderPayload);
-      
+
       if (!orderResponse || !orderResponse.data) {
         throw new Error('Failed to create order');
       }
@@ -397,19 +395,15 @@ const Checkout = () => {
 
     } catch (error) {
       console.error('Chapa payment error:', error);
-      console.log('Falling back to simulated Chapa modal...');
-      
-      // FALLBACK: If backend is not ready, show simulated Chapa modal
+      const errMsg =
+        error?.response?.data?.chapaError?.message ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Failed to initiate payment. Please try again.';
+      setError(errMsg);
       setIsLoading(false);
-      setShowChapaModal(true);
     }
-  };
-
-  // Handler for simulated Chapa "Pay using Test Mode" button
-  const handleSimulatedPayment = () => {
-    console.log('Simulated payment completed');
-    setShowChapaModal(false);
-    setIsOrderSuccess(true);
   };
 
   if (cart.length === 0 && !orderPlaced) {
@@ -504,7 +498,7 @@ const Checkout = () => {
                 <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
                   <Check className="w-14 h-14" strokeWidth={3} />
                 </div>
-                
+
                 {/* Thank You Message in Amharic - Updated */}
                 <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
                   ትዕዛዝህን በስኬት አጠናቀሃል፣ እናመሰግናለን!
@@ -526,7 +520,7 @@ const Checkout = () => {
                     <p className="text-gray-600 text-sm mb-4">
                       Rate Our Service:
                     </p>
-                    
+
                     {/* Interactive Star Rating */}
                     <div className="flex items-center justify-center gap-2 mb-4">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -539,17 +533,16 @@ const Checkout = () => {
                           className="transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded"
                         >
                           <Star
-                            className={`w-12 h-12 transition-colors ${
-                              star <= (hoverRating || rating)
-                                ? 'fill-yellow-400 text-yellow-400'
-                                : 'fill-gray-200 text-gray-300'
-                            }`}
+                            className={`w-12 h-12 transition-colors ${star <= (hoverRating || rating)
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'fill-gray-200 text-gray-300'
+                              }`}
                             strokeWidth={1.5}
                           />
                         </button>
                       ))}
                     </div>
-                    
+
                     {rating > 0 && (
                       <p className="text-emerald-600 font-semibold text-center text-sm animate-in fade-in duration-200">
                         ✓ You rated {rating} star{rating !== 1 ? 's' : ''}! Thank you for your feedback.
@@ -586,7 +579,7 @@ const Checkout = () => {
                     // Log rating and comment
                     if (rating > 0 || comment.trim()) {
                       console.log('User Feedback:', { rating, comment });
-                      
+
                       // Save to localStorage
                       const feedback = {
                         rating,
@@ -595,11 +588,11 @@ const Checkout = () => {
                         orderId: Date.now() // Replace with actual order ID
                       };
                       localStorage.setItem('lastOrderFeedback', JSON.stringify(feedback));
-                      
+
                       // TODO: Send to backend API
                       // await api.post('/feedback', feedback);
                     }
-                    
+
                     // Clear cart and navigate home
                     clearCart();
                     navigate('/');
@@ -608,149 +601,6 @@ const Checkout = () => {
                 >
                   OK
                 </button>
-              </div>
-            </div>
-          ) : showChapaModal ? (
-            <div className="fixed inset-0 bg-[#0a1628] flex items-center justify-center z-50 p-4 animate-in fade-in">
-              {/* Close Button */}
-              <button
-                onClick={() => setShowChapaModal(false)}
-                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all group"
-              >
-                <svg className="w-6 h-6 text-white group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              <div className="bg-transparent rounded-2xl overflow-hidden shadow-2xl transform animate-in zoom-in-95 duration-300 max-w-3xl w-full">
-                {/* Simulated Chapa Payment Modal - Exact Match to Image */}
-                <div className="flex flex-col md:flex-row">
-                  {/* Left Side - Dark Green/Teal Section */}
-                  <div className="bg-[#1a3d3a] w-full md:w-[45%] p-8 flex flex-col min-h-[480px]">
-                    {/* Chapa Logo */}
-                    <div className="mb-8">
-                      <div className="flex items-center gap-2 mb-3">
-                        <svg className="w-8 h-8 text-[#7ed957]" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                        </svg>
-                        <h3 className="text-2xl font-black text-[#7ed957]">Chapa</h3>
-                      </div>
-                      <p className="text-gray-400 text-sm">Select your payment method here</p>
-                    </div>
-                    
-                    {/* Payment Methods */}
-                    <div className="flex-1 space-y-3">
-                      {/* Test Bank Payment - Active */}
-                      <button
-                        className="w-full bg-[#2d5651] hover:bg-[#356b63] border-l-4 border-[#7ed957] rounded-lg p-4 transition-all text-left group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#1a3d3a] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <svg className="w-5 h-5 text-[#7ed957]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-white font-bold text-sm">Test Bank Payment</h4>
-                          </div>
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </button>
-                      
-                      {/* Test Card Payment - Inactive */}
-                      <button
-                        className="w-full bg-[#1a3d3a]/50 hover:bg-[#1a3d3a] rounded-lg p-4 transition-all text-left group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#0f2522] rounded-lg flex items-center justify-center">
-                            <CreditCard className="w-5 h-5 text-gray-500" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-gray-400 font-bold text-sm">Test Card Payment</h4>
-                          </div>
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-
-                    {/* Secured By Chapa */}
-                    <div className="mt-8 flex items-center justify-center gap-2 text-gray-500 text-xs">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                      <span>Secured By Chapa</span>
-                    </div>
-                  </div>
-
-                  {/* Right Side - Dark Navy/Blue Section */}
-                  <div className="bg-[#1e2936] w-full md:w-[55%] p-8 flex flex-col min-h-[480px] relative">
-                    {/* Language Selector */}
-                    <div className="absolute top-4 right-4">
-                      <button className="flex items-center gap-1 text-gray-400 hover:text-white text-xs transition-colors">
-                        <span>EN</span>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Header */}
-                    <div className="mb-6 mt-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-6 h-6 text-[#7ed957]" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                        </svg>
-                        <h2 className="text-xl font-bold text-white">FarmConnect Order Payment</h2>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 flex flex-col justify-center">
-                      {/* Payment Info */}
-                      <div className="mb-6">
-                        <p className="text-gray-400 text-sm mb-2">Payment for your FarmConnect o</p>
-                        <p className="text-gray-500 text-xs mb-4">
-                          No actual money is used in the test mode. Only our test cards and bank accounts can be used.
-                        </p>
-                        <a href="#" className="text-[#7ed957] text-xs hover:underline">Testing phone number</a>
-                      </div>
-
-                      {/* Phone Number Input */}
-                      <div className="mb-6">
-                        <label className="block text-gray-400 text-sm font-semibold mb-3">
-                          Phone Number
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="tel"
-                            value={chapaPhone}
-                            onChange={(e) => setChapaPhone(e.target.value)}
-                            placeholder="09********"
-                            className="w-full px-4 py-3 bg-[#151e2a] text-white border border-gray-700 rounded-lg focus:border-[#7ed957] focus:ring-2 focus:ring-[#7ed957]/20 outline-none text-base transition-all placeholder:text-gray-600"
-                          />
-                          {chapaPhone && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                              <svg className="w-5 h-5 text-[#7ed957]" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Pay Button */}
-                      <button
-                        onClick={handleSimulatedPayment}
-                        className="w-full py-3.5 bg-[#7ed957] hover:bg-[#6ec747] text-[#0a1628] rounded-lg font-bold text-base transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-[#7ed957]/30"
-                      >
-                        Pay using Test Mode
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           ) : (
@@ -762,250 +612,250 @@ const Checkout = () => {
 
               {/* Centered Flex Container - Side by Side Cards */}
               <div className="flex flex-col lg:flex-row justify-center items-start gap-6 w-full mx-auto max-w-5xl">
-                {/* Left Column: Main Form Card - Compact Width */}
-                <div className="w-full lg:w-[480px]">
-                  <form onSubmit={handleSubmit} className="space-y-10">
-                    {/* Combined Card: Contact & Delivery + Payment Method */}
-                    <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm p-10`}>
-                      {/* Back Button */}
-                      <button
-                        type="button"
-                        onClick={() => navigate(-1)}
-                        className={`flex items-center gap-2 mb-8 text-sm font-semibold ${theme === 'dark' ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors group`}
-                      >
-                        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        <span>Back to Cart</span>
-                      </button>
-                      
-                      {/* Contact & Delivery Section */}
-                    <div className="mb-12">
-                      <div className="mb-8">
-                        <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
-                        <p className={`text-sm ${subTextClass} mt-1`}>Your information and delivery preferences</p>
-                      </div>
+                  {/* Left Column: Main Form Card - Compact Width */}
+                  <div className="w-full lg:w-[480px]">
+                    <form onSubmit={handleSubmit} className="space-y-10">
+                      {/* Combined Card: Contact & Delivery + Payment Method */}
+                      <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm p-10`}>
+                        {/* Back Button */}
+                        <button
+                          type="button"
+                          onClick={() => navigate(-1)}
+                          className={`flex items-center gap-2 mb-8 text-sm font-semibold ${theme === 'dark' ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors group`}
+                        >
+                          <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                          </svg>
+                          <span>Back to Cart</span>
+                        </button>
 
-                      <div className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          <div>
-                            <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Full Name *</label>
-                            <input
-                              type="text"
-                              name="fullName"
-                              value={formData.fullName}
-                              onChange={handleInputChange}
-                              required
-                              className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                              placeholder="John Doe"
-                            />
+                        {/* Contact & Delivery Section */}
+                        <div className="mb-12">
+                          <div className="mb-8">
+                            <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
+                            <p className={`text-sm ${subTextClass} mt-1`}>Your information and delivery preferences</p>
                           </div>
-                          <div>
-                            <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Phone Number *</label>
-                            <input
-                              type="tel"
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              required
-                              className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                              placeholder="+251 9XX XXX XXX"
-                            />
-                          </div>
-                        </div>
 
-                        <div>
-                          <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Email Address</label>
-                          <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                            placeholder="john@example.com"
-                          />
-                        </div>
-
-                        {/* Delivery Checkbox - Small */}
-                        <div className="pt-4 border-t-2 border-gray-100">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              name="isDelivery"
-                              checked={formData.isDelivery}
-                              onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
-                              className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
-                            />
-                            <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                              I need home delivery
-                            </span>
-                          </label>
-                          {!formData.isDelivery && (
-                            <p className="text-xs text-gray-600 mt-2 ml-8">
-                              You'll pick up your order
-                            </p>
-                          )}
-                        </div>
-
-                        {formData.isDelivery && (
-                          <div className="space-y-5 pt-2 animate-in slide-in-from-top duration-300">
-                            <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               <div>
-                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>City *</label>
-                                <select name="city" value={formData.city} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
-                                  <option value="">Select City</option>
-                                  <option value="addis-ababa">Addis Ababa</option>
-                                  <option value="adama">Adama</option>
-                                  <option value="bahir-dar">Bahir Dar</option>
-                                  <option value="mekelle">Mekelle</option>
-                                  <option value="hawassa">Hawassa</option>
-                                </select>
+                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Full Name *</label>
+                                <input
+                                  type="text"
+                                  name="fullName"
+                                  value={formData.fullName}
+                                  onChange={handleInputChange}
+                                  required
+                                  className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
+                                  placeholder="John Doe"
+                                />
                               </div>
                               <div>
-                                <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Subcity *</label>
-                                <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`} placeholder="e.g., Bole" />
+                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Phone Number *</label>
+                                <input
+                                  type="tel"
+                                  name="phone"
+                                  value={formData.phone}
+                                  onChange={handleInputChange}
+                                  required
+                                  className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
+                                  placeholder="+251 9XX XXX XXX"
+                                />
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Payment Method Section */}
-                    <div className={`pt-12 border-t-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'}`}>
-                      <div className="mb-8">
-                        <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Payment Method</h3>
-                        <p className={`text-sm ${subTextClass} mt-1`}>Choose how you'd like to pay</p>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {[
-                          { value: 'chapa', label: 'Pay with Chapa (Online Payment)', enabled: true },
-                          { value: 'cash', label: 'Cash on Delivery', enabled: false },
-                          { value: 'card', label: 'Credit/Debit Card', enabled: false },
-                          { value: 'mobile', label: 'Mobile Payment (CBE Birr, Telebirr)', enabled: false }
-                        ].map((method) => (
-                          <div key={method.value} className="relative">
-                            <label
-                              className={`flex items-center gap-3 bg-transparent border-0 cursor-pointer group ${!method.enabled ? 'opacity-50' : ''}`}
-                              onClick={(e) => {
-                                if (!method.enabled) {
-                                  e.preventDefault();
-                                  setComingSoonMessage(method.value);
-                                  setTimeout(() => setComingSoonMessage(null), 3000);
-                                }
-                              }}
-                            >
+                            <div>
+                              <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Email Address</label>
                               <input
-                                type="radio"
-                                name="paymentMethod"
-                                value={method.value}
-                                checked={formData.paymentMethod === method.value}
+                                type="email"
+                                name="email"
+                                value={formData.email}
                                 onChange={handleInputChange}
-                                disabled={!method.enabled}
-                                className="w-5 h-5 text-emerald-600 border-2 border-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                                className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
+                                placeholder="john@example.com"
                               />
-                              <span className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${method.enabled ? 'group-hover:text-emerald-600' : ''} transition-colors`}>
-                                {method.label}
-                              </span>
-                            </label>
-                            {comingSoonMessage === method.value && !method.enabled && (
-                              <div className="ml-8 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <span className="inline-block px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
-                                  Coming Soon
+                            </div>
+
+                            {/* Delivery Checkbox - Small */}
+                            <div className="pt-4 border-t-2 border-gray-100">
+                              <label className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                  type="checkbox"
+                                  name="isDelivery"
+                                  checked={formData.isDelivery}
+                                  onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
+                                  className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
+                                />
+                                <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                                  I need home delivery
                                 </span>
+                              </label>
+                              {!formData.isDelivery && (
+                                <p className="text-xs text-gray-600 mt-2 ml-8">
+                                  You'll pick up your order
+                                </p>
+                              )}
+                            </div>
+
+                            {formData.isDelivery && (
+                              <div className="space-y-5 pt-2 animate-in slide-in-from-top duration-300">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>City *</label>
+                                    <select name="city" value={formData.city} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
+                                      <option value="">Select City</option>
+                                      <option value="addis-ababa">Addis Ababa</option>
+                                      <option value="adama">Adama</option>
+                                      <option value="bahir-dar">Bahir Dar</option>
+                                      <option value="mekelle">Mekelle</option>
+                                      <option value="hawassa">Hawassa</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Subcity *</label>
+                                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`} placeholder="e.g., Bole" />
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
+                        </div>
+
+                        {/* Payment Method Section */}
+                        <div className={`pt-12 border-t-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'}`}>
+                          <div className="mb-8">
+                            <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Payment Method</h3>
+                            <p className={`text-sm ${subTextClass} mt-1`}>Choose how you'd like to pay</p>
+                          </div>
+
+                          <div className="space-y-4">
+                            {[
+                              { value: 'chapa', label: 'Pay with Chapa (Online Payment)', enabled: true },
+                              { value: 'cash', label: 'Cash on Delivery', enabled: false },
+                              { value: 'card', label: 'Credit/Debit Card', enabled: false },
+                              { value: 'mobile', label: 'Mobile Payment (CBE Birr, Telebirr)', enabled: false }
+                            ].map((method) => (
+                              <div key={method.value} className="relative">
+                                <label
+                                  className={`flex items-center gap-3 bg-transparent border-0 cursor-pointer group ${!method.enabled ? 'opacity-50' : ''}`}
+                                  onClick={(e) => {
+                                    if (!method.enabled) {
+                                      e.preventDefault();
+                                      setComingSoonMessage(method.value);
+                                      setTimeout(() => setComingSoonMessage(null), 3000);
+                                    }
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value={method.value}
+                                    checked={formData.paymentMethod === method.value}
+                                    onChange={handleInputChange}
+                                    disabled={!method.enabled}
+                                    className="w-5 h-5 text-emerald-600 border-2 border-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                                  />
+                                  <span className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${method.enabled ? 'group-hover:text-emerald-600' : ''} transition-colors`}>
+                                    {method.label}
+                                  </span>
+                                </label>
+                                {comingSoonMessage === method.value && !method.enabled && (
+                                  <div className="ml-8 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <span className="inline-block px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
+                                      Coming Soon
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Error Message */}
+                      {error && (
+                        <div className={`mt-4 p-4 border-2 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300 ${theme === 'dark' ? 'bg-slate-950 border-red-800' : 'bg-red-50 border-red-200'}`}>
+                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-sm font-bold">!</span>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-bold text-red-900 mb-1">Order Failed</h4>
+                            <p className="text-sm text-red-700">{error}</p>
+                          </div>
+                          <button
+                            onClick={() => setError(null)}
+                            className="text-red-400 hover:text-red-600 text-xl font-bold leading-none"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                    </form>
+                  </div>
+
+                  {/* Right Column: Order Summary Card - Sleek Narrow Width */}
+                  <div className="w-full lg:w-[340px]">
+                    <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm overflow-hidden sticky top-24`}>
+                      <div className={`${summaryHeaderClass} py-2 px-6 h-12 flex items-center justify-between`}>
+                        <div>
+                          <h3 className="text-base font-black">Order Summary</h3>
+                          <p className="text-emerald-100 text-[10px]">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+                        </div>
+                      </div>
+
+                      <div className={`p-5 space-y-3 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-200'} max-h-60 overflow-y-auto`}>
+                        {cart.map(item => (
+                          <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-lg transition-colors`}>
+                            <div className="flex-1">
+                              <p className="font-bold text-sm text-gray-900">{item.name}</p>
+                              <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
+                            </div>
+                            <p className="font-black text-sm text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
+                      <div className="p-5 space-y-2 border-b-2 border-gray-200">
+                        <div className={`flex justify-between text-sm ${subTextClass}`}>
+                          <span>Subtotal</span>
+                          <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
+                        </div>
+                        <div className={`flex justify-between text-sm ${subTextClass}`}>
+                          <span>Delivery</span>
+                          <span className="font-semibold">{formatPrice(deliveryFee)} ETB</span>
+                        </div>
+                      </div>
 
-                    {/* Error Message */}
-                    {error && (
-                      <div className={`mt-4 p-4 border-2 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300 ${theme === 'dark' ? 'bg-slate-950 border-red-800' : 'bg-red-50 border-red-200'}`}>
-                        <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white text-sm font-bold">!</span>
+                      <div className={`p-6 ${totalBoxClass}`}>
+                        <div className="flex justify-between items-center mb-4">
+                          <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-base`}>Total</span>
+                          <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-2xl font-black`}>{formatPrice(total)} ETB</span>
                         </div>
-                        <div className="flex-1">
-                          <h4 className="text-sm font-bold text-red-900 mb-1">Order Failed</h4>
-                          <p className="text-sm text-red-700">{error}</p>
-                        </div>
+
                         <button
-                          onClick={() => setError(null)}
-                          className="text-red-400 hover:text-red-600 text-xl font-bold leading-none"
+                          type="button"
+                          onClick={handlePlaceOrder}
+                          disabled={isLoading}
+                          className="w-full px-8 py-2.5 text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100"
                         >
-                          ×
+                          {isLoading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Processing Order...</span>
+                            </>
+                          ) : (
+                            <span>Place Order</span>
+                          )}
                         </button>
                       </div>
-                    )}
-                  </form>
-                </div>
-
-                {/* Right Column: Order Summary Card - Sleek Narrow Width */}
-                <div className="w-full lg:w-[340px]">
-                  <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm overflow-hidden sticky top-24`}>
-                    <div className={`${summaryHeaderClass} py-2 px-6 h-12 flex items-center justify-between`}>
-                      <div>
-                        <h3 className="text-base font-black">Order Summary</h3>
-                        <p className="text-emerald-100 text-[10px]">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
-                      </div>
-                    </div>
-
-                    <div className={`p-5 space-y-3 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-200'} max-h-60 overflow-y-auto`}>
-                      {cart.map(item => (
-                        <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-lg transition-colors`}>
-                          <div className="flex-1">
-                            <p className="font-bold text-sm text-gray-900">{item.name}</p>
-                            <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
-                          </div>
-                          <p className="font-black text-sm text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-5 space-y-2 border-b-2 border-gray-200">
-                      <div className={`flex justify-between text-sm ${subTextClass}`}>
-                        <span>Subtotal</span>
-                        <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
-                      </div>
-                      <div className={`flex justify-between text-sm ${subTextClass}`}>
-                        <span>Delivery</span>
-                        <span className="font-semibold">{formatPrice(deliveryFee)} ETB</span>
-                      </div>
-                    </div>
-
-                    <div className={`p-6 ${totalBoxClass}`}>
-                      <div className="flex justify-between items-center mb-4">
-                        <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-base`}>Total</span>
-                        <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-2xl font-black`}>{formatPrice(total)} ETB</span>
-                      </div>
-                      
-                      <button 
-                        type="button"
-                        onClick={handlePlaceOrder}
-                        disabled={isLoading} 
-                        className="w-full px-8 py-2.5 text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100"
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Processing Order...</span>
-                          </>
-                        ) : (
-                          <span>Place Order</span>
-                        )}
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
               </>
             )}
           </div>
         </div>
       </>
     );
-  };
-  
-  export default Checkout;
+};
+
+export default Checkout;

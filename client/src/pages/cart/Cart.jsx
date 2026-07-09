@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, NavLink, Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
@@ -409,6 +410,7 @@ const Cart = () => {
             </div>
           )}
         </div>
+        <Footer />
       </div>
     );
   }
@@ -554,6 +556,7 @@ const Cart = () => {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 };

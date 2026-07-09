@@ -385,6 +385,45 @@ exports.getCategories = async (req, res) => {
   }
 };
 
+// Get first 4 categories with 4 products each (for homepage)
+exports.getCategoriesWithProducts = async (req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      take: 4,
+      orderBy: { name: 'asc' },
+      include: {
+        products: {
+          where: { status: 'approved' },
+          take: 4,
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            categoryId: true
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    // Transform to include mosaicImages array
+    const transformedCategories = categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      categoryKey: cat.categoryKey,
+      description: cat.description,
+      mosaicImages: cat.products.map(p => p.image).filter(Boolean)
+    }));
+
+    console.log('Fetched first 4 categories with products:', transformedCategories.map(c => ({ id: c.id, name: c.name, productCount: c.mosaicImages.length })));
+
+    res.json({ success: true, data: transformedCategories });
+  } catch (error) {
+    console.error('Error fetching categories with products:', error);
+    res.status(500).json({ message: 'Failed to fetch categories with products', error: error.message });
+  }
+};
+
 // Get products by category ID
 exports.getProductsByCategoryId = async (req, res) => {
   try {

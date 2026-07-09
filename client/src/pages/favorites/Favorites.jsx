@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, Package, BadgeCheck } from 'lucide-react';
 import api from '../../api';
 import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 
 const fmt = (n) => Number(n).toFixed(2);
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
@@ -36,7 +37,7 @@ const Sidebar = ({ cartCount, favoritesCount, isOpen, onClose }) => {
         />
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[var(--card)] border-r border-[var(--border)] p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out shadow-lg ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-[var(--secondary)] lg:bg-[var(--card)] border-r border-[var(--border)] p-6 flex flex-col justify-between shrink-0 transform transition-transform duration-300 ease-in-out shadow-lg ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div>
           {/* Brand Logo */}
           <div className="flex items-center justify-between mb-6">
@@ -268,7 +269,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
             className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:scale-110"
           >
-            <Heart className={`h-3 w-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
+            <Heart className={`h-3 w-3 transition-all ${isFavorite ? 'fill-emerald-500 text-emerald-500' : 'text-neutral-400'}`} />
           </button>
         </div>
 
@@ -493,19 +494,29 @@ const Favorites = () => {
       const favoriteIds = items.map((item) => String(item.id));
       const mergedIds = Array.from(new Set([...favoriteIds, ...storedIds.filter((id) => !favoriteIds.includes(id))]));
 
-      if (items.length > 0 || mergedIds.length === 0) {
-        setFavoriteProducts(items);
-        setFavorites(favoriteIds);
-        localStorage.setItem('favorites', JSON.stringify(favoriteIds));
+      if (mergedIds.length === 0) {
+        setFavoriteProducts([]);
+        setFavorites([]);
+        localStorage.setItem('favorites', JSON.stringify([]));
         return;
       }
 
+      // Always fetch full product data to ensure complete display
       const productsResponse = await api.get('/products');
       const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
       const matchedProducts = products.filter((product) => mergedIds.includes(String(product.id)));
-      setFavoriteProducts(matchedProducts);
-      setFavorites(matchedProducts.map((item) => String(item.id)));
-      localStorage.setItem('favorites', JSON.stringify(matchedProducts.map((item) => String(item.id))));
+
+      // Prioritize database items first, then add stored items
+      const finalProducts = items.length > 0
+        ? [
+          ...items,
+          ...matchedProducts.filter((p) => !favoriteIds.includes(String(p.id)))
+        ]
+        : matchedProducts;
+
+      setFavoriteProducts(finalProducts);
+      setFavorites(finalProducts.map((item) => String(item.id)));
+      localStorage.setItem('favorites', JSON.stringify(finalProducts.map((item) => String(item.id))));
     } catch (error) {
       console.error('Failed to load favorites:', error);
       setFavoriteProducts([]);
@@ -593,6 +604,7 @@ const Favorites = () => {
             </Link>
           </section>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -632,8 +644,8 @@ const Favorites = () => {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4].map((item) => (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
                 <div key={item} className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--secondary)] p-2.5">
                   <div className="h-24 rounded-xl bg-[var(--border)]" />
                   <div className="mt-2 h-2.5 w-16 rounded bg-[var(--border)]" />
@@ -643,16 +655,23 @@ const Favorites = () => {
               ))}
             </div>
           ) : favoriteProducts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {favoriteProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  isFavorite={favorites.includes(String(p.id))}
-                  onToggleFavorite={toggleFavorite}
-                  onAddToCart={handleAddToCart}
-                />
-              ))}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[var(--muted-foreground)]">
+                  Showing all {favoritesCount} favorite {favoritesCount === 1 ? 'product' : 'products'}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6">
+                {favoriteProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    isFavorite={favorites.includes(String(p.id))}
+                    onToggleFavorite={toggleFavorite}
+                    onAddToCart={handleAddToCart}
+                  />
+                ))}
+              </div>
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-[var(--border)] bg-gradient-to-br from-[var(--secondary)] to-[var(--card)] p-10 text-center">
@@ -672,6 +691,7 @@ const Favorites = () => {
           )}
         </section>
       </main>
+      <Footer />
     </div>
   );
 };

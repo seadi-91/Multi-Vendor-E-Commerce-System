@@ -333,6 +333,9 @@ const Home = () => {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const fallbackCategories = products.reduce((acc, product) => {
+    // Limit to only 4 categories
+    if (acc.length >= 4) return acc;
+
     const categoryName = (product.category || '').trim();
     if (!categoryName) return acc;
     if (acc.some((item) => item.name.toLowerCase() === categoryName.toLowerCase())) return acc;
@@ -346,7 +349,9 @@ const Home = () => {
     return acc;
   }, []);
 
-  const categoriesToDisplay = categories.length > 0 ? categories : (!categoriesLoading && fallbackCategories.length > 0 ? fallbackCategories : []);
+  const categoriesToDisplay = categories.length > 0
+    ? categories.slice(0, 4)  // Ensure only 4 categories
+    : (!categoriesLoading && fallbackCategories.length > 0 ? fallbackCategories.slice(0, 4) : []);
 
   const { user, logout } = useAuth();
   const { addToCart, cart } = useCart();
@@ -392,42 +397,15 @@ const Home = () => {
 
     const fetchCategories = async () => {
       try {
-        const response = await api.get('/products/categories');
+        // Fetch first 4 categories with 4 products each in single request
+        const response = await api.get('/products/categories-with-products');
         const data = response.data?.data || [];
 
-        console.log('Categories fetched from API:', data.map(c => ({ id: c.id, name: c.name, categoryKey: c.categoryKey })));
+        console.log('Categories with products fetched:', data.map(c => ({ id: c.id, name: c.name, imageCount: c.mosaicImages.length })));
 
-        // For each category, get 4 product images for the mosaic using category ID
-        const categoriesWithMosaics = await Promise.all(
-          data.map(async (cat) => {
-            let mosaicImages = [];
-            try {
-              const productsRes = await api.get(`/products/category-id/${cat.id}`, {
-                params: { limit: 4 }
-              });
-              const catProducts = productsRes.data?.data || [];
-              console.log(`Category ${cat.name} (ID: ${cat.id}) products:`, catProducts.map(p => ({ id: p.id, name: p.name, categoryId: p.categoryId })));
-              mosaicImages = catProducts.map(p => p.image).filter(Boolean);
-            } catch (err) {
-              console.error('Error fetching category products for category ID', cat.id, ':', err);
-            }
-
-            return {
-              ...cat,
-              mosaicImages: mosaicImages.length >= 4 ? mosaicImages : [
-                cat.image || '',
-                '',
-                '',
-                ''
-              ]
-            };
-          })
-        );
-
-        console.log('Final categories with mosaics:', categoriesWithMosaics.map(c => ({ id: c.id, name: c.name, mosaicCount: c.mosaicImages.filter(Boolean).length })));
-        setCategories(categoriesWithMosaics);
+        setCategories(data);
       } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error fetching categories with products:', error);
         setCategories([]);
         toast.error('Unable to load categories right now.');
       } finally {
@@ -541,25 +519,26 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between gap-4">
 
-            {/* Logo - Icon only on mobile, full on desktop */}
+            {/* Logo - icon only on mobile, full brand on desktop */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
                 <Leaf className="w-5 h-5 text-white" />
               </div>
+              {/* Hidden on mobile, visible on desktop */}
               <div className="hidden sm:flex flex-col">
-                <span className={`text-base sm:text-lg font-black tracking-tight leading-none transition-colors duration-300 ${isScrolled ? 'text-gray-900' : 'text-white'}`}>FarmConnect</span>
-                <span className={`text-[10px] font-semibold tracking-wider transition-colors duration-300 ${isScrolled ? 'text-gray-600' : 'text-white/80'}`}>DIRECT FROM SOIL</span>
+                <span className="text-base sm:text-lg font-black tracking-tight leading-none text-emerald-600">FarmConnect</span>
+                <span className={`text-[10px] font-semibold tracking-wider transition-colors duration-300 ${isScrolled ? 'text-gray-500' : 'text-white/80'}`}>DIRECT FROM SOIL</span>
               </div>
             </Link>
 
-            {/* Search Bar - Responsive, visible on tablet and above */}
+            {/* Search Bar - hidden on mobile, visible on desktop */}
             <div className="flex-1 max-w-md sm:max-w-lg lg:max-w-xl hidden sm:flex justify-center">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
                 }}
-                className={`flex items-center w-full rounded-full border-2 transition-all duration-300 overflow-hidden backdrop-blur-xl ${isScrolled ? 'bg-white border-gray-300 focus-within:border-[var(--primary)]' : 'bg-black/20 border-white/30 focus-within:border-[var(--primary)]'}`}
+                className={`flex items-center w-full rounded-full border-2 transition-all duration-300 overflow-hidden backdrop-blur-xl ${isScrolled ? 'bg-white border-gray-300 focus-within:border-emerald-600' : 'bg-black/20 border-white/30 focus-within:border-emerald-500'}`}
               >
                 <Search className={`w-4 h-4 ml-3 transition-colors duration-300 ${isScrolled ? 'text-gray-600' : 'text-white/80'}`} />
                 <input
@@ -569,15 +548,16 @@ const Home = () => {
                   onChange={e => setSearchQuery(e.target.value)}
                   className={`flex-1 px-3 py-2 text-sm font-medium focus:outline-none bg-transparent transition-colors duration-300 ${isScrolled ? 'text-gray-900 placeholder:text-gray-500' : 'text-white placeholder:text-white/70'}`}
                 />
-                <button type="submit" className="p-1.5 bg-[var(--primary)] hover:bg-[var(--primary)]/90 transition-colors mr-1.5 my-1.5 rounded-full shadow-lg">
+                <button type="submit" className="p-1.5 bg-emerald-600 hover:bg-emerald-700 transition-colors mr-1.5 my-1.5 rounded-full shadow-lg">
                   <Sparkles className="w-4 h-4 text-white" />
                 </button>
               </form>
             </div>
 
             {/* Action Controls */}
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              {/* Theme Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+
+              {/* Theme Toggle - visible on both mobile and desktop */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/20 text-white'}`}>
@@ -590,63 +570,55 @@ const Home = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-[var(--card)] border-[var(--border)]">
                   <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Sun className="w-4 h-4 mr-2" />
-                    Light
+                    <Sun className="w-4 h-4 mr-2" /> Light
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Moon className="w-4 h-4 mr-2" />
-                    Dark
+                    <Moon className="w-4 h-4 mr-2" /> Dark
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                    <Monitor className="w-4 h-4 mr-2" />
-                    System
+                    <Monitor className="w-4 h-4 mr-2" /> System
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Favorites Wishlist */}
+              {/* Wishlist - hidden on mobile, visible on desktop */}
               <Link
                 to="/favorites"
                 className={`hidden sm:flex items-center justify-center w-10 h-10 rounded-xl relative transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100' : 'hover:bg-white/20'}`}
               >
                 <Heart className={`w-6 h-6 transition-colors duration-300 ${isScrolled ? 'text-gray-700 hover:text-rose-500' : 'text-white hover:text-rose-300'}`} />
                 {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
                     {favorites.filter(f => !String(f).startsWith('cat-')).length}
                   </span>
                 )}
               </Link>
 
-              {/* Auth actions */}
+              {/* Profile - hidden on mobile, visible on desktop */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className={`hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-xl transition-all duration-300 ${isScrolled ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white/20 hover:bg-white/30'}`} aria-label="Profile menu">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)] text-white font-bold text-sm">
+                    <button className={`hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-full transition-all duration-300 ${isScrolled ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white/20 hover:bg-white/30'}`} aria-label="Profile menu">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-sm">
                         {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" side="bottom" sideOffset={8} className="min-w-[180px] p-1.5 bg-[var(--card)] border-[var(--border)]">
+                  <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="min-w-[180px] p-1.5 bg-[var(--card)] border-[var(--border)]">
                     <DropdownMenuItem onClick={() => navigate('/customer/profile')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                      <User className="w-4 h-4 mr-2" />
-                      Profile
+                      <User className="w-4 h-4 mr-2" /> Profile
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/customer/dashboard/orders')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                      <Package className="w-4 h-4 mr-2" />
-                      My Orders
+                      <Package className="w-4 h-4 mr-2" /> My Orders
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/customer/dashboard/reviews')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                      <Star className="w-4 h-4 mr-2" />
-                      My Review
+                      <Star className="w-4 h-4 mr-2" /> My Reviews
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/customer/settings')} className="flex items-center justify-start cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
+                      <Settings className="w-4 h-4 mr-2" /> Settings
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={handleLogout} className="flex items-center justify-start cursor-pointer text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
+                      <LogOut className="w-4 h-4 mr-2" /> Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -655,28 +627,28 @@ const Home = () => {
                   to="/login"
                   className={`hidden sm:inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 ${isScrolled ? 'bg-gray-100 text-gray-900 hover:bg-gray-200' : 'bg-white/20 text-white hover:bg-white/30'}`}
                 >
-                  <User className="w-4 h-4" />
-                  Sign In
+                  <User className="w-4 h-4" /> Sign In
                 </Link>
               )}
 
-              {/* Cart */}
+              {/* Cart - visible on both mobile and desktop */}
               <Link
                 to="/customer/cart"
-                className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-xl font-bold transition-all relative"
+                className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-bold transition-all relative ${isScrolled ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600' : 'bg-white/20 hover:bg-white/30 text-white'}`}
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center px-1">
                     {cartCount}
                   </span>
                 )}
               </Link>
 
-              {/* Mobile Menu Toggle - Rightmost on mobile */}
+              {/* Hamburger - visible only on mobile */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className={`sm:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/20 text-white'}`}
+                aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -971,23 +943,37 @@ const Home = () => {
                     <CardContent className="p-0 h-full">
                       {/* 2x2 Mosaic Image Grid */}
                       <div className="grid grid-cols-2 grid-rows-2 h-full overflow-hidden bg-[var(--secondary)]">
-                        {cat.mosaicImages.map((img, idx) => (
-                          <div key={idx} className="relative overflow-hidden">
-                            <img
-                              src={img}
-                              alt={`${cat.name} ${idx + 1}`}
-                              loading="lazy"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                const fallback = document.createElement('div');
-                                fallback.className = 'w-full h-full bg-[var(--secondary)] flex items-center justify-center';
-                                fallback.innerHTML = '<div class="text-[var(--muted-foreground)] text-2xl">🌾</div>';
-                                e.target.parentNode.appendChild(fallback);
-                              }}
-                            />
-                          </div>
-                        ))}
+                        {(() => {
+                          // Ensure 4 image slots for 2x2 grid
+                          const images = cat.mosaicImages || [];
+                          const paddedImages = Array(4).fill(null).map((_, idx) => images[idx] || '');
+
+                          return paddedImages.map((img, idx) => (
+                            <div key={idx} className="relative overflow-hidden bg-[var(--secondary)]">
+                              {img ? (
+                                <img
+                                  src={img}
+                                  alt={`${cat.name} ${idx + 1}`}
+                                  loading="lazy"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    if (!e.target.parentNode.querySelector('.fallback')) {
+                                      const fallback = document.createElement('div');
+                                      fallback.className = 'fallback w-full h-full bg-[var(--secondary)] flex items-center justify-center';
+                                      fallback.innerHTML = '<div class="text-[var(--muted-foreground)] text-2xl">🌾</div>';
+                                      e.target.parentNode.appendChild(fallback);
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-[var(--secondary)] flex items-center justify-center">
+                                  <div className="text-[var(--muted-foreground)] text-2xl">🌾</div>
+                                </div>
+                              )}
+                            </div>
+                          ));
+                        })()}
                       </div>
 
                       {/* Hover Overlay */}

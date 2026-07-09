@@ -4,27 +4,23 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronRight,
   Clock3,
   Filter,
   MapPin,
-  Monitor,
-  Moon,
   Package,
   ReceiptText,
   RefreshCw,
   Store,
-  Sun,
   Truck
 } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import ReviewModal from '../../components/reviews/ReviewModal';
+import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { toast } from 'react-hot-toast';
 
@@ -32,7 +28,7 @@ const Orders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,8 +42,6 @@ const Orders = () => {
   const [currentReview, setCurrentReview] = useState(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
   const statusMeta = useMemo(() => ({
     pending: { label: 'Pending', badge: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300' },
     processing: { label: 'Processing', badge: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-300' },
@@ -55,34 +49,6 @@ const Orders = () => {
     cancelled: { label: 'Cancelled', badge: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300' },
     'on the way': { label: 'On the way', badge: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/40 dark:bg-violet-950/30 dark:text-violet-300' }
   }), []);
-
-  const ThemeToggle = () => {
-    const renderThemeIcon = () => {
-      if (theme === 'system') return <Monitor className="h-4 w-4" />;
-      return isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />;
-    };
-
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--secondary)] text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]" aria-label="Toggle Theme">
-            {renderThemeIcon()}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="border-[var(--border)] bg-[var(--card)]">
-          <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer text-[var(--foreground)]">
-            <Sun className="mr-2 h-4 w-4 text-amber-500" />Light
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer text-[var(--foreground)]">
-            <Moon className="mr-2 h-4 w-4 text-sky-500" />Dark
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer text-[var(--foreground)]">
-            <Monitor className="mr-2 h-4 w-4 text-emerald-500" />System
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
 
   useEffect(() => {
     fetchOrders();
@@ -221,30 +187,10 @@ const Orders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] px-3 py-3 text-[var(--foreground)] transition-colors sm:px-4 lg:px-6">
-      <header className="mx-auto mb-3 w-full max-w-5xl rounded-2xl border border-[var(--border)] bg-[var(--card)]/95 px-3 py-2.5 shadow-sm backdrop-blur sm:px-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <button onClick={() => navigate('/')} className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-2 text-[11px] font-medium text-[var(--foreground)] transition hover:bg-[var(--muted)] sm:px-3 sm:text-sm">
-              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Home
-            </button>
-            <div className="hidden h-5 w-px bg-[var(--border)] sm:block" />
-            <div className="min-w-0">
-              <h1 className="text-sm font-semibold sm:text-base">My Orders</h1>
-              <p className="text-[11px] text-[var(--muted-foreground)]">Track recent purchases in one place</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button variant="outline" onClick={fetchOrders} className="h-8 gap-1.5 border-[var(--border)] bg-[var(--secondary)] px-2.5 text-[11px] sm:px-3 sm:text-sm">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors">
+      <Header pageType="orders" />
 
+      <div className="px-3 py-3 sm:px-4 lg:px-6">
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-2.5 sm:gap-3">
         <section className="grid gap-2 sm:grid-cols-3">
           <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
@@ -468,6 +414,7 @@ const Orders = () => {
         theme={theme}
       />
       <Footer />
+      </div>
     </div>
   );
 };
