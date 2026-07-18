@@ -186,14 +186,14 @@ const farmerSlides = [
   {
     id: 3,
     bgImage: 'https://images.unsplash.com/photo-1532336414038-cf19250c5757?w=1920&q=80',
-    tag: 'PREMIUM COFFEE',
-    title: 'Ethiopian Coffee',
-    story: 'Experience the birthplace of coffee! Our single-origin Ethiopian coffees are carefully roasted to perfection, bringing out unique flavors and rich aromas.',
-    productName: 'Yirgacheffe Coffee',
-    productPrice: '75.00',
+    tag: 'HERBS & SPICES',
+    title: 'Ethiopian Spices',
+    story: 'Discover the authentic flavors of Ethiopia! Our traditional spice blends and ingredients are sourced from local markets, bringing vibrant colors and rich aromas to your cooking.',
+    productName: 'Berbere Spice Mix',
+    productPrice: '45.00',
     productUnit: 'kg',
     productImage: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80',
-    categoryKey: 'coffee',
+    categoryKey: 'herbs',
     rating: '5.0',
     badge: 'Premium Quality'
   },
@@ -208,10 +208,10 @@ const farmerSlides = [
   {
     id: 5,
     bgImage: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=1920&q=80',
-    tag: 'NUTS & SEEDS',
-    title: 'Premium Nuts & Seeds',
-    story: 'Discover our selection of fresh, premium nuts and seeds perfect for snacking and baking.',
-    categoryKey: 'nuts'
+    tag: 'FRESH FRUITS',
+    title: 'Crisp Fresh Apples',
+    story: 'Enjoy crisp, juicy apples straight from local orchards. Perfect for snacking, baking, or making fresh juice and desserts.',
+    categoryKey: 'fruits'
   }
 ];
 
