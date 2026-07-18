@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import api from '../../api';
+import api, { customerAPI } from '../../api';
 import Header from '../../components/Header';
 import { ShoppingBag, Home, Truck, CreditCard, Phone, Wallet, Package, Check, MessageSquare, Star } from 'lucide-react';
 
@@ -24,6 +24,42 @@ const Checkout = () => {
     isDelivery: true
   });
 
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.name || '',
+        email: prev.email || user.email || ''
+      }));
+    }
+  }, [user]);
+
+  const [savedAddresses, setSavedAddresses] = useState([]);
+
+  useEffect(() => {
+    const loadSavedAddresses = async () => {
+      if (!user) return;
+      try {
+        const response = await customerAPI.getAddresses();
+        const addresses = response.data?.addresses || response.data || [];
+        setSavedAddresses(addresses);
+        if (formData.isDelivery && !formData.city && !formData.address) {
+          fillDefaultDeliveryAddress(addresses);
+        }
+      } catch (err) {
+        console.error('Failed to load saved addresses', err);
+      }
+    };
+
+    loadSavedAddresses();
+  }, [user]);
+
+  useEffect(() => {
+    if (formData.isDelivery && savedAddresses.length && !formData.city && !formData.address) {
+      fillDefaultDeliveryAddress(savedAddresses);
+    }
+  }, [formData.isDelivery, savedAddresses]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState(null);
@@ -32,9 +68,6 @@ const Checkout = () => {
   const [comingSoonMessage, setComingSoonMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOrderSuccess, setIsOrderSuccess] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState('');
 
   const formatPrice = (price) => Number(price || 0).toFixed(2);
 
@@ -84,6 +117,17 @@ const Checkout = () => {
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
+  const fillDefaultDeliveryAddress = (addresses) => {
+    const defaultAddress = addresses.find((item) => item.isDefault) || addresses[0];
+    if (!defaultAddress) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      city: prev.city || defaultAddress.city || '',
+      address: prev.address || [defaultAddress.street, defaultAddress.woreda, defaultAddress.subcity].filter(Boolean).join(', '),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // Validate form first before showing modal
@@ -115,12 +159,8 @@ const Checkout = () => {
     }
 
     setError(null);
-    // If payment method is chapa, skip modal and go directly
-    if (formData.paymentMethod === 'chapa') {
-      submitOrder(false);
-    } else {
-      setReviewModalOpen(true);
-    }
+    // Always submit the order immediately; do not show pre-payment review prompt
+    submitOrder(false);
   };
 
   const submitOrder = async (wantsReviewValue) => {
@@ -229,13 +269,15 @@ const Checkout = () => {
 
       // ── Step 2: If Chapa payment, initiate transaction and redirect ─────
       if (formData.paymentMethod === 'chapa') {
-        const nameParts = formData.fullName.trim().split(' ');
+        const checkoutEmail = user?.email || formData.email;
+        const checkoutName = user?.name || formData.fullName || 'Customer';
+        const nameParts = checkoutName.trim().split(' ');
         const first_name = nameParts[0] || 'Customer';
         const last_name = nameParts.slice(1).join(' ') || '';
 
         const chapaResponse = await api.post('/payments/chapa/initiate', {
-          amount: total,
-          email: formData.email,
+          amount: parseFloat(total.toFixed(2)),
+          customer_email: checkoutEmail,
           first_name,
           last_name,
           tx_ref: createdOrder.orderCode || `TX-${Date.now()}`,
@@ -255,12 +297,32 @@ const Checkout = () => {
       console.error('Error status:', error.response?.status);
       console.error('Error data:', error.response?.data);
 
-      const errMsg =
-        error?.response?.data?.chapaError?.message ||
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        'Order submission failed. Please try again.';
+      const errorData = error?.response?.data;
+      let errMsg = 'Order submission failed. Please try again.';
+
+      if (errorData) {
+        if (typeof errorData === 'string') {
+          errMsg = errorData;
+        } else if (typeof errorData.message === 'string' && errorData.message !== 'Invalid payment request.') {
+          errMsg = errorData.message;
+        } else if (typeof errorData.suggestion === 'string') {
+          errMsg = errorData.suggestion;
+        } else if (typeof errorData.suggestion === 'object') {
+          errMsg = JSON.stringify(errorData.suggestion, null, 2);
+        } else if (typeof errorData.chapaError === 'string') {
+          errMsg = errorData.chapaError;
+        } else if (typeof errorData.chapaError === 'object') {
+          errMsg = JSON.stringify(errorData.chapaError, null, 2);
+        } else if (typeof errorData.error === 'string') {
+          errMsg = errorData.error;
+        } else if (typeof errorData.message === 'object') {
+          errMsg = JSON.stringify(errorData.message, null, 2);
+        } else {
+          errMsg = JSON.stringify(errorData, null, 2);
+        }
+      } else if (typeof error?.message === 'string') {
+        errMsg = error.message;
+      }
 
       console.error('Final error message:', errMsg);
       setError(errMsg);
@@ -365,13 +427,25 @@ const Checkout = () => {
       localStorage.setItem('orders', JSON.stringify(nextOrders));
 
       // Step 2: Try to initialize Chapa payment
-      const nameParts = formData.fullName.trim().split(' ');
+      // Validate required fields
+      if (!total || isNaN(total) || total <= 0) {
+        throw new Error('Invalid amount. Total must be a positive number.');
+      }
+      if (!formData.email || !formData.email.includes('@')) {
+        throw new Error('Invalid email address.');
+      }
+
+      const checkoutEmail = user?.email || formData.email;
+      const checkoutName = user?.name || formData.fullName || 'Customer';
+      const nameParts = checkoutName.trim().split(' ');
       const first_name = nameParts[0] || 'Customer';
       const last_name = nameParts.slice(1).join(' ') || '';
 
       const chapaPayload = {
-        amount: total,
-        email: formData.email,
+        amount: parseFloat(total.toFixed(2)),
+        currency: 'ETB',
+        email: checkoutEmail,
+        customer_email: checkoutEmail,
         first_name,
         last_name,
         tx_ref: createdOrder.orderCode || `TX-${Date.now()}`,
@@ -379,6 +453,7 @@ const Checkout = () => {
       };
 
       console.log('Initializing Chapa payment:', chapaPayload);
+      console.log('Total amount:', total, 'Type:', typeof total);
 
       const chapaResponse = await api.post('/payments/chapa/initiate', chapaPayload);
 
@@ -388,19 +463,44 @@ const Checkout = () => {
         throw new Error('Failed to initialize Chapa payment');
       }
 
+      // Mark order success flow; do not open review modal before redirect
+      setIsOrderSuccess(true);
+      setIsLoading(false);
+
       // Step 3: Redirect to Chapa hosted payment page
       console.log('Redirecting to Chapa checkout:', chapaResponse.data.checkout_url);
-      setIsLoading(false);
       window.location.href = chapaResponse.data.checkout_url;
 
     } catch (error) {
       console.error('Chapa payment error:', error);
-      const errMsg =
-        error?.response?.data?.chapaError?.message ||
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        'Failed to initiate payment. Please try again.';
+      console.error('Error response:', error.response?.data);
+      let errMsg = 'Failed to initiate payment. Please try again.';
+
+      // Extract error message safely, ensuring it's a string
+      const errorData = error?.response?.data;
+
+      if (errorData) {
+        if (typeof errorData.message === 'string') {
+          errMsg = errorData.message;
+        } else if (typeof errorData.error === 'string') {
+          errMsg = errorData.error;
+        } else if (typeof errorData.suggestion === 'string') {
+          errMsg = errorData.suggestion;
+        } else if (typeof errorData === 'string') {
+          errMsg = errorData;
+        } else {
+          // If it's an object, try to extract useful info
+          errMsg = errorData.error || errorData.message || JSON.stringify(errorData);
+        }
+      } else if (error?.message && typeof error.message === 'string') {
+        errMsg = error.message;
+      }
+
+      // Ensure errMsg is a string
+      if (typeof errMsg !== 'string') {
+        errMsg = String(errMsg);
+      }
+
       setError(errMsg);
       setIsLoading(false);
     }
@@ -456,9 +556,9 @@ const Checkout = () => {
                     clearCart();
                     navigate('/');
                   }}
-                  className="w-full px-8 py-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                  className="w-full px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-[1.02] transition-all"
                 >
-                  OK
+                  Continue Shopping
                 </button>
               </div>
             </div>
@@ -492,117 +592,6 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-          ) : isOrderSuccess ? (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in">
-              <div className="bg-white rounded-3xl p-10 text-center max-w-2xl w-full shadow-2xl transform animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-                <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-                  <Check className="w-14 h-14" strokeWidth={3} />
-                </div>
-
-                {/* Thank You Message in Amharic - Updated */}
-                <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                  ትዕዛዝህን በስኬት አጠናቀሃል፣ እናመሰግናለን!
-                </h2>
-                <h3 className="text-2xl font-bold text-gray-700 mb-3">
-                  Order Completed Successfully, Thank You!
-                </h3>
-                <p className="text-gray-600 text-lg mb-8">
-                  የክፍያ ሂደትዎ ተጠናቋል።
-                </p>
-
-                {/* Rating & Comment Section */}
-                <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-6 mb-6 border-2 border-emerald-200 text-left">
-                  {/* Star Rating */}
-                  <div className="mb-6">
-                    <p className="text-gray-800 font-bold mb-3 text-base">
-                      አገልግሎታችንን ደረጃ ይስጡ:
-                    </p>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Rate Our Service:
-                    </p>
-
-                    {/* Interactive Star Rating */}
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          className="transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded"
-                        >
-                          <Star
-                            className={`w-12 h-12 transition-colors ${star <= (hoverRating || rating)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'fill-gray-200 text-gray-300'
-                              }`}
-                            strokeWidth={1.5}
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    {rating > 0 && (
-                      <p className="text-emerald-600 font-semibold text-center text-sm animate-in fade-in duration-200">
-                        ✓ You rated {rating} star{rating !== 1 ? 's' : ''}! Thank you for your feedback.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Comment Text Area */}
-                  <div>
-                    <label className="block text-gray-800 font-bold mb-3 text-base">
-                      አስተያየት ይስጡ:
-                    </label>
-                    <p className="text-gray-600 text-sm mb-3">
-                      Leave a Comment (Optional):
-                    </p>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="እባክዎን አስተያየትዎን እዚህ ይጻፉ (Comment)..."
-                      rows={4}
-                      className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-gray-800 placeholder:text-gray-400 transition-all resize-none"
-                    />
-                    {comment && (
-                      <p className="text-gray-500 text-xs mt-2">
-                        {comment.length} character{comment.length !== 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* OK Button */}
-                <button
-                  onClick={() => {
-                    // Log rating and comment
-                    if (rating > 0 || comment.trim()) {
-                      console.log('User Feedback:', { rating, comment });
-
-                      // Save to localStorage
-                      const feedback = {
-                        rating,
-                        comment: comment.trim(),
-                        timestamp: new Date().toISOString(),
-                        orderId: Date.now() // Replace with actual order ID
-                      };
-                      localStorage.setItem('lastOrderFeedback', JSON.stringify(feedback));
-
-                      // TODO: Send to backend API
-                      // await api.post('/feedback', feedback);
-                    }
-
-                    // Clear cart and navigate home
-                    clearCart();
-                    navigate('/');
-                  }}
-                  className="w-full px-10 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
           ) : (
             <>
               <div className="mb-10 text-center">
@@ -612,250 +601,250 @@ const Checkout = () => {
 
               {/* Centered Flex Container - Side by Side Cards */}
               <div className="flex flex-col lg:flex-row justify-center items-start gap-6 w-full mx-auto max-w-5xl">
-                  {/* Left Column: Main Form Card - Compact Width */}
-                  <div className="w-full lg:w-[480px]">
-                    <form onSubmit={handleSubmit} className="space-y-10">
-                      {/* Combined Card: Contact & Delivery + Payment Method */}
-                      <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm p-10`}>
-                        {/* Back Button */}
-                        <button
-                          type="button"
-                          onClick={() => navigate(-1)}
-                          className={`flex items-center gap-2 mb-8 text-sm font-semibold ${theme === 'dark' ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors group`}
-                        >
-                          <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                          </svg>
-                          <span>Back to Cart</span>
-                        </button>
+                {/* Left Column: Main Form Card - Compact Width */}
+                <div className="w-full lg:w-[480px]">
+                  <form onSubmit={handleSubmit} className="space-y-10">
+                    {/* Combined Card: Contact & Delivery + Payment Method */}
+                    <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm p-10`}>
+                      {/* Back Button */}
+                      <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className={`flex items-center gap-2 mb-8 text-sm font-semibold ${theme === 'dark' ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors group`}
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        <span>Back to Cart</span>
+                      </button>
 
-                        {/* Contact & Delivery Section */}
-                        <div className="mb-12">
-                          <div className="mb-8">
-                            <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
-                            <p className={`text-sm ${subTextClass} mt-1`}>Your information and delivery preferences</p>
-                          </div>
+                      {/* Contact & Delivery Section */}
+                      <div className="mb-12">
+                        <div className="mb-8">
+                          <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Contact & Delivery</h3>
+                          <p className={`text-sm ${subTextClass} mt-1`}>Your information and delivery preferences</p>
+                        </div>
 
-                          <div className="space-y-5">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                              <div>
-                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Full Name *</label>
-                                <input
-                                  type="text"
-                                  name="fullName"
-                                  value={formData.fullName}
-                                  onChange={handleInputChange}
-                                  required
-                                  className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                                  placeholder="John Doe"
-                                />
-                              </div>
-                              <div>
-                                <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Phone Number *</label>
-                                <input
-                                  type="tel"
-                                  name="phone"
-                                  value={formData.phone}
-                                  onChange={handleInputChange}
-                                  required
-                                  className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                                  placeholder="+251 9XX XXX XXX"
-                                />
-                              </div>
-                            </div>
-
+                        <div className="space-y-5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
-                              <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Email Address</label>
+                              <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Full Name *</label>
                               <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
+                                type="text"
+                                name="fullName"
+                                value={formData.fullName}
                                 onChange={handleInputChange}
+                                required
                                 className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
-                                placeholder="john@example.com"
+                                placeholder="John Doe"
                               />
                             </div>
-
-                            {/* Delivery Checkbox - Small */}
-                            <div className="pt-4 border-t-2 border-gray-100">
-                              <label className="flex items-center gap-3 cursor-pointer group">
-                                <input
-                                  type="checkbox"
-                                  name="isDelivery"
-                                  checked={formData.isDelivery}
-                                  onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
-                                  className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
-                                />
-                                <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                                  I need home delivery
-                                </span>
-                              </label>
-                              {!formData.isDelivery && (
-                                <p className="text-xs text-gray-600 mt-2 ml-8">
-                                  You'll pick up your order
-                                </p>
-                              )}
+                            <div>
+                              <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Phone Number *</label>
+                              <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleInputChange}
+                                required
+                                className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
+                                placeholder="+251 9XX XXX XXX"
+                              />
                             </div>
+                          </div>
 
-                            {formData.isDelivery && (
-                              <div className="space-y-5 pt-2 animate-in slide-in-from-top duration-300">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>City *</label>
-                                    <select name="city" value={formData.city} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
-                                      <option value="">Select City</option>
-                                      <option value="addis-ababa">Addis Ababa</option>
-                                      <option value="adama">Adama</option>
-                                      <option value="bahir-dar">Bahir Dar</option>
-                                      <option value="mekelle">Mekelle</option>
-                                      <option value="hawassa">Hawassa</option>
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Subcity *</label>
-                                    <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`} placeholder="e.g., Bole" />
-                                  </div>
-                                </div>
-                              </div>
+                          <div>
+                            <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>Email Address</label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleInputChange}
+                              className={`w-full px-5 py-4 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}
+                              placeholder="john@example.com"
+                            />
+                          </div>
+
+                          {/* Delivery Checkbox - Small */}
+                          <div className="pt-4 border-t-2 border-gray-100">
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                name="isDelivery"
+                                checked={formData.isDelivery}
+                                onChange={(e) => setFormData({ ...formData, isDelivery: e.target.checked })}
+                                className={`w-5 h-5 rounded border-2 ${theme === 'dark' ? 'border-slate-700' : 'border-gray-300'} text-emerald-600 focus:ring-2 focus:ring-emerald-500 cursor-pointer`}
+                              />
+                              <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
+                                I need home delivery
+                              </span>
+                            </label>
+                            {!formData.isDelivery && (
+                              <p className="text-xs text-gray-600 mt-2 ml-8">
+                                You'll pick up your order
+                              </p>
                             )}
                           </div>
-                        </div>
 
-                        {/* Payment Method Section */}
-                        <div className={`pt-12 border-t-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'}`}>
-                          <div className="mb-8">
-                            <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Payment Method</h3>
-                            <p className={`text-sm ${subTextClass} mt-1`}>Choose how you'd like to pay</p>
-                          </div>
-
-                          <div className="space-y-4">
-                            {[
-                              { value: 'chapa', label: 'Pay with Chapa (Online Payment)', enabled: true },
-                              { value: 'cash', label: 'Cash on Delivery', enabled: false },
-                              { value: 'card', label: 'Credit/Debit Card', enabled: false },
-                              { value: 'mobile', label: 'Mobile Payment (CBE Birr, Telebirr)', enabled: false }
-                            ].map((method) => (
-                              <div key={method.value} className="relative">
-                                <label
-                                  className={`flex items-center gap-3 bg-transparent border-0 cursor-pointer group ${!method.enabled ? 'opacity-50' : ''}`}
-                                  onClick={(e) => {
-                                    if (!method.enabled) {
-                                      e.preventDefault();
-                                      setComingSoonMessage(method.value);
-                                      setTimeout(() => setComingSoonMessage(null), 3000);
-                                    }
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="paymentMethod"
-                                    value={method.value}
-                                    checked={formData.paymentMethod === method.value}
-                                    onChange={handleInputChange}
-                                    disabled={!method.enabled}
-                                    className="w-5 h-5 text-emerald-600 border-2 border-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
-                                  />
-                                  <span className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${method.enabled ? 'group-hover:text-emerald-600' : ''} transition-colors`}>
-                                    {method.label}
-                                  </span>
-                                </label>
-                                {comingSoonMessage === method.value && !method.enabled && (
-                                  <div className="ml-8 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                    <span className="inline-block px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
-                                      Coming Soon
-                                    </span>
-                                  </div>
-                                )}
+                          {formData.isDelivery && (
+                            <div className="space-y-5 pt-2 animate-in slide-in-from-top duration-300">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className={`text-xs font-extrabold ${labelClass} mb-3 block uppercase tracking-wider`}>City *</label>
+                                  <select name="city" value={formData.city} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
+                                    <option value="">Select City</option>
+                                    <option value="Addis Ababa">Addis Ababa</option>
+                                    <option value="Adama">Adama</option>
+                                    <option value="Bahir Dar">Bahir Dar</option>
+                                    <option value="Mekelle">Mekelle</option>
+                                    <option value="Hawassa">Hawassa</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-extrabold text-gray-700 mb-3 block uppercase tracking-wider">Subcity *</label>
+                                  <input type="text" name="address" value={formData.address} onChange={handleInputChange} required className={`w-full px-5 py-4 rounded-xl border-2 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 outline-none text-sm font-medium transition-all ${inputClass} hover:${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`} placeholder="e.g., Bole" />
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Error Message */}
-                      {error && (
-                        <div className={`mt-4 p-4 border-2 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300 ${theme === 'dark' ? 'bg-slate-950 border-red-800' : 'bg-red-50 border-red-200'}`}>
-                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-white text-sm font-bold">!</span>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-sm font-bold text-red-900 mb-1">Order Failed</h4>
-                            <p className="text-sm text-red-700">{error}</p>
-                          </div>
-                          <button
-                            onClick={() => setError(null)}
-                            className="text-red-400 hover:text-red-600 text-xl font-bold leading-none"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      )}
-                    </form>
-                  </div>
-
-                  {/* Right Column: Order Summary Card - Sleek Narrow Width */}
-                  <div className="w-full lg:w-[340px]">
-                    <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm overflow-hidden sticky top-24`}>
-                      <div className={`${summaryHeaderClass} py-2 px-6 h-12 flex items-center justify-between`}>
-                        <div>
-                          <h3 className="text-base font-black">Order Summary</h3>
-                          <p className="text-emerald-100 text-[10px]">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
-                        </div>
-                      </div>
-
-                      <div className={`p-5 space-y-3 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-200'} max-h-60 overflow-y-auto`}>
-                        {cart.map(item => (
-                          <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-lg transition-colors`}>
-                            <div className="flex-1">
-                              <p className="font-bold text-sm text-gray-900">{item.name}</p>
-                              <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
                             </div>
-                            <p className="font-black text-sm text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="p-5 space-y-2 border-b-2 border-gray-200">
-                        <div className={`flex justify-between text-sm ${subTextClass}`}>
-                          <span>Subtotal</span>
-                          <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
-                        </div>
-                        <div className={`flex justify-between text-sm ${subTextClass}`}>
-                          <span>Delivery</span>
-                          <span className="font-semibold">{formatPrice(deliveryFee)} ETB</span>
-                        </div>
-                      </div>
-
-                      <div className={`p-6 ${totalBoxClass}`}>
-                        <div className="flex justify-between items-center mb-4">
-                          <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-base`}>Total</span>
-                          <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-2xl font-black`}>{formatPrice(total)} ETB</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handlePlaceOrder}
-                          disabled={isLoading}
-                          className="w-full px-8 py-2.5 text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100"
-                        >
-                          {isLoading ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              <span>Processing Order...</span>
-                            </>
-                          ) : (
-                            <span>Place Order</span>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Payment Method Section */}
+                      <div className={`pt-12 border-t-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-100'}`}>
+                        <div className="mb-8">
+                          <h3 className={`text-3xl font-black ${sectionTitleClass}`}>Payment Method</h3>
+                          <p className={`text-sm ${subTextClass} mt-1`}>Choose how you'd like to pay</p>
+                        </div>
+
+                        <div className="space-y-4">
+                          {[
+                            { value: 'chapa', label: 'Pay with Chapa (Online Payment)', enabled: true },
+                            { value: 'cash', label: 'Cash on Delivery', enabled: false },
+                            { value: 'card', label: 'Credit/Debit Card', enabled: false },
+                            { value: 'mobile', label: 'Mobile Payment (CBE Birr, Telebirr)', enabled: false }
+                          ].map((method) => (
+                            <div key={method.value} className="relative">
+                              <label
+                                className={`flex items-center gap-3 bg-transparent border-0 cursor-pointer group ${!method.enabled ? 'opacity-50' : ''}`}
+                                onClick={(e) => {
+                                  if (!method.enabled) {
+                                    e.preventDefault();
+                                    setComingSoonMessage(method.value);
+                                    setTimeout(() => setComingSoonMessage(null), 3000);
+                                  }
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="paymentMethod"
+                                  value={method.value}
+                                  checked={formData.paymentMethod === method.value}
+                                  onChange={handleInputChange}
+                                  disabled={!method.enabled}
+                                  className="w-5 h-5 text-emerald-600 border-2 border-gray-300 focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed"
+                                />
+                                <span className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${method.enabled ? 'group-hover:text-emerald-600' : ''} transition-colors`}>
+                                  {method.label}
+                                </span>
+                              </label>
+                              {comingSoonMessage === method.value && !method.enabled && (
+                                <div className="ml-8 mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <span className="inline-block px-3 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full">
+                                    Coming Soon
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className={`mt-4 p-4 border-2 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top duration-300 ${theme === 'dark' ? 'bg-slate-950 border-red-800' : 'bg-red-50 border-red-200'}`}>
+                        <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-sm font-bold">!</span>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-red-900 mb-1">Order Failed</h4>
+                          <p className="text-sm text-red-700">{error}</p>
+                        </div>
+                        <button
+                          onClick={() => setError(null)}
+                          className="text-red-400 hover:text-red-600 text-xl font-bold leading-none"
+                        >
+                          ×
                         </button>
                       </div>
+                    )}
+                  </form>
+                </div>
+
+                {/* Right Column: Order Summary Card - Sleek Narrow Width */}
+                <div className="w-full lg:w-[340px]">
+                  <div className={`${theme === 'dark' ? 'bg-slate-950' : 'bg-gray-50'} rounded-3xl shadow-sm overflow-hidden sticky top-24`}>
+                    <div className={`${summaryHeaderClass} py-2 px-6 h-12 flex items-center justify-between`}>
+                      <div>
+                        <h3 className="text-base font-black">Order Summary</h3>
+                        <p className="text-emerald-100 text-[10px]">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+                      </div>
+                    </div>
+
+                    <div className={`p-5 space-y-3 border-b-2 ${theme === 'dark' ? 'border-slate-800' : 'border-gray-200'} max-h-60 overflow-y-auto`}>
+                      {cart.map(item => (
+                        <div key={item._id} className={`${summaryRowClass} flex justify-between items-start p-3 rounded-lg transition-colors`}>
+                          <div className="flex-1">
+                            <p className="font-bold text-sm text-gray-900">{item.name}</p>
+                            <p className="text-xs text-gray-500 mt-1">{item.quantity}x @ {formatPrice(item.price)} ETB</p>
+                          </div>
+                          <p className="font-black text-sm text-emerald-700">{formatPrice(item.price * item.quantity)} ETB</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-5 space-y-2 border-b-2 border-gray-200">
+                      <div className={`flex justify-between text-sm ${subTextClass}`}>
+                        <span>Subtotal</span>
+                        <span className="font-semibold">{formatPrice(subtotal)} ETB</span>
+                      </div>
+                      <div className={`flex justify-between text-sm ${subTextClass}`}>
+                        <span>Delivery</span>
+                        <span className="font-semibold">{formatPrice(deliveryFee)} ETB</span>
+                      </div>
+                    </div>
+
+                    <div className={`p-6 ${totalBoxClass}`}>
+                      <div className="flex justify-between items-center mb-4">
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-black text-base`}>Total</span>
+                        <span className={`${theme === 'dark' ? 'text-white' : 'text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text'} text-2xl font-black`}>{formatPrice(total)} ETB</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handlePlaceOrder}
+                        disabled={isLoading}
+                        className="w-full px-8 py-2.5 text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:scale-100"
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Processing Order...</span>
+                          </>
+                        ) : (
+                          <span>Place Order</span>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
-      </>
-    );
+      </div>
+    </>
+  );
 };
 
 export default Checkout;

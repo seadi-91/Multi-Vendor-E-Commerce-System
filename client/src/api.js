@@ -12,6 +12,11 @@ const api = axios.create({
 // The backend ONLY checks req.headers.authorization — cookies are NOT used.
 api.interceptors.request.use(
   (config) => {
+    // Skip auth header for payment requests only (mock mode doesn't need auth)
+    if (config.url?.includes('/payments/')) {
+      return config;
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -32,10 +37,12 @@ api.interceptors.response.use(
     const errorCode = error.response?.data?.code;
     const errorMessage = error.response?.data?.message || error.response?.data?.error;
     const isAuthRequest = error.config?.url?.includes('/auth/');
+    const isPaymentRequest = error.config?.url?.includes('/payments/');
     const isLoginPage = window.location.pathname === '/login';
 
     // Handle 401 Unauthorized - token expired, invalid, or user deleted
-    if (status === 401 && !isAuthRequest && !isLoginPage) {
+    // Skip redirect for payment requests since they use mock mode
+    if (status === 401 && !isAuthRequest && !isPaymentRequest && !isLoginPage) {
       console.log('401 Unauthorized - clearing auth state and redirecting to login');
 
       // Check if it's due to user deletion
@@ -103,10 +110,29 @@ export const customerAPI = {
   addAddress: (address) => api.post('/customer/addresses', address),
   updateAddress: (id, address) => api.put(`/customer/addresses/${id}`, address),
   deleteAddress: (id) => api.delete(`/customer/addresses/${id}`),
+  getOrders: () => api.get('/orders'),
   getSessions: () => api.get('/customer/sessions'),
   revokeSession: (sessionId) => api.delete(`/customer/sessions/${sessionId}`),
   deactivateAccount: () => api.post('/customer/deactivate'),
   deleteAccount: () => api.delete('/customer/account'),
+};
+
+// Favorites APIs
+export const favoritesAPI = {
+  getFavorites: () => api.get('/favorites'),
+  addFavorite: (productId) => api.post('/favorites/add', { productId }),
+  removeFavorite: (productId) => api.delete(`/favorites/${productId}`),
+};
+
+// Optimized Product APIs (cached and live)
+export const productsAPI = {
+  getCachedProducts: (params) => api.get('/products/cached/all', { params }),
+  getCachedProductById: (id) => api.get(`/products/cached/${id}`),
+  getLiveProductPriceAndStock: (id) => api.get(`/products/live/${id}/price-stock`),
+  getLiveProductsPriceAndStock: (productIds) =>
+    api.get('/products/live/price-stock', {
+      params: { productIds: productIds.join(',') }
+    }),
 };
 
 export default api;

@@ -33,6 +33,61 @@ const buildProductPayload = (product) => {
   };
 };
 
+// Cached product details (no price/stock)
+const buildCachedProductPayload = (product) => {
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const reviewCount = reviews.length || Number(product.reviewsCount || 0);
+  const averageRating = reviewCount
+    ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
+    : Number(product.rating || 4.5);
+
+  const normalizedReviews = reviews.map((review) => ({
+    ...review,
+    user: review.user?.name || review.userName || 'Anonymous',
+    userName: review.user?.name || review.userName || 'Anonymous',
+    profileImage: review.user?.profileImage || null,
+    privateAccount: review.user?.privateAccount || false,
+    date: review.createdAt
+      ? new Date(review.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+      : 'Recently added',
+  }));
+
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    category: product.category,
+    categoryId: product.categoryId,
+    image: product.image,
+    images: product.images,
+    brand: product.brand,
+    tags: product.tags,
+    unit: product.unit,
+    views: product.views,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+    reviews: normalizedReviews,
+    vendor: product.farmer?.farmName || product.farmer?.name || 'Fresh Vendor',
+    vendorVerified: Boolean(product.farmer?.isVerified),
+    farmerId: product.farmerId,
+    rating: averageRating,
+    reviewsCount: reviewCount,
+    discountPercent: product.discountPrice && Number(product.price)
+      ? Math.round((1 - Number(product.discountPrice) / Number(product.price)) * 100)
+      : 0
+  };
+};
+
+// Live price and stock
+const buildLiveProductPayload = (product) => {
+  return {
+    id: product.id,
+    price: Number(product.price || 0),
+    discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+    stock: Number(product.stock || 0)
+  };
+};
+
 // Get all approved products (public endpoint)
 exports.getProducts = async (req, res) => {
   try {
@@ -457,5 +512,334 @@ exports.getProductsByCategoryId = async (req, res) => {
   } catch (error) {
     console.error('Error fetching products by category ID:', error);
     res.status(500).json({ message: 'Failed to fetch products', error: error.message });
+  }
+};
+
+// Get all approved products with cached details (no price/stock)
+exports.getCachedProducts = async (req, res) => {
+  try {
+    const {
+      category,
+      search,
+      brand,
+      minPrice,
+      maxPrice,
+      rating,
+      sortBy = 'newest',
+      page = 1,
+      limit = 20
+    } = req.query;
+
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const where = { status: 'approved' };
+    const filters = [];
+
+    if (category) {
+      filters.push({ category: { contains: category, mode: 'insensitive' } });
+    }
+
+    if (brand) {
+      filters.push({ brand: { contains: brand, mode: 'insensitive' } });
+    }
+
+    if (search) {
+      filters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
+    }
+
+    if (filters.length) {
+      where.AND = filters;
+    }
+
+    let orderBy = { createdAt: 'desc' };
+    switch (sortBy) {
+      case 'newest':
+      default:
+        orderBy = { createdAt: 'desc' };
+    }
+
+    const products = await prisma.product.findMany({
+      where,
+      skip,
+      take: parsedLimit,
+      orderBy,
+      include: {
+        farmer: {
+          select: { id: true, name: true, farmName: true, isVerified: true }
+        }
+      }
+    });
+
+    let mappedProducts = products.map(buildCachedProductPayload);
+
+    const total = await prisma.product.count({ where });
+
+    res.json({
+      success: true,
+      data: mappedProducts,
+      total,
+      page: parsedPage,
+      pages: Math.ceil(total / parsedLimit)
+    });
+  } catch (error) {
+    console.error('Error fetching cached products:', error);
+    res.json({
+      success: true,
+      data: [],
+      total: 0,
+      page: 1,
+      pages: 0,
+      error: error.message
+    });
+  }
+};
+
+// Get single cached product details (no price/stock)
+exports.getCachedProductById = async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id, 10);
+
+    let product;
+    try {
+      product = await prisma.product.update({
+        where: { id: productId },
+        data: { views: { increment: 1 } },
+        include: {
+          farmer: true
+        }
+      });
+    } catch (err) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (product.status !== 'approved') {
+      return res.status(404).json({ message: 'Product not available' });
+    }
+
+    const favoritesCount = await prisma.favorite.count({
+      where: { productId }
+    });
+
+    const reviews = await prisma.review.findMany({
+      where: { productId, isApproved: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+            privateAccount: true
+          }
+        }
+      }
+    });
+
+    const reviewsCount = reviews.length;
+    const averageRating = reviewsCount
+      ? Number((reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / reviewsCount).toFixed(1))
+      : Number(product.rating || 4.5);
+
+    const farmerProducts = await prisma.product.findMany({
+      where: { farmerId: product.farmerId },
+      select: { id: true }
+    });
+    const farmerProductIds = farmerProducts.map(p => p.id);
+
+    const totalFarmerReviews = await prisma.review.count({
+      where: { productId: { in: farmerProductIds }, isApproved: true }
+    });
+
+    const farmerReviewsAggregate = await prisma.review.aggregate({
+      where: { productId: { in: farmerProductIds }, isApproved: true },
+      _avg: { rating: true }
+    });
+    const averageFarmerRating = farmerReviewsAggregate._avg.rating
+      ? Number(farmerReviewsAggregate._avg.rating.toFixed(1))
+      : 0;
+
+    const totalFarmerProducts = await prisma.product.count({
+      where: { farmerId: product.farmerId, status: 'approved' }
+    });
+
+    const completedSales = await prisma.orderItem.count({
+      where: {
+        farmerId: product.farmerId,
+        order: { status: 'completed' }
+      }
+    });
+
+    const farmerInfo = {
+      id: product.farmer.id,
+      name: product.farmer.name,
+      farmName: product.farmer.farmName || 'Fresh Farm',
+      farmSize: product.farmer.farmSize,
+      bio: product.farmer.bio,
+      profileImage: product.farmer.profileImage,
+      location: product.farmer.location || product.farmer.address,
+      createdAt: product.farmer.createdAt,
+      isVerified: Boolean(product.farmer.isVerified),
+      averageRating: averageFarmerRating,
+      totalReviews: totalFarmerReviews,
+      totalProducts: totalFarmerProducts,
+      completedSales: completedSales,
+      email: product.farmer.showEmailOnProfile ? product.farmer.email : null,
+      phone: product.farmer.showPhoneOnProfile ? product.farmer.phone : null,
+      address: product.farmer.showAddressOnProfile ? product.farmer.address : null,
+    };
+
+    const rawMoreProducts = await prisma.product.findMany({
+      where: {
+        farmerId: product.farmerId,
+        status: 'approved',
+        id: { not: productId }
+      },
+      take: 4,
+      include: {
+        reviews: {
+          where: { isApproved: true },
+          select: { rating: true }
+        }
+      }
+    });
+
+    const moreProducts = rawMoreProducts.map(p => {
+      const pReviewsCount = p.reviews.length;
+      const pAvgRating = pReviewsCount
+        ? Number((p.reviews.reduce((sum, r) => sum + r.rating, 0) / pReviewsCount).toFixed(1))
+        : 4.5;
+      return {
+        id: p.id,
+        name: p.name,
+        image: p.image,
+        unit: p.unit,
+        rating: pAvgRating,
+        reviewsCount: pReviewsCount
+      };
+    });
+
+    const orConditions = [{ category: product.category }];
+    if (product.tags && product.tags.length > 0) {
+      orConditions.push({ tags: { hasSome: product.tags } });
+    }
+    const rawRelatedProducts = await prisma.product.findMany({
+      where: {
+        status: 'approved',
+        id: { not: productId },
+        OR: orConditions
+      },
+      take: 4,
+      include: {
+        reviews: {
+          where: { isApproved: true },
+          select: { rating: true }
+        }
+      }
+    });
+
+    const relatedProducts = rawRelatedProducts.map(p => {
+      const pReviewsCount = p.reviews.length;
+      const pAvgRating = pReviewsCount
+        ? Number((p.reviews.reduce((sum, r) => sum + r.rating, 0) / pReviewsCount).toFixed(1))
+        : 4.5;
+      return {
+        id: p.id,
+        name: p.name,
+        image: p.image,
+        unit: p.unit,
+        rating: pAvgRating,
+        reviewsCount: pReviewsCount
+      };
+    });
+
+    const basePayload = buildCachedProductPayload({
+      ...product,
+      reviews
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...basePayload,
+        views: product.views,
+        favoritesCount,
+        rating: averageRating,
+        reviewsCount,
+        farmer: farmerInfo,
+        moreProducts,
+        relatedProducts
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching cached product details:', error);
+    res.status(500).json({ message: 'Failed to fetch product details', error: error.message });
+  }
+};
+
+// Get live price and stock for single product
+exports.getLiveProductPriceAndStock = async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id, 10);
+
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, price: true, discountPrice: true, stock: true, status: true }
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (product.status !== 'approved') {
+      return res.status(404).json({ message: 'Product not available' });
+    }
+
+    res.json({
+      success: true,
+      data: buildLiveProductPayload(product)
+    });
+
+  } catch (error) {
+    console.error('Error fetching live product price/stock:', error);
+    res.status(500).json({ message: 'Failed to fetch product data', error: error.message });
+  }
+};
+
+// Get live price and stock for multiple products
+exports.getLiveProductsPriceAndStock = async (req, res) => {
+  try {
+    const { productIds } = req.query;
+    
+    if (!productIds) {
+      return res.status(400).json({ message: 'productIds query parameter is required' });
+    }
+
+    const ids = Array.isArray(productIds) 
+      ? productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : productIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+
+    if (ids.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids }, status: 'approved' },
+      select: { id: true, price: true, discountPrice: true, stock: true }
+    });
+
+    const mappedProducts = products.map(buildLiveProductPayload);
+
+    res.json({ success: true, data: mappedProducts });
+
+  } catch (error) {
+    console.error('Error fetching live products price/stock:', error);
+    res.status(500).json({ message: 'Failed to fetch product data', error: error.message });
   }
 };

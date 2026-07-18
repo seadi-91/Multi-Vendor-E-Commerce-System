@@ -3,12 +3,15 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
-import { toast } from 'react-hot-toast';
+import { useFavorites } from '../../context/FavoritesContext';
+
 import api from '../../api';
+import { useCachedProducts, useLiveProductsPriceStock } from '../../hooks/useProducts';
+import logo from '../../assets/logo.jpg';
 import {
   ChevronLeft, ChevronRight, Search, Heart, Star,
   ShoppingCart, MapPin, Sprout, Users, Truck,
-  Shield, Leaf, Package, Menu, X, ChevronDown, CheckCircle,
+  Shield, Package, Menu, X, ChevronDown, CheckCircle,
   Sparkles, LogOut, LayoutDashboard, User, Sun, Moon, Monitor, MoreVertical, Settings
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -25,20 +28,47 @@ const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, className = '' }) => {
   const {
     id, name, price, rating = 4.5, vendor = 'Fresh Vendor', vendorVerified = true,
-    image, reviewsCount = 120, discountPercent = 0, unit = 'kg', badge, freeShipping,
+    image, reviewsCount = 120, hasDiscount = false, badges = [], isOrganic = false, unit = 'kg',
     description,
   } = product;
+  
+  // Get custom discount badge from badges array (first badge that looks like a discount, or just use first badge)
+  const customDiscountBadge = badges.find(b => 
+    b.toLowerCase().includes('sale') || 
+    b.toLowerCase().includes('discount') || 
+    b.toLowerCase().includes('off')
+  ) || badges[0];
+
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePos({ x, y });
+  };
 
   return (
     <Link to={`/product/${id}`} className="block">
       <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 border-[var(--border)] ${className}`}>
         <CardContent className="p-0">
           {/* Image Container */}
-          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '120px' }}>
+          <div
+            className="relative w-full overflow-hidden bg-[var(--secondary)]"
+            style={{ height: '140px' }}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsZoomed(true)}
+            onMouseLeave={() => setIsZoomed(false)}
+          >
             <img
               src={image}
               alt={name}
-              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
+              className="w-full h-full object-cover transition-all duration-300 ease-out"
+              style={{
+                transform: isZoomed ? `scale(2)` : 'scale(1)',
+                transformOrigin: `${mousePos.x}% ${mousePos.y}%`
+              }}
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.parentNode.style.background = '#f0fdf4';
@@ -47,16 +77,26 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
             {/* Badges Overlay */}
             <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-              {discountPercent > 0 && (
-                <Badge variant="destructive" className="text-[8px] font-extrabold px-2 py-0.5">
-                  {discountPercent}% OFF
+              {hasDiscount && (customDiscountBadge || true) && (
+                <Badge className="text-[8px] font-extrabold px-2 py-0.5 bg-emerald-600 text-white">
+                  {customDiscountBadge || 'SALE'}
                 </Badge>
               )}
-              {badge && (
+              {isOrganic && (
                 <Badge variant="secondary" className="text-[8px] font-extrabold px-2 py-0.5 flex items-center gap-0.5">
-                  <Sparkles className="w-2.5 h-2.5" /> {badge}
+                  <Sparkles className="w-2.5 h-2.5" /> Organic
                 </Badge>
               )}
+              {/* Show other non-discount badges */}
+              {badges.filter(b => 
+                !(b.toLowerCase().includes('sale') || 
+                  b.toLowerCase().includes('discount') || 
+                  b.toLowerCase().includes('off'))
+              ).map((badge, idx) => (
+                <Badge key={idx} variant="secondary" className="text-[8px] font-extrabold px-2 py-0.5">
+                  {badge}
+                </Badge>
+              ))}
             </div>
 
             {/* Favorite Button */}
@@ -203,7 +243,7 @@ const Home = () => {
       root.style.setProperty('--accent', 'oklch(0.35 0 0)');
       root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
       root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-      root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--border', 'transparent');
       root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
       root.style.setProperty('--ring', '#059669'); // Emerald green
       root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
@@ -212,7 +252,7 @@ const Home = () => {
       root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
       root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
       root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
+      root.style.setProperty('--sidebar-border', 'transparent');
       root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
     } else if (theme === 'light') {
       // Light theme colors
@@ -264,7 +304,7 @@ const Home = () => {
         root.style.setProperty('--accent', 'oklch(0.269 0 0)');
         root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
         root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-        root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--border', 'transparent');
         root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
         root.style.setProperty('--ring', '#059669'); // Emerald green
         root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
@@ -273,7 +313,7 @@ const Home = () => {
         root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
         root.style.setProperty('--sidebar-accent', 'oklch(0.269 0 0)');
         root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
+        root.style.setProperty('--sidebar-border', 'transparent');
         root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
       } else {
         // Original light oklch colors
@@ -320,14 +360,43 @@ const Home = () => {
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState([]);
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
   const [locationOpen, setLocationOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('Addis Ababa');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // Use our custom hooks for products
+  const { data: cachedProductsData, isLoading: cachedProductsLoading } = useCachedProducts({ limit: 8 });
+  const productIds = cachedProductsData?.map(p => p.id) || [];
+  const { data: livePriceStockData } = useLiveProductsPriceStock(productIds);
+  
+  // Combine cached product data with live price/stock
+  const products = (cachedProductsData || []).map(cachedProduct => {
+    const liveData = livePriceStockData?.find(lp => lp.id === cachedProduct.id);
+    return {
+      ...cachedProduct,
+      id: cachedProduct.id || cachedProduct._id,
+      price: liveData?.price ?? 0,
+      discountPrice: liveData?.discountPrice ?? cachedProduct.cachedDiscountPrice,
+      stock: liveData?.stock ?? 0,
+      name: cachedProduct.name,
+      image: cachedProduct.image || cachedProduct.images?.[0] || '',
+      description: cachedProduct.description,
+      unit: cachedProduct.unit,
+      hasDiscount: cachedProduct.hasDiscount || !!liveData?.discountPrice,
+      badges: cachedProduct.badges || [],
+      isOrganic: cachedProduct.isOrganic,
+      vendor: cachedProduct.vendor,
+      vendorVerified: cachedProduct.vendorVerified,
+      rating: cachedProduct.rating,
+      reviewsCount: cachedProduct.reviewsCount,
+      category: cachedProduct.category
+    };
+  });
+  
+  const loading = cachedProductsLoading;
 
   const [activeTab, setActiveTab] = useState('All');
   const [isScrolled, setIsScrolled] = useState(false);
@@ -360,41 +429,8 @@ const Home = () => {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Fetch products and categories from API
+  // Fetch categories from API
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await api.get('/products', { params: { limit: 8 } });
-        const data = response.data?.data || [];
-
-        const mappedProducts = Array.isArray(data) ? data.map((product) => ({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          description: product.description,
-          unit: product.unit,
-          discountPercent: product.discountPercent || 0,
-          vendor: product.vendor || product.farmer?.name || 'Fresh Vendor',
-          vendorVerified: product.vendorVerified || true,
-          rating: product.rating || 4.5,
-          reviewsCount: product.reviewsCount || 120,
-          badge: product.isOrganic ? 'Organic' : null,
-          freeShipping: false,
-          category: product.category,
-          stock: product.stock
-        })) : [];
-
-        setProducts(mappedProducts);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
-        toast.error('Unable to load products right now.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const fetchCategories = async () => {
       try {
         // Fetch first 4 categories with 4 products each in single request
@@ -407,49 +443,21 @@ const Home = () => {
       } catch (error) {
         console.error('Error fetching categories with products:', error);
         setCategories([]);
-        toast.error('Unable to load categories right now.');
       } finally {
         setCategoriesLoading(false);
       }
     };
 
-    fetchProducts();
     fetchCategories();
-
-    const handleProductUpdate = () => {
-      fetchProducts();
-      fetchCategories();
-    };
-
-    window.addEventListener('product-added', handleProductUpdate);
-    return () => {
-      window.removeEventListener('product-added', handleProductUpdate);
-    };
   }, []);
 
-  // Sync Favorites
+  // Keep favorites synchronized through the shared favorites context.
+  // Only sync to localStorage for guest users.
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('favorites');
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
+    if (!user) {
+      localStorage.setItem('favorites', JSON.stringify(favorites));
     }
-    const updateFavorites = () => {
-      const saved = localStorage.getItem('favorites');
-      if (saved) {
-        setFavorites(JSON.parse(saved));
-      }
-    };
-    window.addEventListener('storage', updateFavorites);
-    window.addEventListener('favoritesUpdated', updateFavorites);
-    return () => {
-      window.removeEventListener('storage', updateFavorites);
-      window.removeEventListener('favoritesUpdated', updateFavorites);
-    };
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-  }, [favorites]);
+  }, [favorites, user]);
 
   // Slideshow interval for smooth transitions
   useEffect(() => {
@@ -468,18 +476,10 @@ const Home = () => {
     { name: 'Dire Dawa', code: 'DD' },
   ];
 
-  const toggleFavorite = (id) => {
-    const isFav = favorites.includes(id);
-    const newFavorites = isFav ? favorites.filter(f => f !== id) : [...favorites, id];
-    setFavorites(newFavorites);
-    localStorage.setItem('favorites', JSON.stringify(newFavorites));
-    window.dispatchEvent(new CustomEvent('favoritesUpdated'));
-    toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
-  };
+
 
   const handleAddToCart = (product) => {
     addToCart({ ...product, _id: product.id });
-    toast.success(`${product.name} added to cart!`);
   };
 
   const handleDashboardRedirect = () => {
@@ -505,8 +505,8 @@ const Home = () => {
   // Dynamic filter for products section
   const filteredProducts = products.filter(p => {
     if (activeTab === 'All') return true;
-    if (activeTab === 'Organic') return p.badge?.toLowerCase() === 'organic' || p.badge === 'Organic';
-    if (activeTab === 'Discounted') return p.discountPercent > 0;
+    if (activeTab === 'Organic') return p.isOrganic;
+    if (activeTab === 'Discounted') return p.hasDiscount;
     if (activeTab === 'Top Rated') return p.rating >= 4.5;
     return true;
   });
@@ -515,14 +515,14 @@ const Home = () => {
     <div className="min-h-screen bg-[var(--background)]">
 
       {/* ── Fixed Header ── */}
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md border-b border-gray-200' : 'bg-transparent'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'bg-slate-900 shadow-md' : 'bg-white shadow-md border-b border-gray-200') : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between gap-4">
 
             {/* Logo - icon only on mobile, full brand on desktop */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform">
-                <Leaf className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 hover:rotate-6 transition-transform overflow-hidden">
+                <img src={logo} alt="FarmConnect" className="w-full h-full object-cover" />
               </div>
               {/* Hidden on mobile, visible on desktop */}
               <div className="hidden sm:flex flex-col">
@@ -538,7 +538,7 @@ const Home = () => {
                   e.preventDefault();
                   if (searchQuery.trim()) navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
                 }}
-                className={`flex items-center w-full rounded-full border-2 transition-all duration-300 overflow-hidden backdrop-blur-xl ${isScrolled ? 'bg-white border-gray-300 focus-within:border-emerald-600' : 'bg-black/20 border-white/30 focus-within:border-emerald-500'}`}
+                className={`flex items-center w-full rounded-full border-2 transition-all duration-300 overflow-hidden backdrop-blur-xl ${isScrolled ? 'bg-white border-gray-300 dark:border-gray-600 focus-within:border-emerald-600' : 'bg-black/20 border-gray-600 dark:border-gray-600 focus-within:border-emerald-500'}`}
               >
                 <Search className={`w-4 h-4 ml-3 transition-colors duration-300 ${isScrolled ? 'text-gray-600' : 'text-white/80'}`} />
                 <input
@@ -560,7 +560,7 @@ const Home = () => {
               {/* Theme Toggle - visible on both mobile and desktop */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100 text-gray-700' : 'hover:bg-white/20 text-white'}`}>
+                  <button className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${isScrolled ? (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'hover:bg-slate-800 text-white' : 'hover:bg-gray-100 text-gray-900') : 'hover:bg-white/20 text-white'}`}>
                     {theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? (
                       <Moon className="w-5 h-5" />
                     ) : (
@@ -584,12 +584,12 @@ const Home = () => {
               {/* Wishlist - hidden on mobile, visible on desktop */}
               <Link
                 to="/favorites"
-                className={`hidden sm:flex items-center justify-center w-10 h-10 rounded-xl relative transition-all duration-300 ${isScrolled ? 'hover:bg-gray-100' : 'hover:bg-white/20'}`}
+                className={`hidden sm:flex items-center justify-center w-10 h-10 rounded-xl relative transition-all duration-300 ${isScrolled ? (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'hover:bg-slate-800' : 'hover:bg-gray-100') : 'hover:bg-white/20'}`}
               >
-                <Heart className={`w-6 h-6 transition-colors duration-300 ${isScrolled ? 'text-gray-700 hover:text-rose-500' : 'text-white hover:text-rose-300'}`} />
-                {favorites.filter(f => !String(f).startsWith('cat-')).length > 0 && (
+                <Heart className={`w-6 h-6 transition-colors duration-300 ${isScrolled ? (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'text-white hover:text-emerald-400' : 'text-gray-900 hover:text-emerald-500') : 'text-white hover:text-emerald-300'}`} />
+                {favorites.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
-                    {favorites.filter(f => !String(f).startsWith('cat-')).length}
+                    {favorites.length}
                   </span>
                 )}
               </Link>
@@ -625,7 +625,7 @@ const Home = () => {
               ) : (
                 <Link
                   to="/login"
-                  className={`hidden sm:inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 ${isScrolled ? 'bg-gray-100 text-gray-900 hover:bg-gray-200' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                  className={`hidden sm:inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 ${isScrolled ? (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-gray-100 text-gray-900 hover:bg-gray-200') : 'bg-white/20 text-white hover:bg-white/30'}`}
                 >
                   <User className="w-4 h-4" /> Sign In
                 </Link>
@@ -634,11 +634,11 @@ const Home = () => {
               {/* Cart - visible on both mobile and desktop */}
               <Link
                 to="/customer/cart"
-                className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-bold transition-all relative ${isScrolled ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600' : 'bg-white/20 hover:bg-white/30 text-white'}`}
+                className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-bold transition-all relative bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200`}
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center px-1">
+                  <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center px-1 border border-emerald-600">
                     {cartCount}
                   </span>
                 )}
@@ -1057,7 +1057,7 @@ const Home = () => {
                 <ProductCard
                   key={prod.id}
                   product={prod}
-                  isFavorite={favorites.includes(prod.id)}
+                  isFavorite={isFavorite(String(prod.id))}
                   onToggleFavorite={toggleFavorite}
                   onAddToCart={handleAddToCart}
                 />

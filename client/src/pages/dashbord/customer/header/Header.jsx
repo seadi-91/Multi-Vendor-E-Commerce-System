@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../../../context/CartContext';
 import { useTheme } from '../../../../context/ThemeContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import logo from '../../../../assets/logo.jpg';
 import {
   Search, ShoppingCart, User, Bell, MapPin,
   Menu, ChevronDown, Package, Home, Store,
@@ -156,7 +157,9 @@ const CustomerHeader = ({ user, onLogout, notificationCount = 2 }) => {
                 </button>
 
                 <div className="flex items-center gap-2 sm:gap-3 cursor-pointer transition-transform hover:scale-[1.02]" onClick={() => navigate('/customer/dashboard')}>
-                  <span className="text-xl sm:text-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 bg-clip-text text-transparent">🌾</span>
+                  <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
+                    <img src={logo} alt="FarmConnect" className="h-full w-full object-cover" />
+                  </div>
                   <div className="hidden sm:flex flex-col">
                     <h1 className="text-base sm:text-xl font-extrabold text-slate-800 m-0 leading-tight tracking-tight">FarmFresh</h1>
                     <span className="text-[10px] sm:text-xs text-slate-500 font-medium">Direct from Farm</span>

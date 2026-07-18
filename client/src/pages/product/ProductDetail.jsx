@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import api from '../../api';
+import { useCachedProduct, useLiveProductPriceStock } from '../../hooks/useProducts';
 import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, ChevronLeft, MapPin, Mail, Phone, BadgeCheck, Minus, Plus } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -13,7 +14,9 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
-const fmt = (n) => Number(n).toFixed(2);
+const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const formatPrice = (value) => `ETB ${fmt(value)}`;
 
 const Stars = ({ value, size = 'w-4 h-4', className = '' }) => (
   <div className={`flex gap-0.5 ${className}`}>
@@ -33,12 +36,37 @@ const ProductDetail = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Use custom hooks for product data
+  const { data: cachedProduct, isLoading: loadingCachedProduct } = useCachedProduct(id);
+  const { data: livePriceStock, isLoading: loadingLiveData } = useLiveProductPriceStock(id);
+  
+  // Combine cached product with live price and stock
+  const product = cachedProduct 
+    ? { 
+        ...cachedProduct, 
+        price: livePriceStock?.price ?? cachedProduct.price, 
+        discountPrice: livePriceStock?.discountPrice ?? cachedProduct.discountPrice, 
+        stock: livePriceStock?.stock ?? cachedProduct.stock 
+      }
+    : null;
+
+  const loading = loadingCachedProduct || loadingLiveData;
+  
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
+  const [imageZoom, setImageZoom] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+  // Chat state for Contact tab
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [activeActionMessageId, setActiveActionMessageId] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [hiddenMessageIds, setHiddenMessageIds] = useState([]);
   // Review form state (must be declared unconditionally to preserve hook order)
   const [reviewRating, setReviewRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -139,15 +167,10 @@ const ProductDetail = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Load product data and favorites status from DB
+  // Load favorites status and reset selected image
   useEffect(() => {
-    const fetchDetails = async () => {
+    const fetchFavoritesStatus = async () => {
       try {
-        setLoading(true);
-        const res = await api.get(`/products/${id}`);
-        setProduct(res.data?.data || null);
-
-        // Fetch user's database favorites list to restore state correctly on reload
         const token = localStorage.getItem('token');
         if (token) {
           try {
@@ -165,16 +188,172 @@ const ProductDetail = () => {
           setIsFavorite(saved.includes(Number(id)) || saved.includes(String(id)));
         }
       } catch (error) {
-        console.error('Error fetching product details:', error);
-        toast.error('Failed to load product details');
-        setProduct(null);
-      } finally {
-        setLoading(false);
+        console.error('Error checking favorite status:', error);
       }
     };
-    fetchDetails();
-    setSelectedImage(0);
+    if (id) {
+      fetchFavoritesStatus();
+      setSelectedImage(0);
+    }
   }, [id]);
+
+  // Chat helpers: moved above conditional returns so hooks run consistently
+  const farmerId = product?.farmerId || product?.farmer?.id;
+
+  const loadMessages = async () => {
+    if (!farmerId) return;
+    setLoadingMessages(true);
+    try {
+      const res = await api.get('/messages', { params: { withUserId: farmerId } });
+      const all = res.data || [];
+      // Show full conversation with the farmer across products.
+      // Previously we filtered messages to the current product by parsing `content.productId`.
+      // Now show all messages exchanged with this farmer so the same thread appears on all product pages.
+      setMessages(all);
+    } catch (err) {
+      console.error('Load messages failed', err);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const containsDisallowedContactContent = (text) => {
+    if (!text) return false;
+    const normalized = text.trim();
+    const hasDigit = /\d/.test(normalized);
+    const hasUrl = /https?:\/\/\S+|www\.\S+/i.test(normalized);
+    const hasTelegramUser = /@[_A-Za-z0-9]{1,32}/.test(normalized);
+    const hasEmail = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/i.test(normalized);
+    const hasPhoneLike = /(?:\+?\d[\d\-\s()]{5,}\d)/.test(normalized);
+    return hasDigit || hasUrl || hasTelegramUser || hasEmail || hasPhoneLike;
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !farmerId) return;
+    setSendingMessage(true);
+    try {
+      const rawText = newMessage.trim();
+
+      // Detect prohibited content
+      if (containsDisallowedContactContent(rawText)) {
+        // Display the message locally for 1 second, then delete it — do NOT send to server
+        const tempId = `temp-${Date.now()}`;
+        const tempMsg = {
+          id: tempId,
+          senderId: user?.id || 'me',
+          receiverId: farmerId,
+          content: rawText,
+          createdAt: new Date().toISOString(),
+          isTemp: true,
+        };
+        setMessages((prev) => [...prev, tempMsg]);
+        setNewMessage('');
+
+        setTimeout(() => {
+          setMessages((prev) => prev.filter((m) => String(m.id) !== String(tempId)));
+        }, 1000);
+
+        toast.error('Message contained disallowed content and was removed.');
+        setSendingMessage(false);
+        return;
+      }
+
+      // No prohibited content — send sanitized version (defense in depth)
+      const sanitizeOutgoing = (text) => {
+        if (!text) return '';
+        let s = text;
+        s = s.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/gi, '');
+        s = s.replace(/https?:\/\/\S+|www\.\S+/gi, '');
+        s = s.replace(/@\w+/g, '');
+        s = s.replace(/(?:\+?\d[\d\-\s()]{5,}\d)/g, '');
+        s = s.replace(/\s{2,}/g, ' ').trim();
+        return s;
+      };
+      const sanitizedText = sanitizeOutgoing(rawText);
+      if (!sanitizedText) {
+        setNewMessage('');
+        setSendingMessage(false);
+        return;
+      }
+
+      const payloadContent = JSON.stringify({ productId: product.id || product._id, text: sanitizedText });
+      await api.post('/messages', { receiverId: farmerId, content: payloadContent });
+      setNewMessage('');
+      await loadMessages();
+    } catch (err) {
+      console.error('Send message failed', err);
+      toast.error('Failed to send message');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard');
+    } catch (err) {
+      console.error('Clipboard copy failed', err);
+      toast.error('Copy failed');
+    }
+  };
+
+  const startReply = (m) => {
+    setActiveActionMessageId(null);
+    const parsed = (() => {
+      try {
+        return JSON.parse(m.content);
+      } catch {
+        return { text: m.content };
+      }
+    })();
+    setNewMessage(`@reply ${parsed.text || ''}`);
+  };
+
+  const startEdit = (m) => {
+    setActiveActionMessageId(null);
+    setEditingMessageId(m.id);
+    const parsed = (() => {
+      try {
+        return JSON.parse(m.content);
+      } catch {
+        return { text: m.content };
+      }
+    })();
+    setEditingContent(parsed.text || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingContent('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingContent.trim() || !editingMessageId) return;
+    try {
+      const payloadContent = JSON.stringify({ productId: product.id || product._id, text: editingContent.trim() });
+      await api.patch(`/messages/${editingMessageId}`, { content: payloadContent });
+      await loadMessages();
+      cancelEdit();
+      toast.success('Message updated');
+    } catch (err) {
+      console.error('Edit message failed', err);
+      toast.error(err.response?.data?.error || 'Failed to update message');
+    }
+  };
+
+  const hideMessage = (messageId) => {
+    setHiddenMessageIds((prev) => [...prev, messageId]);
+    setActiveActionMessageId(null);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'contact' && farmerId) {
+      loadMessages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, farmerId]);
 
   const toggleFavorite = async () => {
     // Keep local storage synchronized
@@ -217,6 +396,23 @@ const ProductDetail = () => {
     }
   };
 
+  const handleQuantityInput = (value) => {
+    if (!product?.stock) {
+      setQuantity(0);
+      return;
+    }
+
+    if (value === '') {
+      setQuantity('');
+      return;
+    }
+
+    const parsedValue = Number(value);
+    if (!Number.isFinite(parsedValue)) return;
+
+    setQuantity(Math.max(1, Math.min(product.stock, parsedValue)));
+  };
+
   const generateDescriptionParagraph = () => {
     if (!product) return '';
     let extra = '';
@@ -246,6 +442,21 @@ const ProductDetail = () => {
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const handleImageMouseEnter = () => setImageZoom(true);
+
+  const handleImageMouseLeave = () => {
+    setImageZoom(false);
+    setZoomPosition({ x: 50, y: 50 });
+  };
+
+  const handleImageMouseMove = (event) => {
+    const target = event.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const x = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
+    setZoomPosition({ x, y });
   };
 
   // Loading Skeletons
@@ -302,9 +513,12 @@ const ProductDetail = () => {
     );
   }
 
-  const discountPercent = product.discountPrice ? Math.round((1 - product.discountPrice / product.price) * 100) : 0;
-  const finalPrice = product.discountPrice || product.price;
-  const images = [product.image, ...(product.additionalImages || [])].filter(Boolean);
+  const finalPrice = product.price;
+  const images = [
+    product.image || product.images?.[0],
+    ...(Array.isArray(product.images) ? product.images.slice(product.image ? 0 : 1) : []),
+    ...(product.additionalImages || [])
+  ].filter(Boolean);
 
   const reviewCount = product.reviewsCount || 0;
   const averageRating = Number(product.rating || 0).toFixed(1);
@@ -316,12 +530,34 @@ const ProductDetail = () => {
     return acc;
   }, {});
 
+  // Helpers for latest review and chat
+  const latestReview = reviews && reviews.length > 0 ? reviews[0] : null;
+  const latestReviewerName = latestReview
+    ? (latestReview.user?.privateAccount === true || latestReview.privateAccount === true
+      ? 'Private User'
+      : (typeof latestReview.user === 'string' ? latestReview.user : latestReview.user?.name || latestReview.userName || 'Private User'))
+    : null;
+
+  const formatSentTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const diffSec = Math.floor((now - d) / 1000);
+    if (isNaN(diffSec) || diffSec < 0) return d.toLocaleString();
+    if (diffSec < 60) return `${diffSec}s ago`;
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return d.toLocaleString();
+  };
+
+
+
   return (
     <div className="min-h-screen bg-[var(--background)] transition-colors duration-300 pb-24 lg:pb-0">
       <Header pageType="product-detail" />
 
       {/* Breadcrumb Navigation */}
-      <div className="border-b border-[var(--border)] bg-[var(--card)] sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-[var(--card)]/90">
+      <div className="bg-[var(--card)] sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-[var(--card)]/90">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-1.5 text-xs">
           <button
             onClick={() => navigate(-1)}
@@ -340,23 +576,42 @@ const ProductDetail = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-10 space-y-6 sm:space-y-10">
         {/* Main Product Card */}
-        <Card className="border-0 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)]">
+        <Card className="border-0 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)] max-w-[1100px] mx-auto">
           <CardContent className="p-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 p-4 sm:p-8 lg:p-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-8 p-4 sm:p-6 lg:p-8">
               {/* Product Images View */}
               <div className="space-y-3 sm:space-y-4">
-                <div className="relative aspect-square sm:aspect-[4/3] bg-[var(--secondary)] rounded-2xl overflow-hidden shadow-inner group">
-                  <img
-                    src={images[selectedImage]}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+                <div className="relative aspect-square sm:aspect-[4/3] bg-[var(--secondary)] rounded-2xl overflow-hidden shadow-inner">
+                  <div
+                    className="relative w-full h-full overflow-hidden"
+                    onMouseMove={handleImageMouseMove}
+                    onMouseEnter={handleImageMouseEnter}
+                    onMouseLeave={handleImageMouseLeave}
+                  >
+                    <img
+                      src={images[selectedImage]}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div
+                      className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle at var(--zoom-x,50%) var(--zoom-y,50%), rgba(255,255,255,0.1) 0%, transparent 15%), rgba(0,0,0,0.15)) transition-opacity duration-200 ${imageZoom ? 'opacity-100' : 'opacity-0'}`}
+                      style={{
+                        '--zoom-x': `${zoomPosition.x}%`,
+                        '--zoom-y': `${zoomPosition.y}%`,
+                      }}
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        backgroundImage: `url(${images[selectedImage]})`,
+                        backgroundSize: '200% 200%',
+                        backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                        opacity: imageZoom ? 1 : 0,
+                        transition: 'opacity 150ms ease, background-position 150ms ease',
+                      }}
+                    />
+                  </div>
                   <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-2">
-                    {discountPercent > 0 && (
-                      <div className="bg-rose-500 text-white font-black text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-md">
-                        {discountPercent}% OFF
-                      </div>
-                    )}
                     {product.isOrganic && (
                       <div className="bg-emerald-600 text-white font-bold text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-md uppercase tracking-wide">
                         Organic
@@ -373,7 +628,7 @@ const ProductDetail = () => {
                         onClick={() => setSelectedImage(idx)}
                         className={`shrink-0 w-16 h-16 sm:w-auto sm:h-auto rounded-xl overflow-hidden transition-all duration-200 aspect-square ${selectedImage === idx
                           ? 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--card)]'
-                          : 'opacity-70 hover:opacity-100 border border-[var(--border)]'
+                          : 'opacity-70 hover:opacity-100'
                           }`}
                       >
                         <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
@@ -398,19 +653,16 @@ const ProductDetail = () => {
                   </h1>
 
                   {/* Rating Summary Box */}
-                  <div className="flex items-center gap-2.5 w-fit">
+                  <div className="flex items-center gap-2 w-fit text-[13px] sm:text-sm">
                     <Stars value={product.rating} size="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span className="text-xs sm:text-sm font-bold text-[var(--foreground)]">{averageRating}</span>
-                    <span className="text-xs text-[var(--muted-foreground)]">({reviewCount} reviews)</span>
+                    <span className="font-bold text-[var(--foreground)]">{averageRating}</span>
+                    <span className="text-[var(--muted-foreground)]">({reviewCount} reviews)</span>
                   </div>
 
                   {/* Price & Stock info */}
                   <div className="space-y-2 pt-1 sm:pt-2">
                     <div className="flex items-baseline gap-2 sm:gap-2.5 flex-wrap">
-                      <span className="text-2xl sm:text-3xl font-black text-[var(--primary)]">${fmt(finalPrice)}</span>
-                      {discountPercent > 0 && (
-                        <span className="text-base sm:text-lg text-[var(--muted-foreground)] line-through">${fmt(product.price)}</span>
-                      )}
+                      <span className="text-2xl sm:text-3xl font-black text-[var(--primary)]">{formatPrice(finalPrice)}</span>
                       <span className="text-xs sm:text-sm text-[var(--muted-foreground)] font-semibold">/ {product.unit}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -423,7 +675,7 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Actions (Add to cart & wishlist) — hidden on mobile, replaced by sticky bar */}
-                <div className="hidden lg:block space-y-4 pt-4 border-t border-[var(--border)]">
+                <div className="hidden lg:block space-y-4 pt-4">
                   <div>
                     <label className="text-xs font-black uppercase tracking-wider text-[var(--muted-foreground)] mb-2 block">
                       Quantity
@@ -432,21 +684,32 @@ const ProductDetail = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        onClick={() => setQuantity(Math.max(1, Number(quantity || 1) - 1))}
                         className="w-9 h-9 rounded-lg font-bold hover:bg-[var(--card)]"
                         disabled={product.stock === 0}
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </Button>
-                      <span className="text-base font-black w-10 text-center text-[var(--foreground)]">
-                        {product.stock === 0 ? 0 : quantity}
-                      </span>
+                      <input
+                        type="number"
+                        min={product.stock === 0 ? 0 : 1}
+                        max={product.stock}
+                        value={product.stock === 0 ? 0 : quantity}
+                        onChange={(e) => handleQuantityInput(e.target.value)}
+                        onBlur={() => {
+                          if (product.stock > 0 && (!quantity || Number(quantity) < 1)) {
+                            setQuantity(1);
+                          }
+                        }}
+                        className="w-12 bg-transparent text-base font-black text-center text-[var(--foreground)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        disabled={product.stock === 0}
+                      />
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                        onClick={() => setQuantity(Math.min(product.stock, Number(quantity || 0) + 1))}
                         className="w-9 h-9 rounded-lg font-bold hover:bg-[var(--card)]"
-                        disabled={product.stock === 0 || quantity >= product.stock}
+                        disabled={product.stock === 0 || Number(quantity || 0) >= product.stock}
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </Button>
@@ -460,13 +723,13 @@ const ProductDetail = () => {
                       disabled={!product.stock}
                     >
                       <ShoppingCart className="w-4.5 h-4.5 mr-2" />
-                      Add to Cart · ${fmt(finalPrice * quantity)}
+                      Add to Cart · {formatPrice(finalPrice * quantity)}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={toggleFavorite}
-                      className={`h-12 w-12 rounded-xl transition-all border border-[var(--border)] bg-transparent hover:bg-[var(--secondary)] ${isFavorite
-                        ? 'text-[var(--primary)] border-[var(--primary)]/30 bg-[var(--primary)]/5'
+                      className={`h-12 w-12 rounded-xl transition-all bg-transparent hover:bg-[var(--secondary)] ${isFavorite
+                        ? 'text-[var(--primary)] bg-[var(--primary)]/5'
                         : 'text-[var(--muted-foreground)]'
                         }`}
                     >
@@ -478,22 +741,25 @@ const ProductDetail = () => {
             </div>
 
             {/* Tabs (Description and Reviews) */}
-            <div className="border-t border-[var(--border)] bg-[var(--secondary)]/20">
+            <div className="bg-[var(--secondary)]/20">
               <Tabs defaultValue="description" value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="px-4 sm:px-8 lg:px-12 pt-4 overflow-x-auto scrollbar-none">
-                  <TabsList className="bg-[var(--secondary)] p-1 rounded-xl w-full overflow-x-auto flex gap-2">
-                    <TabsTrigger value="description" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-center">
+                  <TabsList className="bg-[var(--secondary)] p-1 rounded-xl w-full overflow-x-auto flex gap-2 justify-start">
+                    <TabsTrigger value="description" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
                       Description
                     </TabsTrigger>
-                    <TabsTrigger value="reviews" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-center">
+                    <TabsTrigger value="reviews" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
                       Reviews <span className="hidden sm:inline">({reviewCount})</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="contact" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
+                      Contact
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 <TabsContent id="description-section" value="description" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
-                  <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl border border-[var(--border)] shadow-sm">
-                    <p className="text-sm sm:text-base text-[var(--muted-foreground)] leading-relaxed">
+                  <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl shadow-sm mx-auto w-full max-w-[280px] sm:max-w-[360px] lg:max-w-[440px] min-h-[100px] sm:min-h-[140px]">
+                    <p className="text-sm sm:text-base text-[var(--muted-foreground)] leading-relaxed break-words whitespace-pre-wrap">
                       {generateDescriptionParagraph()}
                     </p>
                   </div>
@@ -502,7 +768,7 @@ const ProductDetail = () => {
                 <TabsContent id="reviews-section" value="reviews" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
                   <div className="space-y-5 sm:space-y-6">
                     {/* Customer reviews metrics dashboard */}
-                    <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl border border-[var(--border)] shadow-sm">
+                    <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl shadow-sm">
                       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
                         <div className="flex flex-col items-center justify-center p-4 bg-[var(--secondary)]/40 rounded-2xl min-w-[120px] w-full sm:w-auto">
                           <span className="text-4xl font-black text-[var(--primary)]">{averageRating}</span>
@@ -540,7 +806,7 @@ const ProductDetail = () => {
                     <div className="space-y-4">
                       {/* Add Review Form (visible to logged-in users) */}
                       {user ? (
-                        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-sm">
+                        <div className="bg-[var(--card)] rounded-2xl p-4 sm:p-5 shadow-sm">
                           <h4 className="text-sm font-bold text-[var(--foreground)]">Rate & write a review</h4>
                           <p className="text-xs text-[var(--muted-foreground)] mt-1">Share your experience with this product. Your review will be visible to others.</p>
                           <div className="mt-4">
@@ -563,7 +829,7 @@ const ProductDetail = () => {
                               value={reviewComment}
                               onChange={(e) => setReviewComment(e.target.value)}
                               placeholder="Write your review here..."
-                              className="mt-3 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3.5 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
+                              className="mt-3 w-full rounded-xl bg-[var(--card)] px-3.5 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
                               rows={3}
                             />
                             <div className="mt-3 flex gap-2">
@@ -599,24 +865,29 @@ const ProductDetail = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 text-sm text-[var(--muted-foreground)]">
+                        <div className="bg-[var(--card)] rounded-2xl p-4 text-sm text-[var(--muted-foreground)]">
                           Please <Link to="/login" className="font-bold text-[var(--primary)]">log in</Link> to write a review.
                         </div>
                       )}
                       {reviews.length > 0 ? (
                         reviews.map((review) => {
-                          const reviewerName = review.user?.name || 'Private User';
+                          const isPrivateReviewer = review.user?.privateAccount === true || review.privateAccount === true;
+                          const reviewerName = isPrivateReviewer
+                            ? 'Private User'
+                            : typeof review.user === 'string'
+                              ? review.user
+                              : review.user?.name || review.userName || 'Private User';
                           const avatarInitials = reviewerName.charAt(0).toUpperCase();
 
                           return (
-                            <div key={review.id} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+                            <div key={review.id} className="bg-[var(--card)] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
                                   {review.user?.profileImage ? (
                                     <img
                                       src={review.user.profileImage}
                                       alt={reviewerName}
-                                      className="w-10 h-10 rounded-full object-cover border border-[var(--border)] shrink-0"
+                                      className="w-10 h-10 rounded-full object-cover shrink-0"
                                     />
                                   ) : (
                                     <div className="w-10 h-10 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center font-bold text-sm shrink-0">
@@ -641,11 +912,109 @@ const ProductDetail = () => {
                           );
                         })
                       ) : (
-                        <div className="bg-[var(--card)] border border-dashed border-[var(--border)] rounded-2xl p-8 text-center text-sm text-[var(--muted-foreground)]">
+                        <div className="bg-[var(--card)] rounded-2xl p-8 text-center text-sm text-[var(--muted-foreground)]">
                           No approved reviews yet for this product.
                         </div>
                       )}
                     </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent id="contact-section" value="contact" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
+                  <div className="bg-[var(--card)] p-4 sm:p-6 rounded-2xl border border-[var(--border)] shadow-sm mx-auto w-full max-w-sm">
+                    <h3 className="text-sm font-bold text-[var(--foreground)] mb-3">Contact Seller</h3>
+
+                    {!user ? (
+                      <div className="text-sm text-[var(--muted-foreground)]">Please <Link to="/login" className="font-bold text-[var(--primary)]">log in</Link> to contact the seller.</div>
+                    ) : (
+                      <div className="flex flex-col h-80 md:h-96">
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: 'thin' }}>
+                          {loadingMessages ? (
+                            <div className="text-sm text-[var(--muted-foreground)]">Loading messages…</div>
+                          ) : messages.length === 0 ? (
+                            <div className="text-sm text-[var(--muted-foreground)]">No messages yet. Start the conversation!</div>
+                          ) : (
+                            messages
+                              .filter((m) => !hiddenMessageIds.includes(m.id))
+                              .map((m) => {
+                                let parsedText = m.content;
+                                try {
+                                  const parsed = JSON.parse(m.content);
+                                  parsedText = parsed.text || parsedText;
+                                } catch (e) {
+                                  // leave as-is
+                                }
+                                const mine = m.senderId === user.id;
+                                const isEditing = editingMessageId === m.id;
+                                const showActions = activeActionMessageId === m.id && !isEditing;
+                                return (
+                                  <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                                    <div
+                                      onClick={() => setActiveActionMessageId(m.id)}
+                                      className={`max-w-[80%] px-3 py-2 rounded-xl ${mine ? 'bg-white' : 'bg-gray-100'} dark:bg-transparent text-[var(--primary)] cursor-pointer`}
+                                    >
+                                      {isEditing ? (
+                                        <div className="space-y-2">
+                                          <textarea
+                                            value={editingContent}
+                                            onChange={(e) => setEditingContent(e.target.value)}
+                                            className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
+                                            rows={3}
+                                          />
+                                          <div className="flex gap-2 justify-end">
+                                            <Button variant="outline" onClick={cancelEdit} className="h-9 px-3 rounded-xl">Cancel</Button>
+                                            <Button onClick={saveEdit} className="h-9 px-3 rounded-xl bg-[var(--primary)] text-white">Save</Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="text-sm leading-relaxed text-[var(--primary)]">{parsedText}</div>
+                                          <div className={`text-[10px] mt-1 ${mine ? 'text-right' : 'text-left'} text-black dark:text-white`}>Sent {formatSentTime(m.createdAt)}</div>
+                                          {showActions && (
+                                            <div className="mt-2 flex gap-2 flex-wrap text-[11px] text-[var(--muted-foreground)]">
+                                              <button type="button" onClick={() => startReply(m)} className="font-semibold hover:text-[var(--primary)]">Reply</button>
+                                              <button type="button" onClick={() => copyToClipboard(parsedText)} className="font-semibold hover:text-[var(--primary)]">Copy</button>
+                                              {mine && (
+                                                <>
+                                                  <button type="button" onClick={() => startEdit(m)} className="font-semibold hover:text-[var(--primary)]">Edit</button>
+                                                  <button type="button" onClick={() => hideMessage(m.id)} className="font-semibold hover:text-red-500">Delete</button>
+                                                </>
+                                              )}
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                          )}
+                        </div>
+
+                        <div className="pt-3 border-t border-[var(--border)] mt-3">
+                          <div className="flex gap-2">
+                            <textarea
+                              value={newMessage}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (containsDisallowedContactContent(value)) {
+                                  setNewMessage('');
+                                  return;
+                                }
+                                setNewMessage(value);
+                              }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                              placeholder="Write a message to the seller..."
+                              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+                              rows={2}
+                            />
+                            <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()} className="h-10 px-4 rounded-xl bg-[var(--primary)] text-white">
+                              {sendingMessage ? 'Sending…' : 'Send'}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -784,7 +1153,7 @@ const ProductDetail = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">${fmt(p.discountPrice || p.price)}</span>
+                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.discountPrice || p.price)}</span>
                       <Badge
                         variant="outline"
                         className={`text-[8px] font-bold hidden sm:inline-flex ${p.stock > 0
@@ -835,7 +1204,7 @@ const ProductDetail = () => {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-[var(--primary)] text-xs sm:text-sm">${fmt(p.discountPrice || p.price)}</span>
+                        <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.discountPrice || p.price)}</span>
                         <span className="text-[10px] text-[var(--muted-foreground)] font-semibold">/ {p.unit}</span>
                       </div>
                       <Button
@@ -864,18 +1233,29 @@ const ProductDetail = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--card)] border-t border-[var(--border)] px-4 py-3 shadow-[0_-8px_24px_-8px_rgba(0,0,0,0.1)] flex items-center gap-3">
         <div className="inline-flex items-center gap-0.5 bg-[var(--secondary)] rounded-xl p-1 shrink-0">
           <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            onClick={() => setQuantity(Math.max(1, Number(quantity || 1) - 1))}
             disabled={product.stock === 0}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--foreground)] disabled:opacity-40"
           >
             <Minus className="w-3.5 h-3.5" />
           </button>
-          <span className="text-sm font-black w-7 text-center text-[var(--foreground)]">
-            {product.stock === 0 ? 0 : quantity}
-          </span>
+          <input
+            type="number"
+            min={product.stock === 0 ? 0 : 1}
+            max={product.stock}
+            value={product.stock === 0 ? 0 : quantity}
+            onChange={(e) => handleQuantityInput(e.target.value)}
+            onBlur={() => {
+              if (product.stock > 0 && (!quantity || Number(quantity) < 1)) {
+                setQuantity(1);
+              }
+            }}
+            className="w-10 bg-transparent text-sm font-black text-center text-[var(--foreground)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            disabled={product.stock === 0}
+          />
           <button
-            onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-            disabled={product.stock === 0 || quantity >= product.stock}
+            onClick={() => setQuantity(Math.min(product.stock, Number(quantity || 0) + 1))}
+            disabled={product.stock === 0 || Number(quantity || 0) >= product.stock}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--foreground)] disabled:opacity-40"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -887,7 +1267,7 @@ const ProductDetail = () => {
           className="flex-1 h-11 text-sm font-bold bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white rounded-xl shadow-md"
         >
           <ShoppingCart className="w-4 h-4 mr-2" />
-          Add · ${fmt(finalPrice * quantity)}
+          Add · {formatPrice(finalPrice * quantity)}
         </Button>
       </div>
     </div>

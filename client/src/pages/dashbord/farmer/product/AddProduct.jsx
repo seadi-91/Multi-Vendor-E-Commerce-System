@@ -40,7 +40,6 @@ const EMPTY_FORM = {
   tags: '',
   description: '',
   price: '',
-  discountPrice: '',
   stock: '',
   totalStock: '',
   minOrderQuantity: '1',
@@ -216,7 +215,7 @@ const ProductManagement = () => {
           data.append(key, value.toString());
         }
         // Skip empty strings for optional fields
-        else if (value === '' && ['brand', 'sku', 'subCategory', 'tags', 'description', 'discountPrice', 'harvestDate', 'expiryDate', 'totalStock'].includes(key)) {
+        else if (value === '' && ['brand', 'sku', 'subCategory', 'tags', 'description', 'harvestDate', 'expiryDate', 'totalStock'].includes(key)) {
           // Do nothing - don't send empty optional fields
         }
         // Append all other non-empty values
@@ -255,7 +254,7 @@ const ProductManagement = () => {
       name: product.name || '', brand: product.brand || '', sku: product.sku || '',
       category: product.category || 'Vegetables', customCategory: product.customCategory || '', subCategory: product.subCategory || '',
       tags: (product.tags || []).join(', '),
-      description: product.description || '', price: product.price || '', discountPrice: product.discountPrice || '',
+      description: product.description || '', price: product.price || '',
       stock: product.stock || '', totalStock: product.totalStock || product.stock || '',
       minOrderQuantity: product.minOrderQuantity || '1', unit: product.unit || 'kg', isOrganic: product.isOrganic || false,
       harvestDate: product.harvestDate ? new Date(product.harvestDate).toISOString().split('T')[0] : '',
@@ -519,13 +518,6 @@ const ProductManagement = () => {
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-slate-400 text-xs">ETB</span>
                           <Input name="price" type="number" min="0" step="0.01" value={formData.price} onChange={handleChange} required className="pl-10 h-9 bg-white font-mono text-sm" placeholder="0.00" />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-slate-700 font-medium text-xs">Discount Price</Label>
-                        <div className="relative">
-                          <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                          <Input name="discountPrice" type="number" min="0" step="0.01" value={formData.discountPrice} onChange={handleChange} className="pl-9 h-9 bg-white font-mono text-sm" placeholder="0.00" />
                         </div>
                       </div>
                     </div>

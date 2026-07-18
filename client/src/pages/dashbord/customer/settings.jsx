@@ -7,7 +7,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { customerAPI } from '../../../api';
 import {
   Lock, Check, AlertCircle, Eye, EyeOff, Loader2, ArrowLeft, Sun, Moon, Monitor,
-  User, MapPin, Bell, ShieldCheck, Trash2, Plus, Pencil, X, Star, Globe,
+  User, MapPin, ShieldCheck, Trash2, Plus, Pencil, X, Star, Globe,
   Mail, Phone as PhoneIcon, ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -61,7 +61,6 @@ const NAV_ITEMS = [
   { id: 'account', label: 'Account', icon: User },
   { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
   { id: 'addresses', label: 'Addresses', icon: MapPin },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
 const EMPTY_ADDRESS = {
@@ -86,37 +85,6 @@ const Settings = () => {
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const isDark = resolvedTheme === 'dark';
-
-  const ThemeToggle = () => {
-    const renderThemeIcon = () => {
-      if (theme === 'system') return <Monitor className="w-4 h-4" />;
-      return isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />;
-    };
-
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors" aria-label="Toggle Theme">
-            {renderThemeIcon()}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="border border-[var(--border)] bg-[var(--card)] shadow-lg">
-          <DropdownMenuItem onClick={() => { setTheme('light'); saveAccountPreferences({ theme: 'light' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Sun className="mr-2 h-4 w-4 text-emerald-500" />
-            Light
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { setTheme('dark'); saveAccountPreferences({ theme: 'dark' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Moon className="mr-2 h-4 w-4 text-emerald-500" />
-            Dark
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { setTheme('system'); saveAccountPreferences({ theme: 'system' }); }} className="cursor-pointer text-[var(--foreground)] hover:bg-[var(--secondary)]">
-            <Monitor className="mr-2 h-4 w-4 text-emerald-500" />
-            System
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  };
 
   // ---- Profile / account ---------------------------------------------------
   const [profileData, setProfileData] = useState({ email: '', phone: '', name: '', username: '', profileImage: '', bio: '', address: '', location: '' });
@@ -155,15 +123,6 @@ const Settings = () => {
   const [addressError, setAddressError] = useState('');
   const [addressSaving, setAddressSaving] = useState(false);
 
-  // ---- Notifications --------------------------------------------------------------
-  const [notifications, setNotifications] = useState({
-    orderUpdates: true,
-    promotions: false,
-    vendorMessages: true,
-    priceDrops: false,
-  });
-
-  const [accountSettings, setAccountSettings] = useState({ language: 'English', timezone: 'Africa/Addis_Ababa', twoFactor: false, loginAlerts: true, sessionTimeout: 30 });
   const [profileImageUrl, setProfileImageUrl] = useState('');
 
   useEffect(() => {
@@ -186,13 +145,6 @@ const Settings = () => {
         setEmailForm({ newEmail: settings.email || user.email || '' });
         setPhoneForm({ newPhone: settings.phone || user.phone || '' });
         setProfileImageUrl(settings.profileImage || user.profileImage || '');
-        setAccountSettings({
-          language: settings.language || 'English',
-          timezone: settings.timezone || 'Africa/Addis_Ababa',
-          twoFactor: !!settings.twoFactor,
-          loginAlerts: settings.loginAlerts !== false,
-          sessionTimeout: settings.sessionTimeout || 30,
-        });
         setPrivacy({
           profileVisibility: settings.profileVisibility || 'public',
           showEmailOnProfile: !!settings.showEmailOnProfile,
@@ -200,13 +152,6 @@ const Settings = () => {
           showAddressOnProfile: !!settings.showAddressOnProfile,
           showOrderActivity: settings.showOrderActivity !== false,
         });
-        setNotifications((prev) => ({
-          ...prev,
-          orderUpdates: settings.emailNotifications !== false,
-          promotions: settings.emailNotifications !== false,
-          vendorMessages: settings.pushNotifications !== false,
-          priceDrops: settings.smsNotifications === true,
-        }));
       } catch (err) {
         showError(err.response?.data?.message || 'Failed to load settings.');
       } finally {
@@ -498,35 +443,6 @@ const Settings = () => {
     }
   };
 
-  // ---- Notification handlers --------------------------------------------------------------
-  const toggleNotification = async (key) => {
-    const next = { ...notifications, [key]: !notifications[key] };
-    setNotifications(next);
-    try {
-      await customerAPI.updateSettings({
-        emailNotifications: next.orderUpdates || next.promotions,
-        pushNotifications: next.vendorMessages || next.orderUpdates,
-        smsNotifications: next.priceDrops,
-      });
-    } catch (err) {
-      showError('Failed to save notification preference.');
-      setNotifications(notifications);
-    }
-  };
-
-  const saveAccountPreferences = async (nextValues) => {
-    setLoading(true);
-    try {
-      await customerAPI.updateSettings(nextValues);
-      setAccountSettings((prev) => ({ ...prev, ...nextValues }));
-      showSuccess('Account preferences updated.');
-    } catch (err) {
-      showError(err.response?.data?.message || 'Failed to save account preferences.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeactivateAccount = async () => {
     setLoading(true);
     try {
@@ -646,27 +562,6 @@ const Settings = () => {
                   </form>
                 </SectionCard>
 
-                <SectionCard icon={Globe} title="Preferences" description="Language & display settings" dense>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-xs">Language</Label>
-                      <select value={accountSettings.language} onChange={(e) => {
-                        const nextLang = e.target.value;
-                        saveAccountPreferences({ language: nextLang });
-                      }} className="mt-1 h-9 w-full bg-[var(--card)] rounded-md px-2">
-                        <option>English</option>
-                        <option>Amharic</option>
-                        <option>Oromo</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Theme</Label>
-                      <div className="mt-1">
-                        <ThemeToggle />
-                      </div>
-                    </div>
-                  </div>
-                </SectionCard>
                 <SectionCard icon={Mail} title="Email" description="Order receipts & recovery" dense>
                   <form onSubmit={handleChangeEmail} className="space-y-3">
                     <div className="rounded-md bg-[var(--card)] px-3 py-2 text-sm text-slate-600 shadow-sm">
@@ -860,151 +755,141 @@ const Settings = () => {
 
             {activeTab === 'addresses' && (
               <SectionCard icon={MapPin} title="Delivery addresses" description="Where vendors ship your orders" dense>
-                <div className="space-y-2.5">
-                  {addressesLoading && (
-                    <p className="text-sm text-slate-400 flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading addresses…</p>
-                  )}
-
-                  {!addressesLoading && addresses.length === 0 && !showAddressForm && (
-                    <div className="rounded-lg bg-[var(--card)] p-5 text-center shadow-sm">
-                      <MapPin className="h-5 w-5 mx-auto text-slate-300" />
-                      <p className="mt-2 text-sm text-slate-500">No saved addresses yet.</p>
+                <div className="space-y-3">
+                  {!showAddressForm && (
+                    <div className="flex justify-end">
+                      <Button type="button" size="sm" variant="outline" onClick={openNewAddressForm}>
+                        <Plus className="h-4 w-4 mr-2" /> Add address
+                      </Button>
                     </div>
                   )}
 
-                  {addresses.map((address) => {
-                    const id = address.id || address._id;
-                    return (
-                      <div key={id} className="rounded-lg bg-[var(--card)] p-3.5 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-slate-900 text-sm">{address.label || 'Address'}</p>
-                              {address.isDefault && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                                  <Star className="h-2.5 w-2.5 fill-emerald-600 text-emerald-600" /> Default
-                                </span>
-                              )}
+                  <div className="space-y-2.5">
+                    {addressesLoading && (
+                      <p className="text-sm text-slate-400 flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading addresses…</p>
+                    )}
+
+                    {!addressesLoading && addresses.length === 0 && !showAddressForm && (
+                      <div className="rounded-lg bg-[var(--card)] p-5 text-center shadow-sm">
+                        <MapPin className="h-5 w-5 mx-auto text-slate-300" />
+                        <p className="mt-2 text-sm text-slate-500">No saved addresses yet.</p>
+                      </div>
+                    )}
+
+                    {addresses.map((address) => {
+                      const id = address.id || address._id;
+                      return (
+                        <div key={id} className="rounded-lg bg-[var(--card)] p-3.5 shadow-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-slate-900 text-sm">{address.label || 'Address'}</p>
+                                {address.isDefault && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                    <Star className="h-2.5 w-2.5 fill-emerald-600 text-emerald-600" /> Default
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-600 mt-1">{address.fullName} · {address.phone}</p>
+                              <p className="text-xs text-slate-500">{[address.street, address.woreda, address.subcity, address.city].filter(Boolean).join(', ')}</p>
                             </div>
-                            <p className="text-xs text-slate-600 mt-1">{address.fullName} · {address.phone}</p>
-                            <p className="text-xs text-slate-500">{[address.street, address.woreda, address.subcity, address.city].filter(Boolean).join(', ')}</p>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => openEditAddressForm(address)} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100" aria-label="Edit address">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button onClick={() => handleDeleteAddress(address)} className="p-1.5 rounded-md text-red-500 hover:bg-red-50" aria-label="Delete address">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button onClick={() => openEditAddressForm(address)} className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100" aria-label="Edit address">
-                              <Pencil className="h-3.5 w-3.5" />
+                          {!address.isDefault && (
+                            <button onClick={() => handleSetDefaultAddress(address)} className="mt-2.5 text-xs font-medium text-indigo-600 hover:underline">
+                              Set as default
                             </button>
-                            <button onClick={() => handleDeleteAddress(address)} className="p-1.5 rounded-md text-red-500 hover:bg-red-50" aria-label="Delete address">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                          )}
                         </div>
-                        {!address.isDefault && (
-                          <button onClick={() => handleSetDefaultAddress(address)} className="mt-2.5 text-xs font-medium text-indigo-600 hover:underline">
-                            Set as default
+                      );
+                    })}
+
+                    {showAddressForm && (
+                      <form onSubmit={handleSaveAddress} className="rounded-lg bg-[var(--card)] p-3.5 space-y-3 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-slate-900 text-sm">{editingAddressId ? 'Edit address' : 'New address'}</p>
+                          <button type="button" onClick={closeAddressForm} className="p-1 rounded-md text-slate-400 hover:bg-white">
+                            <X className="h-3.5 w-3.5" />
                           </button>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </div>
 
-                  {showAddressForm && (
-                    <form onSubmit={handleSaveAddress} className="rounded-lg bg-[var(--card)] p-3.5 space-y-3 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-slate-900 text-sm">{editingAddressId ? 'Edit address' : 'New address'}</p>
-                        <button type="button" onClick={closeAddressForm} className="p-1 rounded-md text-slate-400 hover:bg-white">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="addrLabel" className="text-xs">Label</Label>
+                            <Input id="addrLabel" value={addressForm.label}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
+                              placeholder="Home, Office…" className="h-9 mt-1" />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrFullName" className="text-xs">Full name</Label>
+                            <Input id="addrFullName" value={addressForm.fullName}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                              placeholder="Recipient's full name" className="h-9 mt-1" />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrPhone" className="text-xs">Phone</Label>
+                            <Input id="addrPhone" value={addressForm.phone}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, phone: e.target.value }))}
+                              placeholder="09XXXXXXXX" className="h-9 mt-1" />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrCity" className="text-xs">City</Label>
+                            <Input id="addrCity" value={addressForm.city}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
+                              placeholder="Addis Ababa" className="h-9 mt-1" />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrSubcity" className="text-xs">Sub-city</Label>
+                            <Input id="addrSubcity" value={addressForm.subcity}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, subcity: e.target.value }))}
+                              placeholder="Bole" className="h-9 mt-1" />
+                          </div>
+                          <div>
+                            <Label htmlFor="addrWoreda" className="text-xs">Woreda</Label>
+                            <Input id="addrWoreda" value={addressForm.woreda}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, woreda: e.target.value }))}
+                              placeholder="03" className="h-9 mt-1" />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <Label htmlFor="addrStreet" className="text-xs">Street / house number</Label>
+                            <Input id="addrStreet" value={addressForm.street}
+                              onChange={(e) => setAddressForm((prev) => ({ ...prev, street: e.target.value }))}
+                              placeholder="House no., street name, landmark" className="h-9 mt-1" />
+                          </div>
+                        </div>
 
-                      <div className="grid sm:grid-cols-2 gap-3">
-                        <div>
-                          <Label htmlFor="addrLabel" className="text-xs">Label</Label>
-                          <Input id="addrLabel" value={addressForm.label}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
-                            placeholder="Home, Office…" className="h-9 mt-1" />
-                        </div>
-                        <div>
-                          <Label htmlFor="addrFullName" className="text-xs">Full name</Label>
-                          <Input id="addrFullName" value={addressForm.fullName}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                            placeholder="Recipient's full name" className="h-9 mt-1" />
-                        </div>
-                        <div>
-                          <Label htmlFor="addrPhone" className="text-xs">Phone</Label>
-                          <Input id="addrPhone" value={addressForm.phone}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, phone: e.target.value }))}
-                            placeholder="09XXXXXXXX" className="h-9 mt-1" />
-                        </div>
-                        <div>
-                          <Label htmlFor="addrCity" className="text-xs">City</Label>
-                          <Input id="addrCity" value={addressForm.city}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
-                            placeholder="Addis Ababa" className="h-9 mt-1" />
-                        </div>
-                        <div>
-                          <Label htmlFor="addrSubcity" className="text-xs">Sub-city</Label>
-                          <Input id="addrSubcity" value={addressForm.subcity}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, subcity: e.target.value }))}
-                            placeholder="Bole" className="h-9 mt-1" />
-                        </div>
-                        <div>
-                          <Label htmlFor="addrWoreda" className="text-xs">Woreda</Label>
-                          <Input id="addrWoreda" value={addressForm.woreda}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, woreda: e.target.value }))}
-                            placeholder="03" className="h-9 mt-1" />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Label htmlFor="addrStreet" className="text-xs">Street / house number</Label>
-                          <Input id="addrStreet" value={addressForm.street}
-                            onChange={(e) => setAddressForm((prev) => ({ ...prev, street: e.target.value }))}
-                            placeholder="House no., street name, landmark" className="h-9 mt-1" />
-                        </div>
-                      </div>
+                        <label className="flex items-center gap-2 text-xs text-slate-600">
+                          <input type="checkbox" checked={addressForm.isDefault}
+                            onChange={(e) => setAddressForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
+                            className="rounded" />
+                          Set as default delivery address
+                        </label>
 
-                      <label className="flex items-center gap-2 text-xs text-slate-600">
-                        <input type="checkbox" checked={addressForm.isDefault}
-                          onChange={(e) => setAddressForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
-                          className="rounded" />
-                        Set as default delivery address
-                      </label>
+                        {addressError && <p className="text-xs text-red-500">{addressError}</p>}
 
-                      {addressError && <p className="text-xs text-red-500">{addressError}</p>}
-
-                      <div className="flex gap-2">
-                        <Button type="submit" size="sm" disabled={addressSaving}>
-                          {addressSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                          {editingAddressId ? 'Save changes' : 'Add address'}
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" onClick={closeAddressForm}>Cancel</Button>
-                      </div>
-                    </form>
-                  )}
+                        <div className="flex gap-2">
+                          <Button type="submit" size="sm" disabled={addressSaving}>
+                            {addressSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                            {editingAddressId ? 'Save changes' : 'Add address'}
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" onClick={closeAddressForm}>Cancel</Button>
+                        </div>
+                      </form>
+                    )}
 
 
+                  </div>
                 </div>
               </SectionCard>
             )}
 
-            {activeTab === 'notifications' && (
-              <SectionCard icon={Bell} title="Notifications" description="What you'll be notified about" dense>
-                <div className="divide-y divide-slate-100">
-                  {[
-                    { key: 'orderUpdates', label: 'Order updates', hint: 'Shipping, delivery, and status changes.' },
-                    { key: 'vendorMessages', label: 'Vendor messages', hint: 'Direct messages from sellers.' },
-                    { key: 'priceDrops', label: 'Price drops', hint: 'Alerts for wishlist items on sale.' },
-                    { key: 'promotions', label: 'Promotions & offers', hint: 'Marketplace-wide deals and codes.' },
-                  ].map(({ key, label, hint }) => (
-                    <div key={key} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                      <div className="pr-3">
-                        <p className="text-sm font-medium text-slate-800">{label}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{hint}</p>
-                      </div>
-                      <ToggleSwitch checked={notifications[key]} onChange={() => toggleNotification(key)} label={label} />
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )}
           </div>
         </div>
       </div>

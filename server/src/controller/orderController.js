@@ -95,11 +95,10 @@ async function updateProductStockStatus(tx, productId, currentStock) {
 }
 
 /**
- * Create a new order with automatic inventory management
+ * Create a new order
  * - Validates stock availability before creating order
- * - Reduces stock by ordered quantity
- * - Updates product status if stock becomes 0
- * - Logs all inventory changes
+ * - Stock is NOT deducted at this point - only after payment confirmation
+ * - Order is created with paymentStatus = 'unpaid' by default
  */
 exports.createOrder = async (req, res) => {
     try {
@@ -149,7 +148,6 @@ exports.createOrder = async (req, res) => {
         const createdOrder = await prisma.$transaction(async (tx) => {
             const orderItemsData = [];
             const customer = normalizedCustomerId ? await tx.user.findUnique({ where: { id: normalizedCustomerId } }) : null;
-            const stockUpdates = []; // Track all stock changes for logging
 
             for (const rawItem of itemsJson) {
                 const productId = Number(rawItem.productId || rawItem.id || rawItem._id || rawItem.product?.id);
@@ -160,7 +158,7 @@ exports.createOrder = async (req, res) => {
                     throw new Error('Each order item must include a valid product reference.');
                 }
 
-                // Lock the product record and fetch current stock (Prisma handles row-level locking in transactions)
+                // Fetch product to validate availability (without locking since we're not deducting stock yet)
                 const product = await tx.product.findUnique({
                     where: { id: productId },
                     select: {
@@ -186,40 +184,10 @@ exports.createOrder = async (req, res) => {
                     throw new Error(`Product "${product.name}" is not currently available for purchase.`);
                 }
 
-                // Validate sufficient stock
+                // Validate sufficient stock availability (but don't deduct yet)
                 if (product.stock < quantity) {
                     throw new Error(`Insufficient stock for "${product.name}". Only ${product.stock} units available, but ${quantity} requested.`);
                 }
-
-                const previousStock = product.stock;
-                const newStock = product.stock - quantity;
-
-                console.log(`[INVENTORY] Order creating: Product ${productId} (${product.name}), previous stock: ${previousStock}, quantity: ${quantity}, new stock: ${newStock}`);
-
-                // Update stock - Prisma transaction ensures atomicity
-                const updatedProduct = await tx.product.update({
-                    where: { id: productId },
-                    data: { stock: newStock }
-                });
-
-                console.log(`[INVENTORY] Order created: Product ${productId} updated stock to: ${updatedProduct.stock}`);
-
-                // Update product status if stock becomes 0
-                if (newStock <= 0) {
-                    const newStatus = await updateProductStockStatus(tx, productId, newStock);
-                    console.log(`[INVENTORY] Product ${productId} status changed to: ${newStatus}`);
-                }
-
-                // Track stock change for logging
-                stockUpdates.push({
-                    productId,
-                    productName: product.name,
-                    changeType: 'REDUCTION',
-                    quantity,
-                    previousStock,
-                    newStock,
-                    farmerId: product.farmerId
-                });
 
                 orderItemsData.push({
                     productId,
@@ -242,9 +210,9 @@ exports.createOrder = async (req, res) => {
                     status: status || 'processing',
                     paymentMethod: paymentMethod || 'cash',
                     paymentStatus: paymentStatus || 'unpaid',
-                    fullName: fullName || '',
-                    email: email || '',
-                    phone: phone || '',
+                    fullName: fullName || customer?.name || '',
+                    email: email || customer?.email || '',
+                    phone: phone || customer?.phone || '',
                     city: city || '',
                     address: address || '',
                     additionalInfo: additionalInfo || '',
@@ -277,68 +245,8 @@ exports.createOrder = async (req, res) => {
                 data: { orderCode }
             });
 
-            // Log all inventory changes and send notifications
-            const uniqueFarmerIds = new Set();
-
-            for (const update of stockUpdates) {
-                await logInventoryChange(
-                    tx,
-                    update.productId,
-                    update.changeType,
-                    update.quantity,
-                    update.previousStock,
-                    update.newStock,
-                    `Order placed (${updated.orderCode})`,
-                    updated.orderCode,
-                    normalizedCustomerId || req.user?.id || null
-                );
-
-                // Track unique farmers involved in this order
-                if (update.farmerId) {
-                    uniqueFarmerIds.add(update.farmerId);
-                }
-            }
-
-            // Send notifications to all farmers involved in this order
-            for (const farmerId of uniqueFarmerIds) {
-                const farmerProducts = stockUpdates
-                    .filter(u => u.farmerId === farmerId)
-                    .map(u => `${u.productName} (${u.quantity}x)`)
-                    .join(', ');
-
-                await tx.notification.create({
-                    data: {
-                        type: 'NEW_ORDER',
-                        title: 'New Order Received!',
-                        message: `You have a new order: ${farmerProducts}. Order Code: ${updated.orderCode}`,
-                        userId: farmerId,
-                        read: false
-                    }
-                });
-            }
-
-            // Send notifications to ALL admin users
-            const adminUsers = await tx.user.findMany({
-                where: { role: 'ADMIN' },
-                select: { id: true }
-            });
-
-            const orderTotal = updated.total || 0;
-            const itemCount = stockUpdates.length;
-
-            for (const admin of adminUsers) {
-                await tx.notification.create({
-                    data: {
-                        type: 'NEW_ORDER',
-                        title: 'New Order Placed',
-                        message: `New order ${updated.orderCode} placed: ${itemCount} item${itemCount > 1 ? 's' : ''}, Total: $${orderTotal.toFixed(2)}`,
-                        userId: admin.id,
-                        read: false
-                    }
-                });
-            }
-
-            console.log(`✓ Notifications sent: ${uniqueFarmerIds.size} farmer(s), ${adminUsers.length} admin(s)`);
+            // Note: Inventory logging and farmer notifications will be sent after payment confirmation
+            console.log(`✓ Order created: ${updated.orderCode} (paymentStatus: ${updated.paymentStatus}) - Stock will be deducted after payment confirmation`);
 
             return {
                 ...updated,
@@ -361,6 +269,7 @@ exports.createOrder = async (req, res) => {
 /**
  * Update order status with automatic inventory management
  * - Cancelling an order restores the stock
+ * - Payment confirmation (paid) deducts stock
  * - Restoring stock updates product status if needed
  */
 exports.updateOrderStatus = async (req, res) => {
@@ -406,7 +315,48 @@ exports.updateOrderStatus = async (req, res) => {
             }
 
             const previousStatus = order.status;
+            const previousPaymentStatus = order.paymentStatus;
             const stockUpdates = [];
+
+            // Handle stock deduction on payment confirmation
+            if (paymentStatus === 'paid' && previousPaymentStatus !== 'paid') {
+                for (const orderItem of order.orderItems) {
+                    const product = orderItem.product;
+                    if (!product) continue;
+
+                    const previousStock = product.stock;
+                    const newStock = product.stock - orderItem.quantity;
+
+                    // Validate sufficient stock
+                    if (newStock < 0) {
+                        throw new Error(`Insufficient stock for "${product.name}". Only ${product.stock} units available, but ${orderItem.quantity} requested.`);
+                    }
+
+                    // Deduct stock
+                    const updatedProduct = await tx.product.update({
+                        where: { id: orderItem.productId },
+                        data: { stock: newStock }
+                    });
+
+                    console.log(`[INVENTORY] Payment confirmed: Product ${orderItem.productId} (${product.name}), previous stock: ${previousStock}, quantity: ${orderItem.quantity}, new stock: ${newStock}`);
+
+                    // Update product status if stock becomes 0
+                    if (newStock <= 0) {
+                        const newStatus = await updateProductStockStatus(tx, orderItem.productId, newStock);
+                        console.log(`[INVENTORY] Product ${orderItem.productId} status changed to: ${newStatus}`);
+                    }
+
+                    stockUpdates.push({
+                        productId: orderItem.productId,
+                        productName: product.name,
+                        changeType: 'REDUCTION',
+                        quantity: orderItem.quantity,
+                        previousStock,
+                        newStock,
+                        farmerId: product.farmerId
+                    });
+                }
+            }
 
             // Handle stock restoration on cancellation
             if (status === 'cancelled' && previousStatus !== 'cancelled') {
@@ -450,7 +400,7 @@ exports.updateOrderStatus = async (req, res) => {
                 data: updateData
             });
 
-            // Log inventory changes for cancellation
+            // Log inventory changes for payment confirmation or cancellation
             for (const update of stockUpdates) {
                 await logInventoryChange(
                     tx,
@@ -459,9 +409,61 @@ exports.updateOrderStatus = async (req, res) => {
                     update.quantity,
                     update.previousStock,
                     update.newStock,
-                    `Order cancelled (${updated.orderCode})`,
-                    updated.orderCode
+                    update.changeType === 'REDUCTION' ? `Payment confirmed (${updated.orderCode})` : `Order cancelled (${updated.orderCode})`,
+                    updated.orderCode,
+                    order.customerId
                 );
+            }
+
+            // Send notifications for payment confirmation
+            if (paymentStatus === 'paid' && previousPaymentStatus !== 'paid' && stockUpdates.length > 0) {
+                const uniqueFarmerIds = new Set();
+                stockUpdates.forEach(update => {
+                    if (update.farmerId) {
+                        uniqueFarmerIds.add(update.farmerId);
+                    }
+                });
+
+                // Notify farmers about new paid order
+                for (const farmerId of uniqueFarmerIds) {
+                    const farmerProducts = stockUpdates
+                        .filter(u => u.farmerId === farmerId)
+                        .map(u => `${u.productName} (${u.quantity}x)`)
+                        .join(', ');
+
+                    await tx.notification.create({
+                        data: {
+                            type: 'NEW_ORDER',
+                            title: 'New Paid Order Received!',
+                            message: `You have a new paid order: ${farmerProducts}. Order Code: ${updated.orderCode}`,
+                            userId: farmerId,
+                            read: false
+                        }
+                    });
+                }
+
+                // Notify admins about new paid order
+                const adminUsers = await tx.user.findMany({
+                    where: { role: 'ADMIN' },
+                    select: { id: true }
+                });
+
+                const orderTotal = updated.total || 0;
+                const itemCount = stockUpdates.length;
+
+                for (const admin of adminUsers) {
+                    await tx.notification.create({
+                        data: {
+                            type: 'NEW_ORDER',
+                            title: 'New Paid Order',
+                            message: `New paid order ${updated.orderCode}: ${itemCount} item${itemCount > 1 ? 's' : ''}, Total: $${orderTotal.toFixed(2)}`,
+                            userId: admin.id,
+                            read: false
+                        }
+                    });
+                }
+
+                console.log(`✓ Payment confirmation notifications sent: ${uniqueFarmerIds.size} farmer(s), ${adminUsers.length} admin(s)`);
             }
 
             // Send notifications for status changes

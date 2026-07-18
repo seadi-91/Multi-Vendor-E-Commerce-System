@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import logo from '../../../../assets/logo.jpg';
 import './FarmerHeader.scss';
 
 const FarmerHeader = ({ user, onLogout }) => {
@@ -58,7 +59,9 @@ const FarmerHeader = ({ user, onLogout }) => {
       <div className="header-top-bar">
         <div className="header-left">
           <div className="logo-container">
-            <span className="logo-icon" role="img" aria-label="farm">🌾</span>
+            <div className="logo-icon flex items-center justify-center overflow-hidden">
+              <img src={logo} alt="FarmConnect" className="h-full w-full object-cover" />
+            </div>
             <div className="logo-text">
               <h1 className="logo-title">FarmConnect</h1>
               <span className="logo-subtitle">Farmer Dashboard</span>

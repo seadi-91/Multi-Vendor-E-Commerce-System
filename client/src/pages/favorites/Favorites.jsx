@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, Package, BadgeCheck } from 'lucide-react';
 import api from '../../api';
+import { useLiveProductsPriceStock } from '../../hooks/useProducts';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
@@ -232,20 +233,38 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
     image, reviewsCount = 0, discountPercent = 0, unit = 'kg', badge, category,
     description, stock = 0, discountPrice,
   } = product;
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [isZoomed, setIsZoomed] = useState(false);
 
-  const finalPrice = Number(discountPrice ?? (discountPercent > 0 ? price * (1 - discountPercent / 100) : price) ?? price);
-  const hasDiscount = discountPercent > 0 || (discountPrice && Number(discountPrice) < Number(price));
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePos({ x, y });
+  };
+
+  const finalPrice = Number(price);
   const stockStatus = stock > 20 ? 'In stock' : stock > 0 ? 'Low stock' : 'Out of stock';
   const stockTone = stock > 20 ? 'text-emerald-600' : stock > 0 ? 'text-amber-600' : 'text-rose-600';
 
   return (
     <Link to={`/product/${id}`} className="block h-full">
       <div className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:border-[var(--primary)]/40 hover:shadow-md ${className}`}>
-        <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '102px' }}>
+        <div
+          className="relative w-full overflow-hidden bg-[var(--secondary)]"
+          style={{ height: '102px' }}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+        >
           <img
             src={image}
             alt={name}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            className="h-full w-full object-cover transition-all duration-300 ease-out"
+            style={{
+              transform: isZoomed ? `scale(2)` : 'scale(1)',
+              transformOrigin: `${mousePos.x}% ${mousePos.y}%`
+            }}
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.parentNode.style.background = '#f0fdf4';
@@ -253,13 +272,8 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
           />
 
           <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
-            {hasDiscount && (
-              <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow-sm">
-                {discountPercent > 0 ? `${discountPercent}% OFF` : 'Sale'}
-              </span>
-            )}
             {badge && (
-              <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-semibold text-amber-950 shadow-sm">
+              <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-950 shadow-sm">
                 {badge}
               </span>
             )}
@@ -299,7 +313,6 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-sm font-bold text-[var(--primary)]">{fmt(finalPrice)}</span>
-            {hasDiscount && <span className="text-[9px] text-[var(--muted-foreground)] line-through">{fmt(price)}</span>}
             <span className="text-[8px] text-[var(--muted-foreground)]">/{unit}</span>
           </div>
 
@@ -333,6 +346,23 @@ const Favorites = () => {
   // Calculate cart total from CartContext
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const favoritesCount = favoriteProducts.length;
+  
+  // Get product IDs from favoriteProducts
+  const productIds = favoriteProducts.map(p => p.id);
+  
+  // Get live price and stock for favorite products
+  const { data: livePriceStockData } = useLiveProductsPriceStock(productIds);
+  
+  // Merge live data into favoriteProducts
+  const favoriteProductsWithLiveData = favoriteProducts.map(p => {
+    const liveData = livePriceStockData?.find(lp => lp.id === p.id);
+    return {
+      ...p,
+      price: liveData?.price ?? p.price,
+      discountPrice: liveData?.discountPrice ?? p.discountPrice,
+      stock: liveData?.stock ?? p.stock
+    };
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -460,6 +490,7 @@ const Favorites = () => {
 
   const refreshFavorites = async () => {
     if (!user) {
+      // Guest user: use localStorage
       const storedIds = getStoredFavoriteIds();
       if (storedIds.length === 0) {
         setFavoriteProducts([]);
@@ -486,37 +517,14 @@ const Favorites = () => {
       return;
     }
 
+    // Logged-in user: fetch from database only
     try {
       setLoading(true);
       const response = await api.get('/favorites');
       const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-      const storedIds = getStoredFavoriteIds();
-      const favoriteIds = items.map((item) => String(item.id));
-      const mergedIds = Array.from(new Set([...favoriteIds, ...storedIds.filter((id) => !favoriteIds.includes(id))]));
 
-      if (mergedIds.length === 0) {
-        setFavoriteProducts([]);
-        setFavorites([]);
-        localStorage.setItem('favorites', JSON.stringify([]));
-        return;
-      }
-
-      // Always fetch full product data to ensure complete display
-      const productsResponse = await api.get('/products');
-      const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
-      const matchedProducts = products.filter((product) => mergedIds.includes(String(product.id)));
-
-      // Prioritize database items first, then add stored items
-      const finalProducts = items.length > 0
-        ? [
-          ...items,
-          ...matchedProducts.filter((p) => !favoriteIds.includes(String(p.id)))
-        ]
-        : matchedProducts;
-
-      setFavoriteProducts(finalProducts);
-      setFavorites(finalProducts.map((item) => String(item.id)));
-      localStorage.setItem('favorites', JSON.stringify(finalProducts.map((item) => String(item.id))));
+      setFavoriteProducts(items);
+      setFavorites(items.map((item) => String(item.id)));
     } catch (error) {
       console.error('Failed to load favorites:', error);
       setFavoriteProducts([]);
@@ -614,20 +622,20 @@ const Favorites = () => {
       <Header pageType="favorite" />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 pt-24 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-3 text-white shadow-xl sm:p-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-50 backdrop-blur-sm">
+              <div className="mb-1 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.25em] text-emerald-50 backdrop-blur-sm">
                 Favorites
               </div>
-              <h1 className="text-2xl font-bold sm:text-3xl">Your saved picks</h1>
-              <p className="mt-2 max-w-2xl text-sm text-emerald-50/90">
+              <h1 className="text-xl font-bold sm:text-2xl">Your saved picks</h1>
+              <p className="mt-1 max-w-2xl text-xs text-emerald-50/90">
                 Keep the products you love close at hand and revisit them whenever you are ready to buy.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 px-3.5 py-2.5 backdrop-blur-sm shadow-sm">
-              <p className="text-2xl font-bold">{favoritesCount}</p>
-              <p className="text-xs text-emerald-50/90">saved items</p>
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 backdrop-blur-sm shadow-sm">
+              <p className="text-xl font-bold">{favoritesCount}</p>
+              <p className="text-[10px] text-emerald-50/90">saved items</p>
             </div>
           </div>
         </section>
@@ -662,7 +670,7 @@ const Favorites = () => {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6">
-                {favoriteProducts.map((p) => (
+                {favoriteProductsWithLiveData.map((p) => (
                   <ProductCard
                     key={p.id}
                     product={p}

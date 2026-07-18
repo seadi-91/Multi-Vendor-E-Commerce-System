@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { customerAPI } from '../api';
+import logo from '../assets/logo.jpg';
 import {
   BarChart3,
   ChevronDown,
   Heart,
-  Leaf,
   Monitor,
   Moon,
   Package,
@@ -23,7 +23,6 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 const Header = ({ pageType = 'home' }) => {
   const navigate = useNavigate();
@@ -108,7 +107,17 @@ const Header = ({ pageType = 'home' }) => {
     loadCustomerProfile();
     loadFavoritesCount();
 
-    return () => { isMounted = false; };
+    // Listen for favorites updates from other components
+    const handleFavoritesUpdate = () => {
+      loadFavoritesCount();
+    };
+
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+    };
   }, [user]);
 
   const headerPositionClass = (isHomePage || isCheckoutPage) ? 'fixed top-0 left-0 right-0' : 'sticky top-0';
@@ -139,7 +148,7 @@ const Header = ({ pageType = 'home' }) => {
   const signInButtonClass = useMemo(() => {
     if (isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage) {
       return scrolled
-        ? 'border-slate-200 bg-white text-slate-900 shadow-sm'
+        ? (isDarkMode ? 'border-slate-600 bg-slate-800 text-white shadow-sm' : 'border-slate-200 bg-white text-slate-900 shadow-sm')
         : isDarkMode
           ? 'border-white/20 bg-white/10 text-white backdrop-blur-sm'
           : isCheckoutPage
@@ -186,7 +195,7 @@ const Header = ({ pageType = 'home' }) => {
         ? 'border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900'
         : isSpecialPage || isFavoritePage || isCartPage
           ? scrolled
-            ? 'border-slate-200/80 shadow-[0_10px_25px_rgba(15,23,42,0.08)]'
+            ? 'border-slate-200/80 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.08)] dark:bg-slate-900 dark:border-slate-700'
             : 'border-transparent shadow-none'
           : isOverlay
             ? 'border-transparent shadow-none'
@@ -196,7 +205,7 @@ const Header = ({ pageType = 'home' }) => {
         isCheckoutPage
           ? { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', backdropFilter: 'blur(16px)' }
           : isSpecialPage || isFavoritePage || isCartPage
-            ? { backgroundColor: scrolled ? '#ffffff' : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)' }
+            ? { backgroundColor: scrolled ? (isDarkMode ? '#0f172a' : '#ffffff') : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)' }
             : undefined
       }
     >
@@ -209,17 +218,16 @@ const Header = ({ pageType = 'home' }) => {
       )}
 
       {/* Mobile Drawer */}
-      <div className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}>
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600">
-              <Leaf className="h-5 w-5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden">
+                <img src={logo} alt="FarmConnect" className="h-full w-full object-cover" />
+              </div>
+              <span className="text-base font-black text-emerald-600">FarmConnect</span>
             </div>
-            <span className="text-base font-black text-emerald-600">FarmConnect</span>
-          </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
@@ -300,8 +308,8 @@ const Header = ({ pageType = 'home' }) => {
             </button>
 
             <Link to="/" className="flex flex-shrink-0 items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-md shadow-emerald-200 transition-transform hover:rotate-6">
-                <Leaf className="h-5 w-5 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-emerald-200 transition-transform hover:rotate-6">
+                <img src={logo} alt="FarmConnect" className="h-full w-full object-cover" />
               </div>
               {/* Text hidden on mobile, visible on desktop */}
               <div className="hidden md:flex flex-col">
@@ -360,27 +368,13 @@ const Header = ({ pageType = 'home' }) => {
           )}
 
           <div className="flex flex-shrink-0 items-center gap-2.5 md:gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${iconButtonClass}`} aria-label="Toggle Theme">
-                  {isDarkMode ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onClick={() => handleThemeChange('dark')} className="cursor-pointer">
-                  <Moon className="mr-2 h-4 w-4" />
-                  Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleThemeChange('system')} className="cursor-pointer">
-                  <Monitor className="mr-2 h-4 w-4" />
-                  System
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleThemeChange('light')} className="cursor-pointer">
-                  <Sun className="mr-2 h-4 w-4" />
-                  Light
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button
+              onClick={() => handleThemeChange(isDarkMode ? 'light' : 'dark')}
+              className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${iconButtonClass}`}
+              aria-label="Toggle Theme"
+            >
+              {isDarkMode ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+            </button>
 
             <Link to="/favorites" className={`relative hidden md:flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${iconButtonClass}`}>
               <Heart className={`h-4.5 w-4.5 transition-colors ${isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (scrolled ? 'text-slate-700 hover:text-emerald-600' : isDarkMode ? 'text-white hover:text-emerald-400' : 'text-slate-700 hover:text-emerald-600') : isOverlay ? 'text-white hover:text-emerald-300' : 'text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400'}`} />
@@ -392,59 +386,15 @@ const Header = ({ pageType = 'home' }) => {
             </Link>
 
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className={`hidden md:inline-flex items-center gap-2 rounded-full px-2 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 ${signInButtonClass}`} type="button">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white overflow-hidden">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-slate-600" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 border border-slate-200 bg-white p-2 shadow-lg text-left">
-                  <div className="mb-2 rounded-2xl bg-slate-50 p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white overflow-hidden">
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
-                        ) : (
-                          <span>{profileInitials}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{profileName}</p>
-                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <DropdownMenuItem onClick={() => navigate('/customer/profile')} className="flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-emerald-50 hover:text-slate-900">
-                    <User className="h-4 w-4 text-emerald-600" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/customer/orders')} className="flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-emerald-50 hover:text-slate-900">
-                    <BarChart3 className="h-4 w-4 text-emerald-600" />
-                    My Orders
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/customer/dashboard/reviews')} className="flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-emerald-50 hover:text-slate-900">
-                    <Star className="h-4 w-4 text-emerald-600" />
-                    My Reviews
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/customer/settings')} className="flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-emerald-50 hover:text-slate-900">
-                    <Settings className="h-4 w-4 text-emerald-600" />
-                    Settings
-                  </DropdownMenuItem>
-                  <div className="my-1 h-px bg-slate-200" />
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 rounded-xl px-2 py-2 text-red-600 hover:bg-red-50 hover:text-red-700">
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Link to="/customer/profile" className={`hidden md:inline-flex items-center gap-2 rounded-full px-2 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 ${signInButtonClass}`}>
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-4 w-4" />
+                  )}
+                </span>
+              </Link>
             ) : (
               <Link to="/login" className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 md:inline-flex ${signInButtonClass}`}>
                 <User className="h-4 w-4" />

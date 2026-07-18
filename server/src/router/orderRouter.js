@@ -3,9 +3,6 @@ const router = express.Router();
 const orderController = require('../controller/orderController');
 const { protect, adminOnly } = require('../middleware/auth');
 
-// Public routes (if needed for guest checkout)
-// router.post('/', orderController.createOrder);
-
 // Protected routes - require authentication
 router.use(protect);
 

@@ -4,13 +4,14 @@ import { useSearchParams, useNavigate, Link, useLocation } from 'react-router-do
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useFavorites } from '../../context/FavoritesContext';
 import api from '../../api';
-import { toast } from 'react-hot-toast';
-import { Heart, Star, ShoppingCart, ChevronLeft, Search, Sun, Moon, Monitor, Menu, X, User, Package, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { useCachedProducts, useLiveProductsPriceStock } from '../../hooks/useProducts';
+
+import { Heart, Star, ShoppingCart, ChevronLeft, Search, Sun, Moon, Monitor, Menu, X, User, Package, Settings, LogOut, ChevronRight, Grid, List } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 import Footer from '../../components/Footer';
@@ -23,93 +24,136 @@ const fmt = (n) => {
 };
 const calcOriginal = (price, discount) => fmt(price / (1 - discount / 100));
 
+// Define categories outside component to prevent re-creation
+const CATEGORIES = ['All', 'Vegetables', 'Fruits', 'Coffee', 'Legumes', 'Other'];
+
+const VendorBadge = ({ name, verified }) => (
+  <div className="flex items-center gap-1.5">
+    <div
+      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 shadow-sm"
+      style={{ background: `linear-gradient(135deg, hsl(${(name.charCodeAt(0) * 37) % 360}, 55%, 45%), hsl(${(name.charCodeAt(0) * 37) % 360}, 65%, 55%))` }}
+    >
+      {name[0]}
+    </div>
+    <span className="text-[10px] font-semibold text-neutral-500 truncate">{name}</span>
+    {verified && <Heart className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
+  </div>
+);
+
 const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => {
   const {
-    id, name, price, rating = 4.5, vendor = 'Fresh Vendor', vendorVerified = true,
-    image, reviewsCount = 0, discountPercent = 0, unit = 'kg', badge, description,
+    id, name, price, rating = 0, vendor = 'Fresh Vendor', vendorVerified = true,
+    image, reviewsCount = 0, hasDiscount: productHasDiscount = false, badges = [], isOrganic = false, unit = 'kg',
+    description, stock = 0, discountPrice, category,
   } = product;
 
-  const safePrice = Number(price) || 0;
-  const safeRating = Number(rating) || 0;
-  const safeReviewsCount = Number(reviewsCount) || 0;
-  const safeDiscountPercent = Number(discountPercent) || 0;
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setMousePos({ x, y });
+  };
+
+  const finalPrice = Number(price);
+  const stockStatus = stock > 20 ? 'In stock' : stock > 0 ? 'Low stock' : 'Out of stock';
+  const stockTone = stock > 20 ? 'text-emerald-600' : stock > 0 ? 'text-amber-600' : 'text-rose-600';
 
   return (
-    <Link to={`/product/${id}`} className="block">
-      <Card className="group bg-[var(--card)] rounded-lg sm:rounded-2xl border border-[var(--border)] hover:border-[var(--primary)] hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden">
-        <CardContent className="p-0">
-          {/* Image */}
-          <div className="relative w-full overflow-hidden bg-[var(--secondary)]" style={{ height: '120px' }}>
-            <img
-              src={image}
-              alt={name}
-              className="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition-transform duration-700 ease-out"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentNode.style.background = 'var(--secondary)';
-              }}
-            />
+    <Link to={`/product/${id}`} className="block h-full">
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:border-[var(--primary)]/40 hover:shadow-md">
+        <div
+          className="relative w-full overflow-hidden bg-[var(--secondary)]"
+          style={{ height: '140px' }}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsZoomed(true)}
+          onMouseLeave={() => setIsZoomed(false)}
+        >
+          <img
+            src={image}
+            alt={name}
+            className="h-full w-full object-cover transition-all duration-300 ease-out"
+            style={{
+              transform: isZoomed ? `scale(2)` : 'scale(1)',
+              transformOrigin: `${mousePos.x}% ${mousePos.y}%`
+            }}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentNode.style.background = '#f0fdf4';
+            }}
+          />
 
-            {/* Badges */}
-            <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-              {safeDiscountPercent > 0 && (
-                <Badge variant="destructive" className="text-[8px] font-extrabold px-2 py-0.5">
-                  {safeDiscountPercent}% OFF
-                </Badge>
-              )}
-              {badge && (
-                <Badge variant="secondary" className="text-[8px] font-extrabold px-2 py-0.5">
-                  {badge}
-                </Badge>
-              )}
-            </div>
-
-            {/* Favorite */}
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
-              className="absolute top-2 right-2 w-7 h-7 bg-[var(--card)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all z-10"
-            >
-              <Heart className={`w-3 h-3 transition-all ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-[var(--muted-foreground)]'}`} />
-            </button>
+          <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
+            {isOrganic && (
+              <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-950 shadow-sm">
+                Organic
+              </span>
+            )}
+            {/* Show other non-discount badges */}
+            {badges.filter(b => 
+                !(b.toLowerCase().includes('sale') || 
+                  b.toLowerCase().includes('discount') || 
+                  b.toLowerCase().includes('off'))
+            ).map((badge, idx) => (
+              <span key={idx} className="rounded-md bg-slate-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
+                {badge}
+              </span>
+            ))}
           </div>
-        </CardContent>
 
-        <CardContent className="flex-1 flex flex-col p-2 sm:p-5">
-          <h3 className="text-[11px] sm:text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] leading-tight line-clamp-1">
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
+            className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:scale-110"
+          >
+            <Heart className={`h-4 w-4 transition-all ${isFavorite ? 'fill-[var(--primary)] text-[var(--primary)]' : 'text-neutral-400'}`} />
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col p-2.5">
+          <VendorBadge name={vendor} verified={vendorVerified} />
+
+          <h3 className="mt-1 line-clamp-1 text-[12px] font-semibold leading-tight text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
             {name}
           </h3>
 
-          {/* Rating */}
-          <div className="flex items-center mt-1.5 gap-1">
-            <div className="flex gap-0">
+          {category && (
+            <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.16em] text-[var(--muted-foreground)]">{category}</p>
+          )}
+
+          {description && (
+            <p className="mt-1 line-clamp-2 text-[10px] text-[var(--muted-foreground)]">{description}</p>
+          )}
+
+          <div className="mt-1.5 flex items-center gap-1">
+            <div className="flex">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className={`w-2.5 h-2.5 ${i < Math.floor(safeRating) ? 'text-amber-400 fill-amber-400' : 'text-[var(--muted-foreground)]/30'}`} />
+                <Star key={i} className={`h-2.5 w-2.5 ${i < Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-neutral-200'}`} />
               ))}
             </div>
-            <span className="text-[9px] sm:text-xs text-[var(--muted-foreground)] font-medium">({safeReviewsCount})</span>
+            <span className="text-[9px] text-[var(--muted-foreground)]">{Number(rating || 0).toFixed(1)} • {reviewsCount.toLocaleString()}</span>
           </div>
 
-          {/* Price */}
-          <div className="mt-auto pt-2 flex items-center justify-between gap-1.5 border-t border-[var(--border)]">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-xs sm:text-lg font-extrabold text-[var(--primary)]">{fmt(safePrice)}</span>
-              {safeDiscountPercent > 0 && (
-                <span className="text-[9px] sm:text-xs text-[var(--muted-foreground)] line-through">{calcOriginal(safePrice, safeDiscountPercent)}</span>
-              )}
-              <span className="text-[8px] sm:text-xs text-[var(--muted-foreground)]">/{unit}</span>
-            </div>
-            <Button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
-              size="sm"
-              variant="default"
-              className="h-7 px-2.5 gap-1.5 text-xs font-bold"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add to Cart</span>
-            </Button>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-sm font-bold text-[var(--primary)]">{fmt(finalPrice)}</span>
+            <span className="text-[8px] text-[var(--muted-foreground)]">/{unit}</span>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="mt-1.5 flex items-center justify-between gap-2 text-[9px] text-[var(--muted-foreground)]">
+            <span className={`truncate ${stockTone}`}>{stockStatus}</span>
+            <span className="truncate">{vendor}</span>
+          </div>
+
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+            className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition-all hover:opacity-90"
+          >
+            <ShoppingCart className="h-3 w-3" />
+            Add
+          </button>
+        </div>
+      </div>
     </Link>
   );
 };
@@ -120,19 +164,51 @@ const Market = () => {
   const location = useLocation();
   const { addToCart, cart } = useCart();
   const { user, logout } = useAuth();
-
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  // Define available categories
-  const categories = ['All', 'Vegetables', 'Fruits', 'Coffee', 'Legumes', 'Other'];
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('grid');
+
+  // Use our custom hooks for products
+  const { data: cachedProductsData, isLoading: cachedProductsLoading } = useCachedProducts({
+    search: searchQuery || undefined,
+    category: selectedCategory && selectedCategory !== 'All' ? selectedCategory : undefined,
+    sortBy,
+    limit: 50
+  });
+  const productIds = cachedProductsData?.map(p => p.id) || [];
+  const { data: livePriceStockData } = useLiveProductsPriceStock(productIds);
+  
+  // Combine cached product data with live price/stock
+  const products = (cachedProductsData || []).map(cachedProduct => {
+    const liveData = livePriceStockData?.find(lp => lp.id === cachedProduct.id);
+    return {
+      ...cachedProduct,
+      id: cachedProduct.id ?? cachedProduct._id ?? cachedProduct.productId,
+      name: cachedProduct.name ?? 'Untitled product',
+      description: cachedProduct.description ?? '',
+      image: cachedProduct.image ?? cachedProduct.images?.[0] ?? '',
+      vendor: cachedProduct.vendor ?? cachedProduct.farmer?.farmName ?? cachedProduct.farmer?.name ?? 'Fresh Vendor',
+      category: cachedProduct.category ?? 'Other',
+      price: liveData?.price ?? 0,
+      discountPrice: liveData?.discountPrice ?? cachedProduct.cachedDiscountPrice,
+      stock: liveData?.stock ?? 0,
+      rating: cachedProduct.rating,
+      reviewsCount: cachedProduct.reviewsCount,
+      hasDiscount: cachedProduct.hasDiscount || !!liveData?.discountPrice,
+      badges: cachedProduct.badges || [],
+      isOrganic: cachedProduct.isOrganic,
+      unit: cachedProduct.unit
+    };
+  });
+  
+  const loading = cachedProductsLoading;
+
   // URL params
   const categoryParam = searchParams.get('cat');
   const searchParam = searchParams.get('search');
@@ -147,63 +223,9 @@ const Market = () => {
     }
   }, [searchParam]);
 
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get('/products', {
-          params: {
-            search: searchQuery || undefined,
-            category: selectedCategory && selectedCategory !== 'All' ? selectedCategory : undefined,
-            sortBy,
-            limit: 50
-          }
-        });
 
-        const payload = response?.data;
-        const productsData = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload?.products)
-            ? payload.products
-            : Array.isArray(payload)
-              ? payload
-              : [];
 
-        const mappedProducts = productsData.map((product) => ({
-          ...product,
-          id: product.id ?? product._id ?? product.productId,
-          name: product.name ?? 'Untitled product',
-          description: product.description ?? '',
-          image: product.image ?? product.photo ?? '',
-          vendor: product.vendor ?? product.farmer?.farmName ?? product.farmer?.name ?? 'Fresh Vendor',
-          category: product.category ?? 'Other',
-          price: Number(product.price) || 0,
-          stock: Number(product.stock ?? product.totalStock ?? 0) || 0,
-          rating: Number(product.rating) || 0,
-          reviewsCount: Number(product.reviewsCount) || 0,
-          discountPercent: Number(product.discountPercent) || 0,
-        }));
 
-        setProducts(mappedProducts);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [searchQuery, selectedCategory, sortBy]);
-
-  // Load favorites
-  useEffect(() => {
-    const savedFavorites = localStorage.getItem('favorites');
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
-    }
-  }, []);
 
   // Set initial category from URL
   useEffect(() => {
@@ -253,20 +275,14 @@ const Market = () => {
     setFilteredProducts(filtered);
   }, [products, selectedCategory, searchQuery, sortBy]);
 
-  const toggleFavorite = (id) => {
-    const isFav = favorites.includes(id);
-    const newFavorites = isFav ? favorites.filter(f => f !== id) : [...favorites, id];
-    setFavorites(newFavorites);
-    localStorage.setItem('favorites', JSON.stringify(newFavorites));
-    toast[isFav ? 'error' : 'success'](isFav ? 'Removed from wishlist' : 'Added to wishlist ❤️');
-  };
+
 
   const handleAddToCart = (product) => {
     addToCart({ ...product, _id: product.id });
-    toast.success(`${product.name} added to cart!`);
   };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const favoritesCount = favorites.length;
 
   if (loading) {
     return (
@@ -420,40 +436,103 @@ const Market = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 gap-6">
-          {/* Products Grid */}
-          <div className="col-span-1">
-            {filteredProducts.length === 0 ? (
-              <div className="bg-[var(--card)] rounded-xl p-8 sm:p-12 text-center border border-[var(--border)]">
-                <div className="text-4xl mb-4">🔍</div>
-                <h3 className="text-lg sm:text-xl font-bold text-[var(--foreground)] mb-2">No products found</h3>
-                <p className="text-[var(--muted-foreground)] text-xs sm:text-sm mb-4">Try adjusting your filters or search terms</p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('');
-                  }}
-                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-bold rounded-lg text-xs sm:text-sm transition-colors"
-                >
-                  View All Products
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={{ ...product, id: product.id }}
-                    isFavorite={favorites.includes(product.id)}
-                    onToggleFavorite={toggleFavorite}
-                    onAddToCart={handleAddToCart}
-                  />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Breadcrumb + Search Bar */}
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--primary)] transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+            Home
+          </Link>
+          {/* Search Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
+              }
+            }}
+            className="relative flex-1 sm:w-80"
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
+            <Input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 rounded-xl bg-[var(--card)] border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 transition-all shadow-sm"
+            />
+          </form>
+        </div>
+
+        {/* Page Title */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)] mb-2">All Products</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-[var(--muted-foreground)]">{filteredProducts.length} products found</p>
+              {/* Category Dropdown */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-40 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] px-3 py-2 focus:ring-2 focus:ring-[var(--primary)]/20 outline-none"
+              >
+                {CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
-              </div>
-            )}
+              </select>
+            </div>
+            {/* Sort Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-40 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] px-3 py-2 focus:ring-2 focus:ring-[var(--primary)]/20 outline-none"
+            >
+              <option value="newest">Featured</option>
+              <option value="rating">Best Sellers</option>
+              <option value="price-low">Price: Low → High</option>
+              <option value="price-high">Price: High → Low</option>
+            </select>
           </div>
         </div>
+
+        {/* Products Grid/List */}
+        {filteredProducts.length === 0 ? (
+          <div className="bg-[var(--card)] rounded-2xl p-12 sm:p-16 text-center border border-[var(--border)]">
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 rounded-full bg-[var(--secondary)] flex items-center justify-center">
+                <Search className="w-10 h-10 text-[var(--muted-foreground)]" />
+              </div>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-[var(--foreground)] mb-2">No products found</h3>
+            <p className="text-[var(--muted-foreground)] text-sm mb-6">No products match the current filters.</p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-[var(--primary-foreground)] font-bold rounded-xl transition-all shadow-lg hover:shadow-xl"
+            >
+              Clear Filters
+            </button>
+          </div>
+        ) : (
+          <div className={`grid gap-3 sm:gap-4 ${viewMode === 'grid'
+              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+              : 'grid-cols-1'
+            }`}>
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={{ ...product, id: product.id }}
+                isFavorite={isFavorite(String(product.id))}
+                onToggleFavorite={toggleFavorite}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <Footer />
     </div>

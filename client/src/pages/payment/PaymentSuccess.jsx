@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { Check, Loader2, Star } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import api from '../../api';
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
-  
+
   const [isVerifying, setIsVerifying] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
@@ -16,6 +17,7 @@ const PaymentSuccess = () => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [isSavingReview, setIsSavingReview] = useState(false);
 
   useEffect(() => {
     verifyPayment();
@@ -27,7 +29,7 @@ const PaymentSuccess = () => {
       const tx_ref = searchParams.get('tx_ref');
       const trx_ref = searchParams.get('trx_ref');
       const status = searchParams.get('status');
-      
+
       console.log('Payment callback params:', { tx_ref, trx_ref, status });
 
       if (!tx_ref && !trx_ref) {
@@ -38,15 +40,13 @@ const PaymentSuccess = () => {
 
       // Call backend to verify payment with Chapa
       const verifyResponse = await api.get(`/payments/chapa/verify?tx_ref=${transactionRef}`);
-      
+
       console.log('Verification response:', verifyResponse.data);
 
       const chapaStatus = verifyResponse.data?.data?.status || verifyResponse.data?.status;
       if (chapaStatus === 'success') {
         setVerificationStatus('success');
-        setOrderDetails(verifyResponse.data?.data || verifyResponse.data?.order || {});
-        clearCart();
-        setTimeout(() => navigate('/'), 5000);
+        setOrderDetails(verifyResponse.data?.order || verifyResponse.data?.data || {});
       } else {
         throw new Error(`Payment not completed. Status: ${chapaStatus || 'unknown'}`);
       }
@@ -60,26 +60,54 @@ const PaymentSuccess = () => {
     }
   };
 
-  const handleOkClick = () => {
-    // Log rating and comment
-    if (rating > 0 || comment.trim()) {
-      console.log('User Feedback:', { rating, comment });
-      
-      // Save to localStorage
-      const feedback = {
-        rating,
-        comment: comment.trim(),
-        timestamp: new Date().toISOString(),
-        orderId: orderDetails?.id || Date.now()
-      };
-      localStorage.setItem('lastOrderFeedback', JSON.stringify(feedback));
-      
-      // TODO: Send to backend API
-      // await api.post('/feedback', feedback);
+  const handleOkClick = async () => {
+    try {
+      if (!orderDetails?.orderCode && !orderDetails?.id) {
+        toast.error('Unable to save review: order not found.');
+        return;
+      }
+
+      const orderedProductIds = Array.from(
+        new Set(
+          (orderDetails.orderItems || [])
+            .map((item) => Number(item.product?.id || item.productId || item.product?.productId))
+            .filter(Boolean)
+        )
+      );
+
+      if (!orderedProductIds.length) {
+        toast.error('Unable to save review: no products were found in this order.');
+        return;
+      }
+
+      if (rating > 0 || comment.trim()) {
+        setIsSavingReview(true);
+
+        const reviewPromises = orderedProductIds.map((productId) =>
+          api.post('/reviews', {
+            productId,
+            orderId: orderDetails.id,
+            rating,
+            comment: comment.trim()
+          })
+        );
+
+        const responses = await Promise.all(reviewPromises);
+        const savedCount = responses.filter((response) => response?.data?.success).length;
+
+        if (savedCount > 0) {
+          toast.success(`Your review was saved for ${savedCount} product${savedCount !== 1 ? 's' : ''}.`);
+        }
+      }
+
+      clearCart();
+      navigate('/');
+    } catch (saveError) {
+      console.error('Payment success save review failed:', saveError);
+      toast.error(saveError.response?.data?.message || 'Failed to save review.');
+    } finally {
+      setIsSavingReview(false);
     }
-    
-    clearCart();
-    navigate('/');
   };
 
   if (isVerifying) {
@@ -140,7 +168,7 @@ const PaymentSuccess = () => {
         <div className="w-28 h-28 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
           <Check className="w-16 h-16" strokeWidth={3} />
         </div>
-        
+
         {/* Thank You Message in Amharic - Updated */}
         <h2 className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
           ትዕዛዝህን በስኬት አጠናቀሃል፣ እናመሰግናለን!
@@ -185,7 +213,7 @@ const PaymentSuccess = () => {
             <p className="text-gray-600 text-sm mb-4">
               Rate Our Service:
             </p>
-            
+
             {/* Interactive Star Rating */}
             <div className="flex items-center justify-center gap-2 mb-4">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -198,17 +226,16 @@ const PaymentSuccess = () => {
                   className="transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded"
                 >
                   <Star
-                    className={`w-12 h-12 transition-colors ${
-                      star <= (hoverRating || rating)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'fill-gray-200 text-gray-300'
-                    }`}
+                    className={`w-12 h-12 transition-colors ${star <= (hoverRating || rating)
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'fill-gray-200 text-gray-300'
+                      }`}
                     strokeWidth={1.5}
                   />
                 </button>
               ))}
             </div>
-            
+
             {rating > 0 && (
               <p className="text-emerald-600 font-semibold text-center text-sm animate-in fade-in duration-200">
                 ✓ You rated {rating} star{rating !== 1 ? 's' : ''}! Thank you for your feedback.
@@ -239,15 +266,24 @@ const PaymentSuccess = () => {
           </div>
         </div>
 
-        <button
-          onClick={handleOkClick}
-          className="w-full px-10 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all"
-        >
-          OK
-        </button>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <button
+            onClick={handleOkClick}
+            disabled={isSavingReview}
+            className={`w-full px-10 py-4 rounded-2xl font-bold text-lg transition-all ${isSavingReview ? 'bg-slate-300 text-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white hover:shadow-2xl hover:scale-105'}`}
+          >
+            {isSavingReview ? 'Saving...' : 'OK'}
+          </button>
+          <button
+            onClick={() => { clearCart(); navigate('/'); }}
+            className="w-full px-10 py-4 border-2 border-gray-300 text-gray-700 rounded-2xl font-bold hover:bg-gray-100 transition-all"
+          >
+            Cancel
+          </button>
+        </div>
 
         <p className="text-sm text-gray-500 mt-4">
-          Redirecting to home page in 5 seconds...
+          Press OK to save your review and return home, or Cancel to go home without saving.
         </p>
       </div>
     </div>

@@ -62,6 +62,15 @@ export const CartProvider = ({ children }) => {
     ));
   };
 
+  // Update quantity directly
+  const updateQuantity = (productId, newQuantity) => {
+    setCart(prevCart => prevCart.map(item =>
+      (item._id || item.id) === productId
+        ? { ...item, quantity: Math.max(1, Math.min(newQuantity, item.stock || 99)) }
+        : item
+    ));
+  };
+
 
   // Remove from cart handler
   const removeFromCart = (productId) => {
@@ -77,7 +86,7 @@ export const CartProvider = ({ children }) => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartCount, incrementQuantity, decrementQuantity }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, cartCount, incrementQuantity, decrementQuantity, updateQuantity }}>
       {children}
     </CartContext.Provider>
   );

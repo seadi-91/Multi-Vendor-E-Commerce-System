@@ -1,407 +1,573 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Header from '../../../components/Header';
-import Footer from '../../../components/Footer';
-import { useAuth } from '../../../context/AuthContext';
-import { useTheme } from '../../../context/ThemeContext';
-import api, { customerAPI } from '../../../api';
-// icons removed to display text-only profile
-import { toast } from 'react-hot-toast';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  User, Mail, Phone, MapPin, Package, Heart, Star, Store, Copy,
+  Check, X, ShoppingBag, ArrowLeft, Loader2, ChevronRight, Plus,
+} from 'lucide-react';
+import api, { customerAPI, favoritesAPI } from '../../../api';
 
-const STATUS_COLORS = {
-  pending: { bg: 'bg-amber-50 dark:bg-amber-950/30', text: 'text-amber-700 dark:text-amber-400' },
-  processing: { bg: 'bg-blue-50 dark:bg-blue-950/30', text: 'text-blue-700 dark:text-blue-400' },
-  shipped: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-400' },
-  delivered: { bg: 'bg-emerald-50 dark:bg-emerald-950/30', text: 'text-emerald-700 dark:text-emerald-400' },
-  cancelled: { bg: 'bg-rose-50 dark:bg-rose-950/30', text: 'text-rose-700 dark:text-rose-400' },
+/*
+  ── Design notes ─────────────────────────────────────────────
+  Palette:
+    ink       #12172B  (page background — deep marketplace-ledger navy)
+    inkSoft   #1C2340  (raised panels on ink)
+    paper     #FBF8F1  (card background — warm receipt paper)
+    gold      #C9A227  (brass accent — stamps, dividers, active states)
+    goldDeep  #8B6F1D  (pressed / hover)
+    slate     #6B7280  (secondary text on paper)
+    cream     #EDE7D9  (secondary text on ink)
+    success   #2F7D5D
+    coral     #C1494B
+  Type:
+    Display  → 'Fraunces'        (ticket serial, name, section titles)
+    Body     → 'Inter'           (everything else)
+    Mono     → 'IBM Plex Mono'   (IDs, order numbers, amounts)
+  Signature:
+    The profile identity card is styled as a torn marketplace
+    "membership ticket" — a stub + counterfoil split by a dashed
+    tear-line with punched notches, the way a physical market
+    vendor stall pass or receipt is printed.
+  ─────────────────────────────────────────────────────────────
+*/
+
+const COLORS = {
+  ink: '#12172B',
+  inkSoft: '#1C2340',
+  inkLine: '#2A3150',
+  paper: '#FBF8F1',
+  paperDim: '#F1ECDE',
+  gold: '#C9A227',
+  goldDeep: '#8B6F1D',
+  slate: '#6B7280',
+  cream: '#EDE7D9',
+  success: '#2F7D5D',
+  coral: '#C1494B',
 };
 
-const normalizeOrder = (o) => ({
-  ...o,
-  orderNumber: o.orderCode || `#${String(o.id || '').slice(-6).toUpperCase()}`,
-  date: new Date(o.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  status: (o.status || 'pending').toLowerCase(),
-  total: Number(o.total || o.subtotal || 0),
-  vendor: o.orderItems?.[0]?.product?.farmer?.name || 'Marketplace',
-  itemCount: (o.orderItems || o.items || []).length,
-});
+// ---- Mock data (swap for customerAPI.getProfile() / useAuth() in production) ----
+const MOCK_USER = {
+  id: 'CUS-224871',
+  name: 'Selam Bekele',
+  email: 'selam.bekele@example.com',
+  phone: '+251 91 234 5678',
+  city: 'Addis Ababa',
+  subcity: 'Bole',
+  fullAddress: 'Bole Road, near Edna Mall, House No. 14',
+  tier: 'Gold Member',
+  memberSince: 'Mar 2023',
+};
 
-const Avatar = ({ src, name, size = 'lg' }) => {
-  const initials = (name || 'U').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-  const dim = size === 'lg' ? 'h-20 w-20 text-2xl' : 'h-10 w-10 text-sm';
-  return src ? (
-    <img src={src} alt={name} className={`${dim} rounded-full object-cover ring-4 ring-emerald-100 dark:ring-emerald-900/40`} />
-  ) : (
-    <div className={`${dim} rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white ring-4 ring-emerald-100 dark:ring-emerald-900/40`}>
-      {initials}
+const MOCK_STATS = [
+  { label: 'Orders placed', value: 0, icon: Package },
+  { label: 'Wishlist items', value: 0, icon: Heart },
+  { label: 'Vendors followed', value: 0, icon: Store },
+  { label: 'Reviews written', value: 0, icon: Star },
+];
+
+const MOCK_ORDERS = [];
+
+const MOCK_ADDRESSES = [];
+
+const STATUS_STYLE = {
+  'Delivered': { bg: 'rgba(47,125,93,0.12)', fg: COLORS.success },
+  'In transit': { bg: 'rgba(201,162,39,0.15)', fg: COLORS.goldDeep },
+  'Cancelled': { bg: 'rgba(193,73,75,0.12)', fg: COLORS.coral },
+};
+
+function useCopy() {
+  const [copiedKey, setCopiedKey] = useState('');
+  const copy = (key, text) => {
+    if (navigator?.clipboard) navigator.clipboard.writeText(text).catch(() => { });
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(''), 1500);
+  };
+  return { copiedKey, copy };
+}
+
+const Fonts = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+    .f-display { font-family: 'Fraunces', serif; }
+    .f-body { font-family: 'Inter', sans-serif; }
+    .f-mono { font-family: 'IBM Plex Mono', monospace; }
+    .tear-divider {
+      background-image: repeating-linear-gradient(to bottom, ${COLORS.slate}55 0 6px, transparent 6px 14px);
+      width: 2px;
+    }
+    .notch { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: ${COLORS.ink}; }
+    .stat-tile:hover { transform: translateY(-2px); }
+    .order-row:hover { background: ${COLORS.paperDim}; }
+    .fade-in { animation: fadeIn 0.35s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    ::selection { background: ${COLORS.gold}55; }
+  `}</style>
+);
+
+const Tab = ({ active, onClick, children, icon: Icon }) => (
+  <button
+    onClick={onClick}
+    className="f-body"
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '10px 18px',
+      borderRadius: 999,
+      fontSize: 13.5,
+      fontWeight: 600,
+      letterSpacing: 0.2,
+      border: `1px solid ${active ? COLORS.gold : COLORS.inkLine}`,
+      background: active ? COLORS.gold : 'transparent',
+      color: active ? COLORS.ink : COLORS.cream,
+      cursor: 'pointer',
+      transition: 'all 0.18s ease',
+      whiteSpace: 'nowrap',
+    }}
+  >
+    <Icon size={15} />
+    {children}
+  </button>
+);
+
+const StatTile = ({ icon: Icon, label, value }) => (
+  <div
+    className="stat-tile"
+    style={{
+      background: COLORS.paper,
+      borderRadius: 14,
+      padding: '16px 16px',
+      border: `1px solid ${COLORS.paperDim}`,
+      transition: 'transform 0.18s ease',
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <div style={{ width: 30, height: 30, borderRadius: 9, background: COLORS.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon size={15} color={COLORS.gold} />
+      </div>
     </div>
-  );
-};
+    <p className="f-mono" style={{ fontSize: 24, fontWeight: 600, color: COLORS.ink, lineHeight: 1 }}>{value}</p>
+    <p className="f-body" style={{ fontSize: 12, color: COLORS.slate, marginTop: 6 }}>{label}</p>
+  </div>
+);
 
-const InfoRow = ({ icon: Icon, label, value }) => {
-  if (!value) return null;
+const CopyField = ({ icon: Icon, label, value, copyKey, copiedKey, onCopy }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px' }}>
+    <div style={{ width: 34, height: 34, borderRadius: 10, background: COLORS.paperDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon size={15} color={COLORS.goldDeep} />
+    </div>
+    <div style={{ minWidth: 0, flex: 1 }}>
+      <p className="f-body" style={{ fontSize: 10.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, color: COLORS.slate }}>{label}</p>
+      <p className="f-mono" style={{ fontSize: 13.5, color: COLORS.ink, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
+    </div>
+    <button
+      onClick={() => onCopy(copyKey, value)}
+      title="Copy"
+      style={{
+        width: 30, height: 30, borderRadius: 8, border: `1px solid ${COLORS.paperDim}`,
+        background: copiedKey === copyKey ? COLORS.success : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {copiedKey === copyKey ? <Check size={14} color="#fff" /> : <Copy size={14} color={COLORS.slate} />}
+    </button>
+  </div>
+);
+
+const MembershipTicket = ({ user }) => {
+  const initials = useMemo(() => {
+    if (!user?.name) return '??';
+    return user.name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
+  }, [user?.name]);
+
+  const tierLabel = (user?.tier || 'Member').toUpperCase();
+  const displayName = user?.name || 'Customer';
+  const memberSince = user?.memberSince || 'N/A';
+  const emailValue = user?.email || 'Not provided';
+  const phoneValue = user?.phone || 'Not provided';
+  const userId = user?.id || 'N/A';
+
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-[var(--border)] last:border-0">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">{label}</p>
-        <p className="mt-0.5 text-sm font-medium text-[var(--foreground)] break-words">{value}</p>
+    <div style={{
+      position: 'relative', display: 'flex', background: COLORS.paper, borderRadius: 18,
+      overflow: 'visible', boxShadow: '0 14px 34px rgba(0,0,0,0.28)',
+    }}>
+      <div className="notch" style={{ left: -13, top: '50%', transform: 'translateY(-50%)' }} />
+      <div className="notch" style={{ right: -13, top: '50%', transform: 'translateY(-50%)' }} />
+
+      {/* Stub */}
+      <div style={{
+        width: 168, flexShrink: 0, padding: '22px 16px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 58, height: 58, borderRadius: '50%', background: COLORS.ink,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <span className="f-display" style={{ color: COLORS.gold, fontSize: 20 }}>{initials}</span>
+        </div>
+        <span className="f-mono" style={{
+          fontSize: 10, letterSpacing: 0.8, color: COLORS.goldDeep, background: 'rgba(201,162,39,0.15)',
+          padding: '4px 9px', borderRadius: 999, fontWeight: 600,
+        }}>
+          {tierLabel}
+        </span>
+        <p className="f-body" style={{ fontSize: 10.5, color: COLORS.slate }}>Member since {memberSince}</p>
+      </div>
+
+      <div className="tear-divider" />
+
+      {/* Counterfoil */}
+      <div style={{ flex: 1, padding: '20px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <p className="f-body" style={{ fontSize: 10.5, letterSpacing: 1, color: COLORS.slate, textTransform: 'uppercase', fontWeight: 600 }}>Marketplace pass</p>
+            <h2 className="f-display" style={{ fontSize: 24, color: COLORS.ink, marginTop: 2, lineHeight: 1.15 }}>{displayName}</h2>
+            <p className="f-mono" style={{ fontSize: 12.5, color: COLORS.goldDeep, marginTop: 4 }}>{userId}</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 18, marginTop: 14, flexWrap: 'wrap' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: COLORS.slate }}>
+            <Mail size={13} color={COLORS.goldDeep} /> {emailValue}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: COLORS.slate }}>
+            <Phone size={13} color={COLORS.goldDeep} /> {phoneValue}
+          </span>
+        </div>
       </div>
     </div>
   );
 };
 
-const StatCard = ({ label, value }) => (
-  <div className="flex flex-col gap-1 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
-    <p className="mt-2 text-2xl font-bold text-[var(--foreground)]">{value}</p>
-    <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
+const OverviewTab = ({ user, stats, copiedKey, onCopy }) => (
+  <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+    {[
+      { label: 'Orders placed', value: stats.orders, icon: Package },
+      { label: 'Wishlist items', value: stats.wishlist, icon: Heart },
+      { label: 'Vendors followed', value: stats.vendors, icon: Store },
+      { label: 'Reviews written', value: stats.reviews, icon: Star },
+    ].map((s) => <StatTile key={s.label} {...s} />)}
+    <div style={{ gridColumn: '1 / -1', background: COLORS.paper, borderRadius: 16, padding: '6px 16px', border: `1px solid ${COLORS.paperDim}`, marginTop: 4 }}>
+      <p className="f-body" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: COLORS.slate, textTransform: 'uppercase', padding: '12px 4px 0' }}>Contact details</p>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <CopyField icon={User} label="Customer ID" value={user.id} copyKey="id" copiedKey={copiedKey} onCopy={onCopy} />
+        <div style={{ height: 1, background: COLORS.paperDim }} />
+        <CopyField icon={Mail} label="Email address" value={user.email} copyKey="email" copiedKey={copiedKey} onCopy={onCopy} />
+        <div style={{ height: 1, background: COLORS.paperDim }} />
+        <CopyField icon={Phone} label="Phone number" value={user.phone} copyKey="phone" copiedKey={copiedKey} onCopy={onCopy} />
+      </div>
+    </div>
+  </div>
+);
+
+const OrdersTab = ({ orders }) => {
+  const orderCount = orders.length;
+
+  return (
+    <div className="fade-in" style={{ background: COLORS.paper, borderRadius: 16, border: `1px solid ${COLORS.paperDim}`, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: `1px solid ${COLORS.paperDim}` }}>
+        <div>
+          <p className="f-body" style={{ fontSize: 11, letterSpacing: 0.7, color: COLORS.slate, textTransform: 'uppercase', marginBottom: 4 }}>All orders</p>
+          <p className="f-display" style={{ fontSize: 20, color: COLORS.ink, margin: 0 }}>{orderCount} order{orderCount === 1 ? '' : 's'}</p>
+        </div>
+      </div>
+      {orderCount ? orders.map((o, i) => {
+        const st = STATUS_STYLE[o.status] || { bg: COLORS.paperDim, fg: COLORS.slate };
+        const statusText = o.status || 'Unknown';
+        return (
+          <div key={o.id || o.orderCode || i} className="order-row" style={{
+            display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
+            borderBottom: i < orderCount - 1 ? `1px solid ${COLORS.paperDim}` : 'none',
+            transition: 'background 0.15s ease',
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: COLORS.paperDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <ShoppingBag size={16} color={COLORS.goldDeep} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p className="f-body" style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{o.vendor}</p>
+              <p className="f-mono" style={{ fontSize: 11.5, color: COLORS.slate, marginTop: 2 }}>{o.orderCode || o.id} · {o.date}</p>
+            </div>
+            <span className="f-body" style={{ fontSize: 11.5, fontWeight: 600, padding: '5px 10px', borderRadius: 999, background: st.bg, color: st.fg, flexShrink: 0 }}>
+              {statusText}
+            </span>
+            <p className="f-mono" style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink, width: 78, textAlign: 'right', flexShrink: 0 }}>
+              {o.total.toLocaleString()} ETB
+            </p>
+            <ChevronRight size={16} color={COLORS.slate} style={{ flexShrink: 0 }} />
+          </div>
+        );
+      }) : (
+        <div style={{ padding: 24, textAlign: 'center', color: COLORS.slate }}>
+          <p className="f-body" style={{ fontSize: 14, marginBottom: 8 }}>No orders found yet.</p>
+          <p className="f-body" style={{ fontSize: 12 }}>Your order history will appear here once you place an order.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AddressesTab = ({ addresses, showAddressForm, addressForm, setAddressForm, onAddAddress, onToggleForm, onCancelForm, addressSaving }) => (
+  <div className="fade-in" style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+      {addresses.map((a) => {
+        const fullAddress = a.fullAddress || a.street || a.address || '';
+        const city = a.city || '';
+        const subcity = a.subcity || '';
+        const label = a.label || 'Address';
+        return (
+          <div key={a.id || label} style={{ background: COLORS.paper, borderRadius: 16, padding: 18, border: `1px solid ${COLORS.paperDim}`, position: 'relative' }}>
+            {a.isDefault && (
+              <span className="f-body" style={{ position: 'absolute', top: 14, right: 14, fontSize: 10, fontWeight: 700, letterSpacing: 0.4, color: COLORS.goldDeep, background: 'rgba(201,162,39,0.15)', padding: '3px 8px', borderRadius: 999 }}>
+                DEFAULT
+              </span>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <MapPin size={16} color={COLORS.goldDeep} />
+              <p className="f-display" style={{ fontSize: 16, color: COLORS.ink }}>{label}</p>
+            </div>
+            <p className="f-body" style={{ fontSize: 13, color: COLORS.slate, lineHeight: 1.6 }}>
+              {fullAddress}<br />{subcity}{city ? `, ${city}` : ''}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+
+    {showAddressForm ? (
+      <form onSubmit={onAddAddress} style={{ background: COLORS.paper, borderRadius: 16, padding: 18, border: `1px solid ${COLORS.paperDim}` }}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            <div>
+              <label className="f-body" style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 }}>Label</label>
+              <input
+                value={addressForm.label}
+                onChange={(e) => setAddressForm((f) => ({ ...f, label: e.target.value }))}
+                className="f-body"
+                style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: `1px solid ${COLORS.paperDim}`, fontSize: 14, color: COLORS.ink, outline: 'none', background: '#fff' }}
+                placeholder="Home"
+              />
+            </div>
+            <div>
+              <label className="f-body" style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 }}>City</label>
+              <input
+                value={addressForm.city}
+                onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))}
+                className="f-body"
+                style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: `1px solid ${COLORS.paperDim}`, fontSize: 14, color: COLORS.ink, outline: 'none', background: '#fff' }}
+                placeholder="Addis Ababa"
+              />
+            </div>
+            <div>
+              <label className="f-body" style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 }}>Sub-city</label>
+              <input
+                value={addressForm.subcity}
+                onChange={(e) => setAddressForm((f) => ({ ...f, subcity: e.target.value }))}
+                className="f-body"
+                style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: `1px solid ${COLORS.paperDim}`, fontSize: 14, color: COLORS.ink, outline: 'none', background: '#fff' }}
+                placeholder="Bole"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="f-body" style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full address</label>
+            <textarea
+              value={addressForm.fullAddress}
+              onChange={(e) => setAddressForm((f) => ({ ...f, fullAddress: e.target.value }))}
+              className="f-body"
+              style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: `1px solid ${COLORS.paperDim}`, fontSize: 14, color: COLORS.ink, outline: 'none', background: '#fff', minHeight: 90, resize: 'vertical' }}
+              placeholder="House number, street, landmark"
+            />
+          </div>
+          <label className="f-body" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: COLORS.slate }}>
+            <input
+              type="checkbox"
+              checked={addressForm.isDefault}
+              onChange={(e) => setAddressForm((f) => ({ ...f, isDefault: e.target.checked }))}
+            />
+            Set as default address
+          </label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" disabled={addressSaving} className="f-body" style={{ padding: '10px 14px', borderRadius: 10, border: 'none', background: COLORS.ink, color: COLORS.paper, fontWeight: 600, cursor: 'pointer' }}>
+              {addressSaving ? 'Saving…' : 'Save address'}
+            </button>
+            <button type="button" onClick={onCancelForm} className="f-body" style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${COLORS.paperDim}`, background: 'transparent', color: COLORS.ink, fontWeight: 600, cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
+    ) : (
+      <button onClick={onToggleForm} className="f-body" style={{
+        background: 'transparent', border: `1.5px dashed ${COLORS.paperDim}`, borderRadius: 16, minHeight: 110,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+        color: COLORS.slate, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+      }}>
+        <Plus size={18} /> Add new address
+      </button>
+    )}
   </div>
 );
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const { user: authUser } = useAuth();
-  const { theme } = useTheme();
-  const [profile, setProfile] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [addresses, setAddresses] = useState([]);
-  const [favCount, setFavCount] = useState(0);
+  const [favorites, setFavorites] = useState([]);
+  const [myReviews, setMyReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('info');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addrForm, setAddrForm] = useState({ label: '', fullName: '', phone: '', city: '', subcity: '', street: '', isDefault: false });
-  const [saving, setSaving] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [tab, setTab] = useState('overview');
+  const [addresses, setAddresses] = useState([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressForm, setAddressForm] = useState({ label: 'Home', fullAddress: '', city: '', subcity: '', isDefault: false });
+  const [addressSaving, setAddressSaving] = useState(false);
+  const { copiedKey, copy } = useCopy();
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    if (theme === 'dark') {
-      root.style.setProperty('--background', 'oklch(0.145 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--card', 'oklch(0.205 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
-      root.style.setProperty('--muted-foreground', 'oklch(0.708 0 0)');
-      root.style.setProperty('--secondary', 'oklch(0.269 0 0)');
-      root.style.setProperty('--primary', '#059669');
-    } else {
-      root.style.setProperty('--background', '#f8fafc');
-      root.style.setProperty('--foreground', '#0f172a');
-      root.style.setProperty('--card', '#ffffff');
-      root.style.setProperty('--card-foreground', '#0f172a');
-      root.style.setProperty('--border', '#e2e8f0');
-      root.style.setProperty('--muted-foreground', '#64748b');
-      root.style.setProperty('--secondary', '#f1f5f9');
-      root.style.setProperty('--primary', '#059669');
-    }
-  }, [theme]);
+  const normalizeOrders = (rawOrders = []) => rawOrders.map((order) => {
+    const createdAt = new Date(order.createdAt || order.updatedAt || Date.now());
+    const vendorName = order.vendor
+      || order.restaurant
+      || order.orderItems?.[0]?.product?.farmer?.farmName
+      || order.orderItems?.[0]?.product?.farmer?.name
+      || 'Marketplace';
+    const statusRaw = order.status || order.paymentStatus || 'Unknown';
+    const statusLabel = String(statusRaw).replace(/^./, (char) => char.toUpperCase());
+    const totalAmount = Number(order.total ?? order.subtotal ?? ((order.deliveryFee || 0) + (order.tax || 0))) || 0;
 
-  useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [profileRes, ordersRes, addressesRes, favsRes] = await Promise.allSettled([
-          customerAPI.getProfile(),
-          api.get('/orders'),
-          customerAPI.getAddresses(),
-          api.get('/favorites'),
-        ]);
-
-        if (!mounted) return;
-
-        if (profileRes.status === 'fulfilled') {
-          setProfile(profileRes.value.data);
-        }
-
-        if (ordersRes.status === 'fulfilled') {
-          const raw = ordersRes.value.data;
-          const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-          setOrders(list.map(normalizeOrder));
-        }
-
-        if (addressesRes.status === 'fulfilled') {
-          setAddresses(addressesRes.value.data?.addresses || []);
-        }
-
-        if (favsRes.status === 'fulfilled') {
-          const raw = favsRes.value.data;
-          const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-          setFavCount(list.length);
-        }
-      } catch (err) {
-        console.error('Profile load error:', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
+    return {
+      id: order.id || order.orderCode || `${Math.random()}`,
+      orderCode: order.orderCode || `ORD-${String(order.id || '').padStart(5, '0')}`,
+      vendor: vendorName,
+      date: createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: statusLabel,
+      total: totalAmount,
+      raw: order,
     };
+  });
 
-    load();
-    return () => { mounted = false; };
+  const loadProfileData = async () => {
+    try {
+      setLoading(true);
+      setProfileError('');
+
+      const [profileRes, addressesRes, ordersRes, favoritesRes, reviewsRes] = await Promise.all([
+        customerAPI.getProfile(),
+        customerAPI.getAddresses(),
+        customerAPI.getOrders(),
+        favoritesAPI.getFavorites(),
+        api.get('/reviews/me'),
+      ]);
+
+      setCustomerData(profileRes.data);
+      setAddresses(addressesRes.data?.addresses || []);
+      setOrders(normalizeOrders(Array.isArray(ordersRes.data) ? ordersRes.data : ordersRes.data?.data || []));
+      setFavorites(Array.isArray(favoritesRes.data?.data) ? favoritesRes.data.data : []);
+      setMyReviews(Array.isArray(reviewsRes.data?.data) ? reviewsRes.data.data : []);
+    } catch (error) {
+      console.error('Error loading profile dashboard data:', error);
+      setCustomerData((prev) => prev || null);
+      setProfileError(error?.response?.data?.message || 'Unable to load profile details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfileData();
   }, []);
 
-  const handleAddAddress = async (e) => {
+  const handleBack = () => {
+    if (window.history.length > 1) window.history.back();
+  };
+
+  const handleAddAddress = (e) => {
     e.preventDefault();
-    const { label, fullName, phone, city, subcity, street } = addrForm;
-    if (!label || !fullName || !phone || !city || !subcity || !street) {
-      toast.error('Please fill in all address fields');
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await customerAPI.addAddress(addrForm);
-      setAddresses((prev) => [...prev, res.data.address]);
-      setAddrForm({ label: '', fullName: '', phone: '', city: '', subcity: '', street: '', isDefault: false });
-      setShowAddForm(false);
-      toast.success('Address saved');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save address');
-    } finally {
-      setSaving(false);
-    }
+    if (!addressForm.label.trim() || !addressForm.fullAddress.trim() || !addressForm.city.trim() || !addressForm.subcity.trim()) return;
+
+    setAddressSaving(true);
+    window.setTimeout(() => {
+      const newAddress = { ...addressForm, id: `${Date.now()}` };
+      setAddresses((prev) => [newAddress, ...prev]);
+      setAddressForm({ label: 'Home', fullAddress: '', city: '', subcity: '', isDefault: false });
+      setShowAddressForm(false);
+      setAddressSaving(false);
+    }, 350);
   };
 
-  const handleDeleteAddress = async (id) => {
-    try {
-      await customerAPI.deleteAddress(id);
-      setAddresses((prev) => prev.filter((a) => (a.id || a._id) !== id));
-      toast.success('Address removed');
-    } catch {
-      toast.error('Failed to remove address');
-    }
+  const resetAddressForm = () => {
+    setShowAddressForm(false);
+    setAddressForm({ label: 'Home', fullAddress: '', city: '', subcity: '', isDefault: false });
   };
-
-  const totalReviews = orders.reduce((n, o) => n + (o.reviews?.length || 0), 0);
-  const uniqueVendors = new Set(orders.flatMap((o) => o.orderItems?.map((i) => i.product?.farmer?.id).filter(Boolean) || [])).size;
-
-  const tabs = [
-    { key: 'info', label: 'Profile Info' },
-    { key: 'orders', label: `Orders (${orders.length})` },
-    { key: 'addresses', label: 'Addresses' },
-  ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
-      <Header pageType="profile" />
-
-      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+    <div className="f-body" style={{ minHeight: '100vh', background: COLORS.ink, padding: '28px 16px 60px' }}>
+      <Fonts />
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <button
-          onClick={() => navigate(-1)}
-          className="mb-6 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          onClick={handleBack}
+          className="f-body"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent',
+            border: `1px solid ${COLORS.inkLine}`, color: COLORS.cream, borderRadius: 999,
+            padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 20,
+          }}
         >
-          Back
+          <ArrowLeft size={15} /> Back
         </button>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-32 text-[var(--muted-foreground)]">
-            <span className="text-sm">Loading profile…</span>
-          </div>
-        ) : !profile ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-10 text-center">
-            <p className="mt-3 text-sm text-[var(--muted-foreground)]">Could not load profile. Please refresh.</p>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 220,
+            color: COLORS.cream, fontSize: 14,
+          }}>
+            <Loader2 size={18} className="animate-spin" /> Loading your profile…
           </div>
         ) : (
           <>
-            {/* ── Profile Header Card ── */}
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-                <Avatar src={profile.profileImage} name={profile.name} size="lg" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-xl font-bold text-[var(--foreground)]">{profile.name}</h1>
-                    {profile.isVerified && (
-                      <span className="text-xs font-semibold text-emerald-600">Verified</span>
-                    )}
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${profile.isActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-rose-50 text-rose-700'}`}>
-                      {profile.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  {profile.username && (
-                    <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">@{profile.username}</p>
-                  )}
-                  {profile.bio && (
-                    <p className="mt-2 text-sm text-[var(--foreground)] leading-relaxed max-w-lg">{profile.bio}</p>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted-foreground)]">
-                    <span>{profile.email}</span>
-                    {profile.phone && <span>{profile.phone}</span>}
-                    {profile.city && <span>{profile.city}</span>}
-                    <span>Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                  </div>
+            {profileError && (
+              <div style={{ background: 'rgba(193,73,75,0.15)', color: '#F3C6C7', borderRadius: 12, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
+                {profileError}
+              </div>
+            )}
+
+            {customerData ? (
+              <MembershipTicket user={customerData} />
+            ) : (
+              <div style={{ background: COLORS.paper, borderRadius: 18, padding: 24, color: COLORS.ink, minHeight: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <p className="f-body" style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Profile data unavailable</p>
+                  <p className="f-body" style={{ fontSize: 14, color: COLORS.slate }}>{profileError || 'Please refresh the page to try again.'}</p>
                 </div>
-                <button
-                  onClick={() => navigate('/customer/settings')}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm font-medium text-[var(--foreground)] hover:border-emerald-400 transition-colors flex-shrink-0"
-                >
-                  Edit Profile
-                </button>
-              </div>
-            </div>
-
-            {/* ── Stats Row ── */}
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label="Orders" value={orders.length} />
-              <StatCard label="Favorites" value={favCount} />
-              <StatCard label="Reviews" value={totalReviews} />
-              <StatCard label="Vendors" value={uniqueVendors} />
-            </div>
-
-            {/* ── Tabs ── */}
-            <div className="mt-6 flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] p-1">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${tab === t.key
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                    }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* ── Tab: Profile Info ── */}
-            {tab === 'info' && (
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-[var(--muted-foreground)]">Personal Information</h2>
-                <InfoRow label="Full Name" value={profile.name} />
-                <InfoRow label="Email" value={profile.email} />
-                <InfoRow label="Phone" value={profile.phone} />
-                <InfoRow label="City" value={profile.city} />
-                <InfoRow label="Sub-city" value={profile.subcity} />
-                <InfoRow label="Address" value={profile.fullAddress || profile.address} />
-                <InfoRow label="Country" value={profile.country} />
-                <InfoRow label="Language" value={profile.language} />
-                <InfoRow label="Timezone" value={profile.timezone} />
-                <InfoRow label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : null} />
-                <InfoRow label="Member Since" value={new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} />
-                <InfoRow label="Account Status" value={profile.accountStatus} />
-                <InfoRow label="Role" value={profile.role} />
               </div>
             )}
 
-            {/* ── Tab: Orders ── */}
-            {tab === 'orders' && (
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
-                {orders.length === 0 ? (
-                  <div className="p-10 text-center">
-                    <p className="mt-3 text-sm text-[var(--muted-foreground)]">No orders yet</p>
-                    <button onClick={() => navigate('/market')} className="mt-4 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors">
-                      Browse Market
-                    </button>
-                  </div>
-                ) : (
-                  orders.map((o, i) => {
-                    const sc = STATUS_COLORS[o.status] || STATUS_COLORS.pending;
-                    return (
-                      <div
-                        key={o.id || i}
-                        onClick={() => navigate(`/customer/orders/${o.id}`)}
-                        className="flex items-center gap-4 px-5 py-4 border-b border-[var(--border)] last:border-0 hover:bg-[var(--secondary)] cursor-pointer transition-colors"
-                      >
+            <div style={{ display: 'flex', gap: 8, marginTop: 26, marginBottom: 18, overflowX: 'auto', paddingBottom: 2 }}>
+              <Tab active={tab === 'overview'} onClick={() => setTab('overview')} icon={User}>Overview</Tab>
+              <Tab active={tab === 'orders'} onClick={() => setTab('orders')} icon={Package}>Orders</Tab>
+              <Tab active={tab === 'addresses'} onClick={() => setTab('addresses')} icon={MapPin}>Addresses</Tab>
+            </div>
 
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--foreground)] truncate">{o.vendor}</p>
-                          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{o.orderNumber} · {o.date} · {o.itemCount} item{o.itemCount !== 1 ? 's' : ''}</p>
-                        </div>
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize flex-shrink-0 ${sc.bg} ${sc.text}`}>
-                          {o.status}
-                        </span>
-                        <p className="text-sm font-bold text-[var(--foreground)] w-20 text-right flex-shrink-0">
-                          ${o.total.toFixed(2)}
-                        </p>
-
-                      </div>
-                    );
-                  })
-                )}
+            {tab === 'overview' && customerData && <OverviewTab user={customerData} stats={{ orders: orders.length, wishlist: favorites.length, vendors: new Set(favorites.map((item) => item.product?.farmer?.id || item.product?.farmer?.name).filter(Boolean)).size, reviews: myReviews.length }} copiedKey={copiedKey} onCopy={copy} />}
+            {tab === 'overview' && !customerData && (
+              <div style={{ background: COLORS.paper, borderRadius: 16, padding: 20, color: COLORS.ink }}>
+                <p className="f-body" style={{ fontSize: 14, color: COLORS.slate }}>Profile details are unavailable right now. Refresh the page to retry.</p>
               </div>
             )}
-
-            {/* ── Tab: Addresses ── */}
+            {tab === 'orders' && <OrdersTab orders={orders} />}
             {tab === 'addresses' && (
-              <div className="mt-4 space-y-3">
-                {addresses.length === 0 && !showAddForm && (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
-                    <p className="mt-2 text-sm text-[var(--muted-foreground)]">No saved addresses</p>
-                  </div>
-                )}
-
-                {addresses.map((a) => (
-                  <div key={a.id || a._id} className="flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-[var(--foreground)]">{a.label}</p>
-                        {a.isDefault && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">Default</span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                        {[a.fullName, a.street, a.subcity, a.city].filter(Boolean).join(', ')}
-                      </p>
-                      {a.phone && <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{a.phone}</p>}
-                    </div>
-                    <button
-                      onClick={() => handleDeleteAddress(a.id || a._id)}
-                      className="rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex-shrink-0 px-3 py-1 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-
-                {showAddForm ? (
-                  <form onSubmit={handleAddAddress} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm space-y-3">
-                    <h3 className="text-sm font-bold text-[var(--foreground)]">New Address</h3>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {[
-                        { key: 'label', placeholder: 'Label (e.g. Home)' },
-                        { key: 'fullName', placeholder: 'Full name' },
-                        { key: 'phone', placeholder: 'Phone number' },
-                        { key: 'city', placeholder: 'City' },
-                        { key: 'subcity', placeholder: 'Sub-city / District' },
-                        { key: 'street', placeholder: 'Street / House No.' },
-                      ].map(({ key, placeholder }) => (
-                        <input
-                          key={key}
-                          value={addrForm[key]}
-                          onChange={(e) => setAddrForm((f) => ({ ...f, [key]: e.target.value }))}
-                          placeholder={placeholder}
-                          className="rounded-xl border border-[var(--border)] bg-[var(--secondary)] px-3 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                        />
-                      ))}
-                    </div>
-                    <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] cursor-pointer">
-                      <input type="checkbox" checked={addrForm.isDefault} onChange={(e) => setAddrForm((f) => ({ ...f, isDefault: e.target.checked }))} className="accent-emerald-600" />
-                      Set as default address
-                    </label>
-                    <div className="flex gap-2 pt-1">
-                      <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors">
-                        {saving ? 'Saving…' : 'Save Address'}
-                      </button>
-                      <button type="button" onClick={() => setShowAddForm(false)} className="rounded-xl border border-[var(--border)] px-5 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors">
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="w-full rounded-2xl border-2 border-dashed border-[var(--border)] py-4 text-sm font-semibold text-[var(--muted-foreground)] hover:border-emerald-400 hover:text-emerald-600 transition-colors"
-                  >
-                    Add New Address
-                  </button>
-                )}
-              </div>
+              <AddressesTab
+                addresses={addresses}
+                showAddressForm={showAddressForm}
+                addressForm={addressForm}
+                setAddressForm={setAddressForm}
+                onAddAddress={handleAddAddress}
+                onToggleForm={() => setShowAddressForm(true)}
+                onCancelForm={resetAddressForm}
+                addressSaving={addressSaving}
+              />
             )}
           </>
         )}
-      </main>
+      </div>
 
-      <Footer />
     </div>
   );
 };

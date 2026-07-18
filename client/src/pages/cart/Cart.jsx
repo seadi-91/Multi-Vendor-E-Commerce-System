@@ -238,7 +238,7 @@ const Cart = () => {
     return () => mediaQuery.removeEventListener?.('change', handleSystemChange);
   }, [theme]);
 
-  const { cart, removeFromCart, cartCount, incrementQuantity, decrementQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, cartCount, incrementQuantity, decrementQuantity, clearCart, updateQuantity } = useCart();
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -271,7 +271,7 @@ const Cart = () => {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
         <Header pageType="cart" />
-        <div className="max-w-4xl mx-auto bg-[var(--card)]/95 rounded-3xl border border-[var(--border)] p-4 md:p-6 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto">
+        <div className="max-w-2xl mx-auto bg-[var(--card)]/95 rounded-3xl border border-[var(--border)] p-2 md:p-3 text-[var(--foreground)] mt-2.5 md:mt-5 mb-2.5 md:mb-5 mx-2.5 md:mx-auto">
           <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
             <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
             {cart.length > 0 && (
@@ -289,21 +289,21 @@ const Cart = () => {
               <h2 className="text-xl font-bold mb-2 text-[var(--foreground)]">Your cart is empty</h2>
               <p className="text-sm text-[var(--muted-foreground)] mb-6">Add some delicious items to get started!</p>
               <button
-                className="bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-2.5 rounded-lg text-sm font-semibold"
-                onClick={() => navigate('/')}
+                className="bg-[var(--primary)] text-[var(--primary-foreground)] px-6 py-2.5 rounded-lg text-xs font-semibold"
+                onClick={() => navigate('/market')}
               >
                 Continue Shopping
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-              <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-4">
+              <div className="flex flex-col gap-4 items-center w-full">
                 {cart.map(item => (
                   <div
-                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-4 p-4 bg-[var(--card)] rounded-3xl border border-[var(--border)] relative"
+                    className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_1fr_auto] gap-2 p-2 pr-10 md:pr-2 bg-[var(--card)] rounded-2xl border border-[var(--border)] relative max-w-xl w-full"
                     key={item._id}
                   >
-                    <div className="w-16 h-16 md:w-16 md:h-16 rounded-3xl overflow-hidden bg-[var(--secondary)]/80 flex-shrink-0 mx-auto md:mx-0">
+                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl overflow-hidden bg-[var(--secondary)]/80 flex-shrink-0 mx-auto md:mx-0">
                       {item.image ? (
                         <img
                           src={item.image}
@@ -311,36 +311,48 @@ const Cart = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl bg-[var(--secondary)] text-[var(--primary)]">
+                        <div className="w-full h-full flex items-center justify-center text-2xl bg-[var(--secondary)] text-[var(--primary)]">
                           🍕
                         </div>
                       )}
                     </div>
 
-                    <div className="flex flex-col text-center md:text-left">
-                      <div className="flex flex-col md:flex-row items-center md:items-start gap-1 md:gap-3 mb-1">
-                        <h3 className="text-sm font-bold text-[var(--foreground)]">{item.name}</h3>
-                        <span className="bg-[var(--secondary)] text-[var(--primary)] px-2 py-0.5 rounded-full text-xs font-medium">
+                    <div className="flex flex-col text-center md:text-left min-w-0 w-full">
+                      <div className="flex flex-col md:flex-row items-center md:items-start gap-1 mb-0.5">
+                        <h3 className="text-xs md:text-sm font-bold text-[var(--foreground)] line-clamp-1">{item.name}</h3>
+                        <span className="bg-[var(--secondary)] text-[var(--primary)] px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                           {item.category}
                         </span>
                       </div>
-                      <p className="text-[var(--muted-foreground)] mb-2 text-xs">
+                      <p className="text-[var(--muted-foreground)] mb-1.5 text-[10px] break-words whitespace-normal w-full">
                         {item.description || 'Delicious item waiting for you!'}
                       </p>
 
-                      <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-                        <div className="flex items-center gap-2 bg-[var(--secondary)] rounded-full px-1.5 py-0.5">
+                      <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-[var(--secondary)] rounded-full px-1 py-0.5">
                           <button
-                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center disabled:opacity-50"
+                            className="w-5 h-5 rounded-full bg-[var(--card)] text-[var(--foreground)] text-xs cursor-pointer flex items-center justify-center disabled:opacity-50"
                             onClick={() => decrementQuantity(item._id)}
                             aria-label="Decrease quantity"
                             disabled={item.quantity <= 1}
                           >
                             −
                           </button>
-                          <span className="font-bold text-[var(--foreground)] min-w-[24px] text-center text-sm">{item.quantity}</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max={item.stock || 99}
+                            value={item.quantity}
+                            onChange={(e) => {
+                              let val = parseInt(e.target.value) || 1;
+                              if (val < 1) val = 1;
+                              if (val > (item.stock || 99)) val = item.stock || 99;
+                              updateQuantity(item._id, val);
+                            }}
+                            className="font-bold text-[var(--foreground)] w-[28px] h-5 text-center text-xs bg-transparent border-0 outline-none"
+                          />
                           <button
-                            className="w-6 h-6 rounded-full bg-[var(--card)] text-[var(--foreground)] text-sm cursor-pointer flex items-center justify-center disabled:opacity-50"
+                            className="w-5 h-5 rounded-full bg-[var(--card)] text-[var(--foreground)] text-xs cursor-pointer flex items-center justify-center disabled:opacity-50"
                             onClick={() => incrementQuantity(item._id, item.stock || 99)}
                             aria-label="Increase quantity"
                             disabled={item.quantity >= (item.stock || 99)}
@@ -349,8 +361,8 @@ const Cart = () => {
                           </button>
                         </div>
                         <div className="flex flex-col items-center md:items-end">
-                          <span className="text-xs text-[var(--muted-foreground)]">{item.price} ETB</span>
-                          <span className="text-sm font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
+                          <span className="text-[10px] text-[var(--muted-foreground)]">{item.price} ETB</span>
+                          <span className="text-xs font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
                         </div>
                       </div>
                     </div>
@@ -367,46 +379,46 @@ const Cart = () => {
               </div>
 
               <div className="sticky top-5">
-                <div className="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-5 text-[var(--foreground)]">
-                  <h3 className="mb-4 border-b border-[var(--border)] pb-2 text-base font-extrabold text-[var(--foreground)]">Order Summary</h3>
+                  <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-3 text-[var(--foreground)]">
+                    <h3 className="mb-3 border-b border-[var(--border)] pb-1.5 text-sm font-extrabold text-[var(--foreground)]">Order Summary</h3>
 
-                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-xs text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
-                    <span className="font-semibold text-[var(--foreground)] text-sm">{total} ETB</span>
+                    <div className="flex justify-between mb-2 text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
+                      <span className="font-semibold text-[var(--foreground)] text-xs">{total} ETB</span>
+                    </div>
+
+                    <div className="flex justify-between mb-2 text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Delivery Fee</span>
+                      <span className="font-semibold text-[var(--foreground)] text-xs">50 ETB</span>
+                    </div>
+
+                    <div className="flex justify-between mb-2 text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Tax</span>
+                      <span className="font-semibold text-[var(--foreground)] text-xs">{(total * 0.15).toFixed(2)} ETB</span>
+                    </div>
+                    <div className="h-px bg-[var(--border)] my-2"></div>
+
+                    <div className="flex justify-between items-center my-3">
+                      <span className="text-xs font-bold text-[var(--foreground)]">Total</span>
+                      <span className="text-base font-black text-[var(--primary)]">
+                        {(total + 50 + total * 0.15).toFixed(2)} ETB
+                      </span>
+                    </div>
+                    <button
+                      className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-2 rounded-lg text-xs font-bold mb-2"
+                      onClick={handleCheckout}
+                    >
+                      Proceed to Checkout
+                    </button>
+
+                    <button
+                      className="w-full bg-transparent text-[var(--destructive)] border border-[var(--destructive)] py-1.5 rounded-lg text-[10px] font-semibold"
+                      onClick={clearCart}
+                    >
+                      Clear Cart
+                    </button>
                   </div>
-
-                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-xs text-[var(--muted-foreground)]">Delivery Fee</span>
-                    <span className="font-semibold text-[var(--foreground)] text-sm">50 ETB</span>
-                  </div>
-
-                  <div className="flex justify-between mb-3 text-[var(--foreground)]">
-                    <span className="text-xs text-[var(--muted-foreground)]">Tax</span>
-                    <span className="font-semibold text-[var(--foreground)] text-sm">{(total * 0.15).toFixed(2)} ETB</span>
-                  </div>
-                  <div className="h-px bg-[var(--border)] my-3"></div>
-
-                  <div className="flex justify-between items-center my-4">
-                    <span className="text-sm font-bold text-[var(--foreground)]">Total</span>
-                    <span className="text-xl font-black text-[var(--primary)]">
-                      {(total + 50 + total * 0.15).toFixed(2)} ETB
-                    </span>
-                  </div>
-                  <button
-                    className="w-full bg-[var(--primary)] text-[var(--primary-foreground)] py-2.5 rounded-lg text-sm font-bold mb-3"
-                    onClick={handleCheckout}
-                  >
-                    Proceed to Checkout
-                  </button>
-
-                  <button
-                    className="w-full bg-transparent text-[var(--destructive)] border border-[var(--destructive)] py-2 rounded-lg text-xs font-semibold"
-                    onClick={clearCart}
-                  >
-                    Clear Cart
-                  </button>
                 </div>
-              </div>
             </div>
           )}
         </div>
@@ -421,7 +433,7 @@ const Cart = () => {
 
       <main className="flex-1 overflow-y-auto">
         <section className="px-6 py-6">
-          <div className="mx-auto max-w-4xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-[var(--foreground)] md:p-6">
+          <div className="mx-auto max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--card)] p-2 text-[var(--foreground)] md:p-3">
             <div className="mb-6 border-b border-[var(--border)] pb-3 text-center">
               <h1 className="mb-1 text-xl font-extrabold text-[var(--foreground)] md:text-2xl">Your Shopping Cart</h1>
               {cart.length > 0 && (
@@ -437,54 +449,66 @@ const Cart = () => {
                 <h2 className="mb-2 text-xl font-bold text-[var(--foreground)]">Your cart is empty</h2>
                 <p className="mb-6 text-sm text-[var(--muted-foreground)]">Add some delicious items to get started!</p>
                 <button
-                  className="rounded-lg bg-[var(--primary)] px-6 py-2.5 text-sm font-semibold text-[var(--primary-foreground)]"
-                  onClick={() => navigate('/')}
+                  className="rounded-lg bg-[var(--primary)] px-6 py-2.5 text-xs font-semibold text-[var(--primary-foreground)]"
+                  onClick={() => navigate('/market')}
                 >
                   Continue Shopping
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-                <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px]">
+                <div className="flex flex-col gap-4 items-center w-full">
                   {cart.map(item => (
                     <div
-                      className="relative grid grid-cols-[auto_1fr_auto] gap-4 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 md:grid-cols-[auto_1fr_auto]"
+                      className="relative grid grid-cols-[auto_1fr_auto] gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 pr-10 md:pr-2 md:grid-cols-[auto_1fr_auto] max-w-xl w-full"
                       key={item._id}
                     >
-                      <div className="mx-auto h-16 w-16 flex-shrink-0 overflow-hidden rounded-3xl bg-[var(--secondary)] md:h-16 md:w-16">
+                      <div className="mx-auto h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl bg-[var(--secondary)] md:h-14 md:w-14">
                         {item.image ? (
                           <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-[var(--secondary)] text-3xl text-[var(--primary)]">
+                          <div className="flex h-full w-full items-center justify-center bg-[var(--secondary)] text-2xl text-[var(--primary)]">
                             🍕
                           </div>
                         )}
                       </div>
 
-                      <div className="flex flex-col text-center md:text-left">
-                        <div className="mb-1 flex flex-col items-center gap-1 md:flex-row md:items-start md:gap-3">
-                          <h3 className="text-sm font-bold text-[var(--foreground)]">{item.name}</h3>
-                          <span className="rounded-full bg-[var(--secondary)] px-2 py-0.5 text-xs font-medium text-[var(--primary)]">
+                      <div className="flex flex-col text-center md:text-left min-w-0 w-full">
+                        <div className="mb-0.5 flex flex-col items-center gap-1 md:flex-row md:items-start md:gap-1">
+                          <h3 className="text-xs md:text-sm font-bold text-[var(--foreground)] line-clamp-1">{item.name}</h3>
+                          <span className="rounded-full bg-[var(--secondary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--primary)]">
                             {item.category}
                           </span>
                         </div>
-                        <p className="mb-2 text-xs text-[var(--muted-foreground)]">
+                        <p className="mb-1.5 text-[10px] text-[var(--muted-foreground)] break-words whitespace-normal w-full">
                           {item.description || 'Delicious item waiting for you!'}
                         </p>
 
-                        <div className="flex flex-col items-center gap-3 md:flex-row md:justify-between">
-                          <div className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-1.5 py-0.5">
+                        <div className="flex flex-col items-center gap-2 md:flex-row md:justify-between">
+                          <div className="flex items-center gap-1.5 rounded-full bg-[var(--secondary)] px-1 py-0.5">
                             <button
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] disabled:opacity-50"
+                              className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--card)] text-xs text-[var(--foreground)] disabled:opacity-50"
                               onClick={() => decrementQuantity(item._id)}
                               aria-label="Decrease quantity"
                               disabled={item.quantity <= 1}
                             >
                               −
                             </button>
-                            <span className="min-w-[24px] text-center text-sm font-bold text-[var(--foreground)]">{item.quantity}</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={item.stock || 99}
+                              value={item.quantity}
+                              onChange={(e) => {
+                                let val = parseInt(e.target.value) || 1;
+                                if (val < 1) val = 1;
+                                if (val > (item.stock || 99)) val = item.stock || 99;
+                                updateQuantity(item._id, val);
+                              }}
+                              className="min-w-[28px] h-5 text-center text-xs font-bold text-[var(--foreground)] bg-transparent border-0 outline-none"
+                            />
                             <button
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--card)] text-sm text-[var(--foreground)] disabled:opacity-50"
+                              className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--card)] text-xs text-[var(--foreground)] disabled:opacity-50"
                               onClick={() => incrementQuantity(item._id, item.stock || 99)}
                               aria-label="Increase quantity"
                               disabled={item.quantity >= (item.stock || 99)}
@@ -493,8 +517,8 @@ const Cart = () => {
                             </button>
                           </div>
                           <div className="flex flex-col items-center md:items-end">
-                            <span className="text-xs text-[var(--muted-foreground)]">{item.price} ETB</span>
-                            <span className="text-sm font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
+                            <span className="text-[10px] text-[var(--muted-foreground)]">{item.price} ETB</span>
+                            <span className="text-xs font-extrabold text-[var(--foreground)]">{item.price * item.quantity} ETB</span>
                           </div>
                         </div>
                       </div>
@@ -511,40 +535,40 @@ const Cart = () => {
                 </div>
 
                 <div className="sticky top-5">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5 text-[var(--foreground)]">
-                    <h3 className="mb-4 border-b border-[var(--border)] pb-2 text-base font-extrabold text-[var(--foreground)]">Order Summary</h3>
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-[var(--foreground)]">
+                    <h3 className="mb-3 border-b border-[var(--border)] pb-1.5 text-sm font-extrabold text-[var(--foreground)]">Order Summary</h3>
 
-                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
-                      <span className="text-xs text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
-                      <span className="text-sm font-semibold text-[var(--foreground)]">{total} ETB</span>
+                    <div className="mb-2 flex justify-between text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Subtotal ({itemCount} items)</span>
+                      <span className="text-xs font-semibold text-[var(--foreground)]">{total} ETB</span>
                     </div>
 
-                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
-                      <span className="text-xs text-[var(--muted-foreground)]">Delivery Fee</span>
-                      <span className="text-sm font-semibold text-[var(--foreground)]">50 ETB</span>
+                    <div className="mb-2 flex justify-between text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Delivery Fee</span>
+                      <span className="text-xs font-semibold text-[var(--foreground)]">50 ETB</span>
                     </div>
 
-                    <div className="mb-3 flex justify-between text-[var(--foreground)]">
-                      <span className="text-xs text-[var(--muted-foreground)]">Tax</span>
-                      <span className="text-sm font-semibold text-[var(--foreground)]">{(total * 0.15).toFixed(2)} ETB</span>
+                    <div className="mb-2 flex justify-between text-[var(--foreground)]">
+                      <span className="text-[10px] text-[var(--muted-foreground)]">Tax</span>
+                      <span className="text-xs font-semibold text-[var(--foreground)]">{(total * 0.15).toFixed(2)} ETB</span>
                     </div>
-                    <div className="my-3 h-px bg-[var(--border)]"></div>
+                    <div className="my-2 h-px bg-[var(--border)]"></div>
 
-                    <div className="my-4 flex items-center justify-between">
-                      <span className="text-sm font-bold text-[var(--foreground)]">Total</span>
-                      <span className="text-xl font-black text-[var(--primary)]">
+                    <div className="my-3 flex items-center justify-between">
+                      <span className="text-xs font-bold text-[var(--foreground)]">Total</span>
+                      <span className="text-base font-black text-[var(--primary)]">
                         {(total + 50 + total * 0.15).toFixed(2)} ETB
                       </span>
                     </div>
                     <button
-                      className="mb-3 w-full rounded-lg border-none bg-[var(--primary)] py-2.5 text-sm font-bold text-[var(--primary-foreground)]"
+                      className="mb-2 w-full rounded-lg border-none bg-[var(--primary)] py-2 text-xs font-bold text-[var(--primary-foreground)]"
                       onClick={handleCheckout}
                     >
                       Proceed to Checkout
                     </button>
 
                     <button
-                      className="w-full rounded-lg border border-[var(--destructive)] bg-transparent py-2 text-xs font-semibold text-[var(--destructive)]"
+                      className="w-full rounded-lg border border-[var(--destructive)] bg-transparent py-1.5 text-[10px] font-semibold text-[var(--destructive)]"
                       onClick={clearCart}
                     >
                       Clear Cart

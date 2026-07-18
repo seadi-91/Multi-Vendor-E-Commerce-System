@@ -124,11 +124,9 @@ const MyOrders = () => {
 
   const reorderItem = (order) => {
     if (order.paymentStatus === 'paid') {
-      toast.error('Cannot reorder paid orders');
       return;
     }
     if (!order.items || order.items.length === 0) {
-      toast.error('No items to reorder');
       return;
     }
     order.items.forEach(item => {
@@ -137,7 +135,6 @@ const MyOrders = () => {
         _id: item.id || item._id || `${Date.now()}-${Math.random()}`
       });
     });
-    toast.success('Items added to cart!');
     navigate('/customer/cart');
   };
 

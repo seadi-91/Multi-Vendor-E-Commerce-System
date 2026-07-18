@@ -40,8 +40,14 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(requestLogger);
 }
 
-// Input sanitization
-app.use(sanitizeInput);
+// Input sanitization (skip for payment and forgot-password routes to allow raw data)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/payments') || req.path.startsWith('/api/forgot-password') || req.path.startsWith('/api/verify-otp') || req.path.startsWith('/api/reset-password')) {
+    next();
+  } else {
+    sanitizeInput(req, res, next);
+  }
+});
 
 // CORS configuration
 app.use(cors({
@@ -76,9 +82,12 @@ const reviewRouter = require('./router/reviewRouter');
 const paymentRouter = require('./router/paymentRouter');
 const notificationRouter = require('./router/notificationRouter');
 const favoritesRouter = require('./router/favoritesRouter');
+const messageRouter = require('./router/messageRouter');
+const forgotPasswordRouter = require('../forgotPassword');
 
 // Apply rate limiting to routes
 app.use('/api/auth', authLimiter, authRouter);
+app.use('/api', authLimiter, forgotPasswordRouter);
 app.use('/api/projects', apiLimiter, projectRouter);
 app.use('/api/admin', apiLimiter, adminRouter);
 app.use('/api/farmer', apiLimiter, farmerRouter);
@@ -90,6 +99,7 @@ app.use('/api/payments', apiLimiter, paymentRouter);
 app.use('/api/notifications', apiLimiter, notificationRouter);
 app.use('/api/favorites', apiLimiter, favoritesRouter);
 app.use('/api/wishlist', apiLimiter, favoritesRouter);
+app.use('/api/messages', apiLimiter, messageRouter);
 
 // Health check
 app.get('/', (req, res) => {
