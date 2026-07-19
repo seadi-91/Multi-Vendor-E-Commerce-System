@@ -40,7 +40,7 @@ const VendorBadge = ({ name, verified }) => (
   </div>
 );
 
-const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => {
+const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, navigate }) => {
   const {
     id, name, price, rating = 0, vendor = 'Fresh Vendor', vendorVerified = true,
     image, reviewsCount = 0, hasDiscount: productHasDiscount = false, badges = [], isOrganic = false, unit = 'kg',
@@ -62,7 +62,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
   const stockTone = stock > 20 ? 'text-emerald-600' : stock > 0 ? 'text-amber-600' : 'text-rose-600';
 
   return (
-    <Link to={`/product/${id}`} className="block h-full">
+    <div className="block h-full cursor-pointer" onClick={() => navigate(`/product/${id}`)}>
       <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition-all duration-300 hover:border-[var(--primary)]/40 hover:shadow-md">
         <div
           className="relative w-full overflow-hidden bg-[var(--secondary)]"
@@ -104,7 +104,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
           </div>
 
           <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(id); }}
             className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:scale-110"
           >
             <Heart className={`h-4 w-4 transition-all ${isFavorite ? 'fill-[var(--primary)] text-[var(--primary)]' : 'text-neutral-400'}`} />
@@ -146,7 +146,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
           </div>
 
           <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+            onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
             className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-2 py-1.5 text-[10px] font-semibold text-white shadow-sm transition-all hover:opacity-90"
           >
             <ShoppingCart className="h-3 w-3" />
@@ -154,7 +154,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart }) => 
           </button>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
@@ -529,6 +529,7 @@ const Market = () => {
                 isFavorite={isFavorite(String(product.id))}
                 onToggleFavorite={toggleFavorite}
                 onAddToCart={handleAddToCart}
+                navigate={navigate}
               />
             ))}
           </div>

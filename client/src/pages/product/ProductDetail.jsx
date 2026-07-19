@@ -12,7 +12,6 @@ import { Heart, Star, ShoppingCart, ChevronLeft, MapPin, Mail, Phone, BadgeCheck
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -39,23 +38,27 @@ const ProductDetail = () => {
   // Use custom hooks for product data
   const { data: cachedProduct, isLoading: loadingCachedProduct } = useCachedProduct(id);
   const { data: livePriceStock, isLoading: loadingLiveData } = useLiveProductPriceStock(id);
-  
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Combine cached product with live price and stock
-  const product = cachedProduct 
-    ? { 
-        ...cachedProduct, 
-        price: livePriceStock?.price ?? cachedProduct.price, 
-        discountPrice: livePriceStock?.discountPrice ?? cachedProduct.discountPrice, 
-        stock: livePriceStock?.stock ?? cachedProduct.stock 
+  const product = cachedProduct
+    ? {
+        ...cachedProduct,
+        price: livePriceStock?.price ?? cachedProduct.price,
+        discountPrice: livePriceStock?.discountPrice ?? cachedProduct.discountPrice,
+        stock: livePriceStock?.stock ?? cachedProduct.stock
       }
     : null;
 
   const loading = loadingCachedProduct || loadingLiveData;
-  
+
   const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [activeTab, setActiveTab] = useState('description');
   const [imageZoom, setImageZoom] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   // Chat state for Contact tab
@@ -67,6 +70,7 @@ const ProductDetail = () => {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingContent, setEditingContent] = useState('');
   const [hiddenMessageIds, setHiddenMessageIds] = useState([]);
+  const [showContactPanel, setShowContactPanel] = useState(false);
   // Review form state (must be declared unconditionally to preserve hook order)
   const [reviewRating, setReviewRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
@@ -207,8 +211,6 @@ const ProductDetail = () => {
       const res = await api.get('/messages', { params: { withUserId: farmerId } });
       const all = res.data || [];
       // Show full conversation with the farmer across products.
-      // Previously we filtered messages to the current product by parsing `content.productId`.
-      // Now show all messages exchanged with this farmer so the same thread appears on all product pages.
       setMessages(all);
     } catch (err) {
       console.error('Load messages failed', err);
@@ -348,12 +350,14 @@ const ProductDetail = () => {
     setActiveActionMessageId(null);
   };
 
+  // Load the conversation with this farmer as soon as we know who they are
+  // (contact is no longer gated behind a tab, so we just load on mount / when farmer changes)
   useEffect(() => {
-    if (activeTab === 'contact' && farmerId) {
+    if (farmerId) {
       loadMessages();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, farmerId]);
+  }, [farmerId]);
 
   const toggleFavorite = async () => {
     // Keep local storage synchronized
@@ -436,14 +440,10 @@ const ProductDetail = () => {
     return `${product.description || ''} ${extra}`.trim();
   };
 
-  const scrollToSection = (section) => {
-    setActiveTab(section);
-    const target = document.getElementById(`${section}-section`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
+  // Zoom is now a contained CSS transform on the image itself (scoped to the
+  // image frame via overflow-hidden), instead of an absolutely positioned
+  // full-bleed background layer — this stops the zoomed image from ever
+  // rendering larger than its card.
   const handleImageMouseEnter = () => setImageZoom(true);
 
   const handleImageMouseLeave = () => {
@@ -530,14 +530,6 @@ const ProductDetail = () => {
     return acc;
   }, {});
 
-  // Helpers for latest review and chat
-  const latestReview = reviews && reviews.length > 0 ? reviews[0] : null;
-  const latestReviewerName = latestReview
-    ? (latestReview.user?.privateAccount === true || latestReview.privateAccount === true
-      ? 'Private User'
-      : (typeof latestReview.user === 'string' ? latestReview.user : latestReview.user?.name || latestReview.userName || 'Private User'))
-    : null;
-
   const formatSentTime = (iso) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -550,7 +542,129 @@ const ProductDetail = () => {
     return d.toLocaleString();
   };
 
+  // Small, reusable contact-seller widget so it can be dropped into the
+  // "Meet the Farmer" card as a compact right-hand column on desktop.
+  // Logged out: renders nothing at all (no "please log in" text).
+  // Logged in: shows just a "Contact" link; clicking it reveals the write-contact card.
+  const ContactSellerPanel = () => {
+    if (!user) return null;
 
+    if (!showContactPanel) {
+      return (
+        <div className="w-full shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowContactPanel(true)}
+            className="text-xs font-black uppercase tracking-wider text-[var(--primary)] hover:underline"
+          >
+            Contact
+          </button>
+        </div>
+      );
+    }
+
+    return (
+    <div className="w-full shrink-0 border border-[var(--border)] rounded-2xl p-3 sm:p-4 bg-[var(--secondary)]/20">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-black uppercase tracking-wider text-[var(--muted-foreground)]">Contact Seller</h3>
+        <button
+          type="button"
+          onClick={() => setShowContactPanel(false)}
+          className="text-[10px] font-bold text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+        >
+          Close
+        </button>
+      </div>
+        <div className="flex flex-col h-56 sm:h-64">
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-[var(--secondary)]/30 rounded-lg" style={{ scrollbarWidth: 'thin' }}>
+            {loadingMessages ? (
+              <div className="text-[11px] text-[var(--muted-foreground)]">Loading…</div>
+            ) : messages.length === 0 ? (
+              <div className="text-[11px] text-[var(--muted-foreground)]">No messages yet. Start the conversation!</div>
+            ) : (
+              messages
+                .filter((m) => !hiddenMessageIds.includes(m.id))
+                .map((m) => {
+                  let parsedText = m.content;
+                  try {
+                    const parsed = JSON.parse(m.content);
+                    parsedText = parsed.text || parsedText;
+                  } catch (e) {
+                    // leave as-is
+                  }
+                  const mine = m.senderId === user.id;
+                  const isEditing = editingMessageId === m.id;
+                  const showActions = activeActionMessageId === m.id && !isEditing;
+                  return (
+                    <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        onClick={() => setActiveActionMessageId(m.id)}
+                        className={`max-w-[85%] px-2.5 py-1.5 rounded-lg text-[11px] ${mine ? 'bg-white' : 'bg-gray-100'} dark:bg-transparent text-[var(--primary)] cursor-pointer`}
+                      >
+                        {isEditing ? (
+                          <div className="space-y-1.5">
+                            <textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[11px] text-[var(--foreground)]"
+                              rows={2}
+                            />
+                            <div className="flex gap-1.5 justify-end">
+                              <Button variant="outline" onClick={cancelEdit} className="h-7 px-2 text-[10px] rounded-lg">Cancel</Button>
+                              <Button onClick={saveEdit} className="h-7 px-2 text-[10px] rounded-lg bg-[var(--primary)] text-white">Save</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="leading-relaxed text-[var(--primary)]">{parsedText}</div>
+                            <div className={`text-[9px] mt-0.5 ${mine ? 'text-right' : 'text-left'} text-black dark:text-white`}>{formatSentTime(m.createdAt)}</div>
+                            {showActions && (
+                              <div className="mt-1 flex gap-1.5 flex-wrap text-[9px] text-[var(--muted-foreground)]">
+                                <button type="button" onClick={() => startReply(m)} className="font-semibold hover:text-[var(--primary)]">Reply</button>
+                                <button type="button" onClick={() => copyToClipboard(parsedText)} className="font-semibold hover:text-[var(--primary)]">Copy</button>
+                                {mine && (
+                                  <>
+                                    <button type="button" onClick={() => startEdit(m)} className="font-semibold hover:text-[var(--primary)]">Edit</button>
+                                    <button type="button" onClick={() => hideMessage(m.id)} className="font-semibold hover:text-red-500">Delete</button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+
+          <div className="pt-2 mt-2 border-t border-[var(--border)]">
+            <div className="flex gap-1.5">
+              <textarea
+                value={newMessage}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (containsDisallowedContactContent(value)) {
+                    setNewMessage('');
+                    return;
+                  }
+                  setNewMessage(value);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="Message the seller…"
+                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[11px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
+                rows={2}
+              />
+              <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()} className="h-8 px-2.5 text-[10px] rounded-lg bg-[var(--primary)] text-white self-end">
+                {sendingMessage ? '…' : 'Send'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[var(--background)] transition-colors duration-300 pb-24 lg:pb-0">
@@ -576,40 +690,41 @@ const ProductDetail = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-10 space-y-6 sm:space-y-10">
         {/* Main Product Card */}
-        <Card className="border-0 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)] max-w-[1100px] mx-auto">
+        <Card className="border-0 shadow-none rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)] max-w-[1100px] mx-auto">
           <CardContent className="p-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-8 p-4 sm:p-6 lg:p-8">
+            {/* Relative wrapper for the image column's positioning context */}
+            <div className="relative">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-8 p-4 sm:p-6 lg:p-8">
               {/* Product Images View */}
-              <div className="space-y-3 sm:space-y-4">
-                <div className="relative aspect-square sm:aspect-[4/3] bg-[var(--secondary)] rounded-2xl overflow-hidden shadow-inner">
+              <div className="relative space-y-3 sm:space-y-4">
+                <div className="relative aspect-square sm:aspect-[4/3] lg:aspect-auto lg:w-[480px] lg:h-[480px] bg-[var(--secondary)] rounded-2xl overflow-hidden shadow-inner">
                   <div
-                    className="relative w-full h-full overflow-hidden"
+                    className="relative w-full h-full overflow-hidden cursor-crosshair"
                     onMouseMove={handleImageMouseMove}
                     onMouseEnter={handleImageMouseEnter}
                     onMouseLeave={handleImageMouseLeave}
                   >
+                    {/* Image itself never scales or changes shape — only a
+                        lens indicator shows on top of it, exactly like
+                        Amazon's product zoom. The magnified detail renders
+                        in a separate panel beside the image, see below. */}
                     <img
                       src={images[selectedImage]}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
-                    <div
-                      className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle at var(--zoom-x,50%) var(--zoom-y,50%), rgba(255,255,255,0.1) 0%, transparent 15%), rgba(0,0,0,0.15)) transition-opacity duration-200 ${imageZoom ? 'opacity-100' : 'opacity-0'}`}
-                      style={{
-                        '--zoom-x': `${zoomPosition.x}%`,
-                        '--zoom-y': `${zoomPosition.y}%`,
-                      }}
-                    />
-                    <div
-                      className="pointer-events-none absolute inset-0"
-                      style={{
-                        backgroundImage: `url(${images[selectedImage]})`,
-                        backgroundSize: '200% 200%',
-                        backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                        opacity: imageZoom ? 1 : 0,
-                        transition: 'opacity 150ms ease, background-position 150ms ease',
-                      }}
-                    />
+                    {/* Lens indicator showing which part of the image is being magnified (desktop only) */}
+                    {imageZoom && (
+                      <div
+                        className="hidden lg:block absolute border-2 border-white/80 bg-white/10 shadow-[0_0_0_2000px_rgba(0,0,0,0.15)] pointer-events-none"
+                        style={{
+                          width: '45%',
+                          height: '45%',
+                          left: `calc(${zoomPosition.x}% - 22.5%)`,
+                          top: `calc(${zoomPosition.y}% - 22.5%)`,
+                        }}
+                      />
+                    )}
                   </div>
                   <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-2">
                     {product.isOrganic && (
@@ -619,6 +734,36 @@ const ProductDetail = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Magnified detail panel — appears beside the image on the
+                    right (desktop only) while the cursor moves over it. It
+                    lives outside the image's own overflow-hidden box so it
+                    isn't clipped, and it never touches or resizes the
+                    original image. Fixed width/height so its size is
+                    predictable regardless of the source image's own aspect
+                    ratio. Uses a real <img> instead of a CSS background so
+                    the browser renders the magnified detail sharply instead
+                    of blurring it during upscaling. */}
+                {imageZoom && (
+                  <div
+                    className="hidden lg:block absolute top-0 left-full ml-4 rounded-2xl border border-[var(--border)] shadow-2xl z-40 pointer-events-none bg-[var(--card)] overflow-hidden"
+                    style={{ width: '480px', height: '480px' }}
+                  >
+                    <img
+                      src={images[selectedImage]}
+                      alt={`${product.name} zoomed detail`}
+                      className="absolute max-w-none select-none"
+                      style={{
+                        width: '1200px',
+                        height: '1200px',
+                        left: `${-((1200 - 480) * (zoomPosition.x / 100))}px`,
+                        top: `${-((1200 - 480) * (zoomPosition.y / 100))}px`,
+                        imageRendering: 'auto',
+                      }}
+                    />
+                  </div>
+                )}
+
 
                 {images.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible scrollbar-none">
@@ -737,314 +882,45 @@ const ProductDetail = () => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Description now sits below the Add to Cart button */}
+                <div className="pt-4 lg:pt-0">
+                  <p className="text-sm sm:text-base text-[var(--muted-foreground)] leading-relaxed break-words whitespace-pre-wrap">
+                    {generateDescriptionParagraph()}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Tabs (Description and Reviews) */}
-            <div className="bg-[var(--secondary)]/20">
-              <Tabs defaultValue="description" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="px-4 sm:px-8 lg:px-12 pt-4 overflow-x-auto scrollbar-none">
-                  <TabsList className="bg-[var(--secondary)] p-1 rounded-xl w-full overflow-x-auto flex gap-2 justify-start">
-                    <TabsTrigger value="description" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
-                      Description
-                    </TabsTrigger>
-                    <TabsTrigger value="reviews" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
-                      Reviews <span className="hidden sm:inline">({reviewCount})</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="contact" className="min-w-[120px] rounded-lg text-[12px] sm:text-sm data-[state=active]:bg-[var(--card)] py-2 px-3 sm:px-4 flex-1 sm:flex-none text-left">
-                      Contact
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent id="description-section" value="description" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
-                  <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl shadow-sm mx-auto w-full max-w-[280px] sm:max-w-[360px] lg:max-w-[440px] min-h-[100px] sm:min-h-[140px]">
-                    <p className="text-sm sm:text-base text-[var(--muted-foreground)] leading-relaxed break-words whitespace-pre-wrap">
-                      {generateDescriptionParagraph()}
-                    </p>
-                  </div>
-                </TabsContent>
-
-                <TabsContent id="reviews-section" value="reviews" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
-                  <div className="space-y-5 sm:space-y-6">
-                    {/* Customer reviews metrics dashboard */}
-                    <div className="bg-[var(--card)] p-5 sm:p-6 rounded-2xl shadow-sm">
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
-                        <div className="flex flex-col items-center justify-center p-4 bg-[var(--secondary)]/40 rounded-2xl min-w-[120px] w-full sm:w-auto">
-                          <span className="text-4xl font-black text-[var(--primary)]">{averageRating}</span>
-                          <Stars value={Number(averageRating)} className="mt-2" />
-                          <span className="text-[10px] text-[var(--muted-foreground)] mt-1.5 font-bold uppercase tracking-wider">
-                            {reviewCount} reviews
-                          </span>
-                        </div>
-
-                        <div className="flex-1 w-full space-y-2">
-                          <h3 className="text-xs font-black uppercase tracking-wider text-[var(--muted-foreground)] mb-2">
-                            Rating Distribution
-                          </h3>
-                          {[5, 4, 3, 2, 1].map((star) => (
-                            <div key={star} className="flex items-center gap-3">
-                              <span className="text-xs text-[var(--muted-foreground)] font-bold w-6">{star}★</span>
-                              <div className="flex-1 h-2 bg-[var(--secondary)] rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-[var(--primary)] rounded-full transition-all duration-500"
-                                  style={{
-                                    width: `${reviewCount ? (ratingBreakdown[star] / reviewCount) * 100 : 0}%`
-                                  }}
-                                />
-                              </div>
-                              <span className="text-[10px] text-[var(--muted-foreground)] font-bold w-8 text-right">
-                                {ratingBreakdown[star]}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reviews List */}
-                    <div className="space-y-4">
-                      {/* Add Review Form (visible to logged-in users) */}
-                      {user ? (
-                        <div className="bg-[var(--card)] rounded-2xl p-4 sm:p-5 shadow-sm">
-                          <h4 className="text-sm font-bold text-[var(--foreground)]">Rate & write a review</h4>
-                          <p className="text-xs text-[var(--muted-foreground)] mt-1">Share your experience with this product. Your review will be visible to others.</p>
-                          <div className="mt-4">
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  onMouseEnter={() => setHoverRating(s)}
-                                  onMouseLeave={() => setHoverRating(0)}
-                                  onClick={() => setReviewRating(s)}
-                                  className="text-2xl sm:text-3xl leading-none transition-transform active:scale-90"
-                                >
-                                  <span className={s <= (hoverRating || reviewRating) ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>
-                                </button>
-                              ))}
-                              <span className="text-sm font-bold ml-2 text-[var(--foreground)]">{reviewRating} / 5</span>
-                            </div>
-                            <textarea
-                              value={reviewComment}
-                              onChange={(e) => setReviewComment(e.target.value)}
-                              placeholder="Write your review here..."
-                              className="mt-3 w-full rounded-xl bg-[var(--card)] px-3.5 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
-                              rows={3}
-                            />
-                            <div className="mt-3 flex gap-2">
-                              <Button
-                                onClick={async () => {
-                                  if (!user) return navigate('/login');
-                                  if (!reviewComment.trim()) { toast.error('Please write a comment'); return; }
-                                  setSubmittingReview(true);
-                                  try {
-                                    await api.post('/reviews', { productId: product.id || product._id || id, rating: reviewRating, comment: reviewComment.trim() });
-                                    // Refresh product to get new reviews and counts
-                                    const fresh = await api.get(`/products/${id}`);
-                                    setProduct(fresh.data?.data || product);
-                                    setReviewComment('');
-                                    setReviewRating(5);
-                                    toast.success('Review submitted');
-                                  } catch (err) {
-                                    console.error('Submit review failed', err);
-                                    toast.error(err.response?.data?.message || 'Failed to submit review');
-                                  } finally {
-                                    setSubmittingReview(false);
-                                  }
-                                }}
-                                disabled={submittingReview}
-                                className="rounded-xl bg-[var(--primary)] text-white font-bold h-10 px-5 hover:bg-[var(--primary)]/90"
-                              >
-                                {submittingReview ? 'Submitting…' : 'Submit Review'}
-                              </Button>
-                              <Button variant="outline" onClick={() => { setReviewComment(''); setReviewRating(5); }} className="rounded-xl h-10 px-5">
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-[var(--card)] rounded-2xl p-4 text-sm text-[var(--muted-foreground)]">
-                          Please <Link to="/login" className="font-bold text-[var(--primary)]">log in</Link> to write a review.
-                        </div>
-                      )}
-                      {reviews.length > 0 ? (
-                        reviews.map((review) => {
-                          const isPrivateReviewer = review.user?.privateAccount === true || review.privateAccount === true;
-                          const reviewerName = isPrivateReviewer
-                            ? 'Private User'
-                            : typeof review.user === 'string'
-                              ? review.user
-                              : review.user?.name || review.userName || 'Private User';
-                          const avatarInitials = reviewerName.charAt(0).toUpperCase();
-
-                          return (
-                            <div key={review.id} className="bg-[var(--card)] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  {review.user?.profileImage ? (
-                                    <img
-                                      src={review.user.profileImage}
-                                      alt={reviewerName}
-                                      className="w-10 h-10 rounded-full object-cover shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                      {avatarInitials}
-                                    </div>
-                                  )}
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-bold text-[var(--foreground)] truncate">{reviewerName}</p>
-                                    <p className="text-[10px] text-[var(--muted-foreground)] font-semibold">
-                                      {review.createdAt
-                                        ? new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                                        : 'Recently'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <Stars value={review.rating} size="w-3.5 h-3.5" className="shrink-0" />
-                              </div>
-                              <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
-                                {review.comment || 'No comment provided.'}
-                              </p>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="bg-[var(--card)] rounded-2xl p-8 text-center text-sm text-[var(--muted-foreground)]">
-                          No approved reviews yet for this product.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent id="contact-section" value="contact" className="px-4 sm:px-8 lg:px-12 py-5 sm:py-6 focus-visible:outline-none">
-                  <div className="bg-[var(--card)] p-4 sm:p-6 rounded-2xl border border-[var(--border)] shadow-sm mx-auto w-full max-w-sm">
-                    <h3 className="text-sm font-bold text-[var(--foreground)] mb-3">Contact Seller</h3>
-
-                    {!user ? (
-                      <div className="text-sm text-[var(--muted-foreground)]">Please <Link to="/login" className="font-bold text-[var(--primary)]">log in</Link> to contact the seller.</div>
-                    ) : (
-                      <div className="flex flex-col h-80 md:h-96">
-                        <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: 'thin' }}>
-                          {loadingMessages ? (
-                            <div className="text-sm text-[var(--muted-foreground)]">Loading messages…</div>
-                          ) : messages.length === 0 ? (
-                            <div className="text-sm text-[var(--muted-foreground)]">No messages yet. Start the conversation!</div>
-                          ) : (
-                            messages
-                              .filter((m) => !hiddenMessageIds.includes(m.id))
-                              .map((m) => {
-                                let parsedText = m.content;
-                                try {
-                                  const parsed = JSON.parse(m.content);
-                                  parsedText = parsed.text || parsedText;
-                                } catch (e) {
-                                  // leave as-is
-                                }
-                                const mine = m.senderId === user.id;
-                                const isEditing = editingMessageId === m.id;
-                                const showActions = activeActionMessageId === m.id && !isEditing;
-                                return (
-                                  <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                                    <div
-                                      onClick={() => setActiveActionMessageId(m.id)}
-                                      className={`max-w-[80%] px-3 py-2 rounded-xl ${mine ? 'bg-white' : 'bg-gray-100'} dark:bg-transparent text-[var(--primary)] cursor-pointer`}
-                                    >
-                                      {isEditing ? (
-                                        <div className="space-y-2">
-                                          <textarea
-                                            value={editingContent}
-                                            onChange={(e) => setEditingContent(e.target.value)}
-                                            className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)]"
-                                            rows={3}
-                                          />
-                                          <div className="flex gap-2 justify-end">
-                                            <Button variant="outline" onClick={cancelEdit} className="h-9 px-3 rounded-xl">Cancel</Button>
-                                            <Button onClick={saveEdit} className="h-9 px-3 rounded-xl bg-[var(--primary)] text-white">Save</Button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <div className="text-sm leading-relaxed text-[var(--primary)]">{parsedText}</div>
-                                          <div className={`text-[10px] mt-1 ${mine ? 'text-right' : 'text-left'} text-black dark:text-white`}>Sent {formatSentTime(m.createdAt)}</div>
-                                          {showActions && (
-                                            <div className="mt-2 flex gap-2 flex-wrap text-[11px] text-[var(--muted-foreground)]">
-                                              <button type="button" onClick={() => startReply(m)} className="font-semibold hover:text-[var(--primary)]">Reply</button>
-                                              <button type="button" onClick={() => copyToClipboard(parsedText)} className="font-semibold hover:text-[var(--primary)]">Copy</button>
-                                              {mine && (
-                                                <>
-                                                  <button type="button" onClick={() => startEdit(m)} className="font-semibold hover:text-[var(--primary)]">Edit</button>
-                                                  <button type="button" onClick={() => hideMessage(m.id)} className="font-semibold hover:text-red-500">Delete</button>
-                                                </>
-                                              )}
-                                            </div>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                          )}
-                        </div>
-
-                        <div className="pt-3 border-t border-[var(--border)] mt-3">
-                          <div className="flex gap-2">
-                            <textarea
-                              value={newMessage}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (containsDisallowedContactContent(value)) {
-                                  setNewMessage('');
-                                  return;
-                                }
-                                setNewMessage(value);
-                              }}
-                              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                              placeholder="Write a message to the seller..."
-                              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
-                              rows={2}
-                            />
-                            <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()} className="h-10 px-4 rounded-xl bg-[var(--primary)] text-white">
-                              {sendingMessage ? 'Sending…' : 'Send'}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
             </div>
           </CardContent>
         </Card>
 
-        {/* Farmer Information Section */}
-        {product.farmer && (
-          <div className="bg-[var(--card)] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 border border-[var(--border)]/30 space-y-5 sm:space-y-6">
-            <div className="border-b border-[var(--border)] pb-3 sm:pb-4">
-              <h2 className="text-base sm:text-lg font-black text-[var(--foreground)] tracking-tight">Meet the Farmer</h2>
-            </div>
-            <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-start md:items-center">
+        {/* Meet the Farmer & Reviews — farmer card pinned to the left, reviews (narrower) on the right */}
+        <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 sm:gap-8 items-start">
+          {/* Meet the Farmer — left-side sticky card */}
+          {product.farmer && (
+            <div className="w-full order-2 lg:order-1 lg:sticky lg:top-24 bg-[var(--card)] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] p-5 sm:p-6 space-y-5">
+              <div className="border-b border-[var(--border)] pb-3">
+                <h2 className="text-sm sm:text-base font-black text-[var(--foreground)] tracking-tight">Meet the Farmer</h2>
+              </div>
+
               {/* Profile Pic / Avatar */}
-              <div className="flex items-center gap-4 sm:gap-5 w-full md:w-auto">
+              <div className="flex items-center gap-3">
                 {product.farmer.profileImage ? (
                   <img
                     src={product.farmer.profileImage}
                     alt={product.farmer.name}
-                    className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-sm shrink-0"
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-sm shrink-0"
                   />
                 ) : (
-                  <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center font-bold text-xl sm:text-2xl shadow-inner shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center font-bold text-xl shadow-inner shrink-0">
                     {product.farmer.name.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-black text-[var(--foreground)] text-sm sm:text-lg truncate">{product.farmer.name}</h3>
+                    <h3 className="font-black text-[var(--foreground)] text-sm truncate">{product.farmer.name}</h3>
                     {product.farmer.isVerified && (
                       <Badge className="bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wider py-0.5 px-2 gap-1">
                         <BadgeCheck className="w-3 h-3" /> Verified
@@ -1062,65 +938,196 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Stats Panel */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-4 flex-1 w-full border-t md:border-t-0 md:border-l border-[var(--border)] pt-5 md:pt-0 md:pl-8">
+              {/* Stats Panel — Sales removed */}
+              <div className="grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-4">
                 <div>
-                  <p className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Rating</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Star className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-400 fill-amber-400" />
+                  <p className="text-[9px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Rating</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                     <span className="text-sm font-black text-[var(--foreground)]">{product.farmer.averageRating || '0.0'}</span>
-                    <span className="text-[10px] text-[var(--muted-foreground)] font-bold">({product.farmer.totalReviews})</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Listings</p>
-                  <p className="text-base font-black text-[var(--foreground)] mt-1">{product.farmer.totalProducts || 0}</p>
+                  <p className="text-[9px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Listings</p>
+                  <p className="text-sm font-black text-[var(--foreground)] mt-1">{product.farmer.totalProducts || 0}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Sales</p>
-                  <p className="text-base font-black text-[var(--foreground)] mt-1">{product.farmer.completedSales || 0}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Joined</p>
-                  <p className="text-xs font-extrabold text-[var(--foreground)] mt-2">
+                  <p className="text-[9px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Joined</p>
+                  <p className="text-xs font-extrabold text-[var(--foreground)] mt-1.5">
                     {product.farmer.createdAt
                       ? new Date(product.farmer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                       : 'N/A'}
                   </p>
                 </div>
               </div>
+
+              {/* Bio */}
+              {product.farmer.bio && (
+                <div className="bg-[var(--secondary)]/40 p-3 rounded-xl text-xs text-[var(--muted-foreground)] italic border border-[var(--border)]/20 leading-relaxed">
+                  "{product.farmer.bio}"
+                </div>
+              )}
+
+              {/* Farmer Contact Info (conditional) */}
+              {(product.farmer.email || product.farmer.phone || product.farmer.address) && (
+                <div className="pt-3 border-t border-[var(--border)] flex flex-col gap-2">
+                  {product.farmer.email && (
+                    <a
+                      href={`mailto:${product.farmer.email}`}
+                      className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1.5 font-semibold transition-colors"
+                    >
+                      <Mail className="w-3.5 h-3.5" /> {product.farmer.email}
+                    </a>
+                  )}
+                  {product.farmer.phone && (
+                    <a
+                      href={`tel:${product.farmer.phone}`}
+                      className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1.5 font-semibold transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5" /> {product.farmer.phone}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Contact seller (chat) */}
+              <div className="pt-3 border-t border-[var(--border)]">
+                <ContactSellerPanel />
+              </div>
+            </div>
+          )}
+
+          {/* Reviews */}
+          <div className="w-full max-w-md order-1 lg:order-2 lg:ml-auto space-y-4">
+            <div className="border-b border-[var(--border)] pb-2">
+              <h2 className="text-sm sm:text-base font-black text-[var(--foreground)] tracking-tight">Reviews ({reviewCount})</h2>
             </div>
 
-            {/* Bio */}
-            {product.farmer.bio && (
-              <div className="bg-[var(--secondary)]/40 p-4 rounded-xl text-sm text-[var(--muted-foreground)] italic border border-[var(--border)]/20 leading-relaxed">
-                "{product.farmer.bio}"
+            {/* Compact rating summary */}
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center justify-center px-3 py-2 bg-[var(--secondary)]/40 rounded-xl">
+                <span className="text-2xl font-black text-[var(--primary)]">{averageRating}</span>
+                <Stars value={Number(averageRating)} size="w-3 h-3" className="mt-1" />
+              </div>
+              <div className="flex-1 space-y-1">
+                {[5, 4, 3, 2, 1].map((star) => (
+                  <div key={star} className="flex items-center gap-2">
+                    <span className="text-[10px] text-[var(--muted-foreground)] font-bold w-4">{star}★</span>
+                    <div className="flex-1 h-1.5 bg-[var(--secondary)] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--primary)] rounded-full transition-all duration-500"
+                        style={{ width: `${reviewCount ? (ratingBreakdown[star] / reviewCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-[var(--muted-foreground)] font-bold w-5 text-right">{ratingBreakdown[star]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Review Form (compact) — only shown to logged-in users, no login prompt otherwise */}
+            {user && (
+              <div className="border-t border-[var(--border)] pt-3 space-y-2">
+                <p className="text-xs font-bold text-[var(--foreground)]">Rate & write a review</p>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(s)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setReviewRating(s)}
+                      className="text-lg leading-none transition-transform active:scale-90"
+                    >
+                      <span className={s <= (hoverRating || reviewRating) ? 'text-amber-400' : 'text-slate-200 dark:text-slate-700'}>★</span>
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold ml-1.5 text-[var(--foreground)]">{reviewRating}/5</span>
+                </div>
+                <textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Write your review…"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-2.5 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
+                  rows={2}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      if (!reviewComment.trim()) { toast.error('Please write a comment'); return; }
+                      setSubmittingReview(true);
+                      try {
+                        await api.post('/reviews', { productId: product.id || product._id || id, rating: reviewRating, comment: reviewComment.trim() });
+                        setReviewComment('');
+                        setReviewRating(5);
+                        toast.success('Review submitted');
+                      } catch (err) {
+                        console.error('Submit review failed', err);
+                        toast.error(err.response?.data?.message || 'Failed to submit review');
+                      } finally {
+                        setSubmittingReview(false);
+                      }
+                    }}
+                    disabled={submittingReview}
+                    className="rounded-lg bg-[var(--primary)] text-white font-bold h-8 px-3 text-xs hover:bg-[var(--primary)]/90"
+                  >
+                    {submittingReview ? 'Submitting…' : 'Submit'}
+                  </Button>
+                  <Button variant="outline" onClick={() => { setReviewComment(''); setReviewRating(5); }} className="rounded-lg h-8 px-3 text-xs">
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
 
-            {/* Farmer Contact Info (conditional) */}
-            {(product.farmer.email || product.farmer.phone || product.farmer.address) && (
-              <div className="pt-4 border-t border-[var(--border)] flex flex-wrap gap-x-6 gap-y-2.5">
-                {product.farmer.email && (
-                  <a
-                    href={`mailto:${product.farmer.email}`}
-                    className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1.5 font-semibold transition-colors"
-                  >
-                    <Mail className="w-3.5 h-3.5" /> {product.farmer.email}
-                  </a>
-                )}
-                {product.farmer.phone && (
-                  <a
-                    href={`tel:${product.farmer.phone}`}
-                    className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center gap-1.5 font-semibold transition-colors"
-                  >
-                    <Phone className="w-3.5 h-3.5" /> {product.farmer.phone}
-                  </a>
-                )}
-              </div>
-            )}
+            {/* Reviews list — compact rows, no per-item card */}
+            <div className="border-t border-[var(--border)] pt-3 space-y-3">
+              {reviews.length > 0 ? (
+                reviews.map((review) => {
+                  const isPrivateReviewer = review.user?.privateAccount === true || review.privateAccount === true;
+                  const reviewerName = isPrivateReviewer
+                    ? 'Private User'
+                    : typeof review.user === 'string'
+                      ? review.user
+                      : review.user?.name || review.userName || 'Private User';
+                  const avatarInitials = reviewerName.charAt(0).toUpperCase();
+
+                  return (
+                    <div key={review.id} className="pb-3 border-b border-[var(--border)]/60 last:border-b-0 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {review.user?.profileImage ? (
+                            <img src={review.user.profileImage} alt={reviewerName} className="w-7 h-7 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-7 h-7 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center font-bold text-[11px] shrink-0">
+                              {avatarInitials}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[var(--foreground)] truncate">{reviewerName}</p>
+                            <p className="text-[9px] text-[var(--muted-foreground)] font-semibold">
+                              {review.createdAt
+                                ? new Date(review.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                : 'Recently'}
+                            </p>
+                          </div>
+                        </div>
+                        <Stars value={review.rating} size="w-3 h-3" className="shrink-0" />
+                      </div>
+                      <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+                        {review.comment || 'No comment provided.'}
+                      </p>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-xs text-[var(--muted-foreground)] text-center py-4">
+                  No approved reviews yet for this product.
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
         {/* More Products From Farmer Grid */}
         {product.moreProducts && product.moreProducts.length > 0 && (
@@ -1153,16 +1160,7 @@ const ProductDetail = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.discountPrice || p.price)}</span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[8px] font-bold hidden sm:inline-flex ${p.stock > 0
-                          ? 'text-emerald-600 border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20'
-                          : 'text-rose-500 border-rose-200 bg-rose-50/50'
-                          }`}
-                      >
-                        {p.stock > 0 ? 'In Stock' : 'Sold Out'}
-                      </Badge>
+                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.price)}</span>
                     </div>
                   </div>
                 </Link>
