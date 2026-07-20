@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { toast } from 'react-hot-toast';
+import { useFavorites } from '../../context/FavoritesContext';
 import { Heart, Star, ShoppingCart, Package, BadgeCheck } from 'lucide-react';
 import api from '../../api';
 import { useLiveProductsPriceStock } from '../../hooks/useProducts';
@@ -271,13 +271,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
             }}
           />
 
-          <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
-            {badge && (
-              <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-950 shadow-sm">
-                {badge}
-              </span>
-            )}
-          </div>
+
 
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(id); }}
@@ -336,12 +330,10 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Favorites = () => {
-  const [favorites, setFavorites] = useState([]);
-  const [favoriteProducts, setFavoriteProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { theme } = useTheme();
   const { addToCart, cart } = useCart();
   const { user } = useAuth();
+  const { favorites, favoriteProducts, loading, toggleFavorite, removeFavorite, isFavorite, refreshFavorites } = useFavorites();
 
   // Calculate cart total from CartContext
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -363,6 +355,11 @@ const Favorites = () => {
       stock: liveData?.stock ?? p.stock
     };
   });
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    refreshFavorites();
+  }, [refreshFavorites]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -488,105 +485,16 @@ const Favorites = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const refreshFavorites = async () => {
-    if (!user) {
-      // Guest user: use localStorage
-      const storedIds = getStoredFavoriteIds();
-      if (storedIds.length === 0) {
-        setFavoriteProducts([]);
-        setFavorites([]);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const response = await api.get('/products');
-        const products = Array.isArray(response?.data?.data) ? response.data.data : [];
-        const matchedProducts = products.filter((product) => storedIds.includes(String(product.id)));
-        setFavoriteProducts(matchedProducts);
-        setFavorites(matchedProducts.map((item) => String(item.id)));
-        localStorage.setItem('favorites', JSON.stringify(matchedProducts.map((item) => String(item.id))));
-      } catch (error) {
-        console.error('Failed to load local favorites:', error);
-        setFavoriteProducts([]);
-        setFavorites(storedIds);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    // Logged-in user: fetch from database only
-    try {
-      setLoading(true);
-      const response = await api.get('/favorites');
-      const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-
-      setFavoriteProducts(items);
-      setFavorites(items.map((item) => String(item.id)));
-    } catch (error) {
-      console.error('Failed to load favorites:', error);
-      setFavoriteProducts([]);
-      setFavorites([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshFavorites();
-  }, [user?.id]);
-
-  useEffect(() => {
-    const handleStorageUpdate = () => {
-      refreshFavorites();
-    };
-
-    window.addEventListener('storage', handleStorageUpdate);
-    window.addEventListener('favoritesUpdated', handleStorageUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageUpdate);
-      window.removeEventListener('favoritesUpdated', handleStorageUpdate);
-    };
-  }, [user?.id]);
-
-  const toggleFavorite = async (id) => {
-    if (!user) {
-      toast.error('Please sign in to manage favorites.');
-      return;
-    }
-
-    const normalizedId = String(id);
-    const isFav = favorites.includes(normalizedId);
-
-    try {
-      if (isFav) {
-        await api.delete(`/favorites/${normalizedId}`);
-      } else {
-        await api.post('/favorites/add', { productId: normalizedId });
-      }
-
-      await refreshFavorites();
-      window.dispatchEvent(new CustomEvent('favoritesUpdated'));
-      toast.success(isFav ? 'Removed from favorites' : 'Added to favorites');
-    } catch (error) {
-      console.error('Failed to update favorite:', error);
-      toast.error('Unable to update favorites right now.');
-    }
-  };
-
-  const handleAddToCart = (product) => {
+  const handleAddToCart = async (product) => {
     addToCart({ ...product, _id: product.id });
-    toast.success(`${product.name} added to cart!`);
+    await removeFavorite(product.id);
   };
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
         <Header pageType="favorite" />
-        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 pt-24 sm:px-6 lg:px-8">
+        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
           <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -621,7 +529,7 @@ const Favorites = () => {
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
       <Header pageType="favorite" />
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 pt-24 sm:px-6 lg:px-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
         <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-3 text-white shadow-xl sm:p-4">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -674,7 +582,7 @@ const Favorites = () => {
                   <ProductCard
                     key={p.id}
                     product={p}
-                    isFavorite={favorites.includes(String(p.id))}
+                    isFavorite={isFavorite(String(p.id))}
                     onToggleFavorite={toggleFavorite}
                     onAddToCart={handleAddToCart}
                   />

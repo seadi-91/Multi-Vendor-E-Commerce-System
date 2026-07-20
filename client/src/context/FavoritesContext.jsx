@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../api';
 import { toast } from 'react-hot-toast';
 
@@ -38,59 +38,65 @@ export const FavoritesProvider = ({ children }) => {
   const [favoriteProducts, setFavoriteProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const inFlightRequestsRef = useRef(new Set());
 
-  // Load favorites based on auth state
-  useEffect(() => {
-    const loadFavorites = async () => {
-      setLoading(true);
-      
-      try {
-        // Try to get user from localStorage (check if logged in)
-        const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user');
-        const user = userStr ? JSON.parse(userStr) : null;
+  const refreshFavorites = useCallback(async () => {
+    // Prevent duplicate calls
+    if (inFlightRequestsRef.current.has('loadFavorites')) return;
+    inFlightRequestsRef.current.add('loadFavorites');
+    
+    setLoading(true);
+    
+    try {
+      // Try to get user from localStorage (check if logged in)
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
 
-        if (token && user) {
-          // Logged-in user: fetch from database
-          const response = await api.get('/favorites');
-          const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-          setFavorites(items.map(item => String(item.id)));
-          setFavoriteProducts(items);
-        } else {
-          // Guest user: load from localStorage
-          const storedIds = getStoredFavorites();
-          setFavorites(storedIds);
-          
-          // Fetch product data for stored IDs
-          if (storedIds.length > 0) {
-            try {
-              const productsResponse = await api.get('/products');
-              const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
-              const matchedProducts = products.filter(product => 
-                storedIds.includes(String(product.id))
-              );
-              setFavoriteProducts(matchedProducts);
-            } catch (error) {
-              console.error('Failed to load guest favorite products:', error);
-              setFavoriteProducts([]);
-            }
-          } else {
-            setFavoriteProducts([]);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load favorites:', error);
-        // Fallback to localStorage on error
+      if (token && user) {
+        // Logged-in user: fetch from database
+        const response = await api.get('/favorites');
+        const items = Array.isArray(response?.data?.data) ? response.data.data : [];
+        setFavorites(items.map(item => String(item.id)));
+        setFavoriteProducts(items);
+      } else {
+        // Guest user: load from localStorage
         const storedIds = getStoredFavorites();
         setFavorites(storedIds);
-      } finally {
-        setLoading(false);
-        setIsInitialized(true);
+        
+        // Fetch product data for stored IDs
+        if (storedIds.length > 0) {
+          try {
+            const productsResponse = await api.get('/products');
+            const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
+            const matchedProducts = products.filter(product => 
+              storedIds.includes(String(product.id))
+            );
+            setFavoriteProducts(matchedProducts);
+          } catch (error) {
+            console.error('Failed to load guest favorite products:', error);
+            setFavoriteProducts([]);
+          }
+        } else {
+          setFavoriteProducts([]);
+        }
       }
-    };
-
-    loadFavorites();
-  }, []); // Only run on mount
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+      // Fallback to localStorage on error
+      const storedIds = getStoredFavorites();
+      setFavorites(storedIds);
+    } finally {
+      setLoading(false);
+      setIsInitialized(true);
+      inFlightRequestsRef.current.delete('loadFavorites');
+    }
+  }, []);
+  
+  // Load favorites based on auth state
+  useEffect(() => {
+    refreshFavorites();
+  }, [refreshFavorites]); // Only run on mount
 
   // Sync guest favorites to database after login
   const syncGuestFavorites = useCallback(async () => {
@@ -142,11 +148,11 @@ export const FavoritesProvider = ({ children }) => {
   // Add to favorites
   const addFavorite = useCallback(async (productId) => {
     const normalizedId = String(productId);
+    const requestKey = `addFavorite:${normalizedId}`;
 
-    // Optimistic update
-    if (!favorites.includes(normalizedId)) {
-      setFavorites(prev => [...prev, normalizedId]);
-    }
+    // Prevent duplicate calls for the same product
+    if (inFlightRequestsRef.current.has(requestKey)) return;
+    inFlightRequestsRef.current.add(requestKey);
 
     try {
       const token = localStorage.getItem('token');
@@ -154,49 +160,34 @@ export const FavoritesProvider = ({ children }) => {
       if (token) {
         // Logged-in user: save to database
         await api.post('/favorites/add', { productId: normalizedId });
-        
-        // Refresh from database to get complete product data
-        const response = await api.get('/favorites');
-        const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-        setFavorites(items.map(item => String(item.id)));
-        setFavoriteProducts(items);
       } else {
         // Guest user: save to localStorage
         const currentFavorites = getStoredFavorites();
         if (!currentFavorites.includes(normalizedId)) {
           const newFavorites = [...currentFavorites, normalizedId];
           setStoredFavorites(newFavorites);
-          setFavorites(newFavorites);
-          
-          // Fetch product data
-          try {
-            const productsResponse = await api.get('/products');
-            const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
-            const product = products.find(p => String(p.id) === normalizedId);
-            if (product) {
-              setFavoriteProducts(prev => [...prev, product]);
-            }
-          } catch (error) {
-            console.error('Failed to fetch product data:', error);
-          }
         }
       }
       
       window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+      
+      // Always refresh to get real data
+      await refreshFavorites();
     } catch (error) {
       console.error('Failed to add favorite:', error);
-      // Revert optimistic update on error
-      setFavorites(prev => prev.filter(id => id !== normalizedId));
+    } finally {
+      inFlightRequestsRef.current.delete(requestKey);
     }
-  }, [favorites]);
+  }, [refreshFavorites]);
 
   // Remove from favorites
   const removeFavorite = useCallback(async (productId) => {
     const normalizedId = String(productId);
+    const requestKey = `removeFavorite:${normalizedId}`;
 
-    // Optimistic update
-    setFavorites(prev => prev.filter(id => id !== normalizedId));
-    setFavoriteProducts(prev => prev.filter(p => String(p.id) !== normalizedId));
+    // Prevent duplicate calls
+    if (inFlightRequestsRef.current.has(requestKey)) return;
+    inFlightRequestsRef.current.add(requestKey);
 
     try {
       const token = localStorage.getItem('token');
@@ -204,36 +195,23 @@ export const FavoritesProvider = ({ children }) => {
       if (token) {
         // Logged-in user: remove from database
         await api.delete(`/favorites/${normalizedId}`);
-        
-        // Refresh from database
-        const response = await api.get('/favorites');
-        const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-        setFavorites(items.map(item => String(item.id)));
-        setFavoriteProducts(items);
       } else {
         // Guest user: remove from localStorage
         const currentFavorites = getStoredFavorites();
         const newFavorites = currentFavorites.filter(id => id !== normalizedId);
         setStoredFavorites(newFavorites);
-        setFavorites(newFavorites);
       }
       
       window.dispatchEvent(new CustomEvent('favoritesUpdated'));
+      
+      // Always refresh to get real data
+      await refreshFavorites();
     } catch (error) {
       console.error('Failed to remove favorite:', error);
-      // Revert on error by reloading
-      const token = localStorage.getItem('token');
-      if (token) {
-        const response = await api.get('/favorites');
-        const items = Array.isArray(response?.data?.data) ? response.data.data : [];
-        setFavorites(items.map(item => String(item.id)));
-        setFavoriteProducts(items);
-      } else {
-        const storedIds = getStoredFavorites();
-        setFavorites(storedIds);
-      }
+    } finally {
+      inFlightRequestsRef.current.delete(requestKey);
     }
-  }, []);
+  }, [refreshFavorites]);
 
   // Toggle favorite
   const toggleFavorite = useCallback(async (productId) => {
@@ -268,6 +246,7 @@ export const FavoritesProvider = ({ children }) => {
     getFavoriteProducts,
     getFavoriteCount,
     syncGuestFavorites,
+    refreshFavorites,
   };
 
   return (

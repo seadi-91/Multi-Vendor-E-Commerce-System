@@ -1,40 +1,31 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { customerAPI } from '../api';
 import logo from '../assets/logo.jpg';
 import {
-  BarChart3,
-  ChevronDown,
-  Heart,
-  Monitor,
-  Moon,
-  Package,
-  Search,
-  ShoppingCart,
-  Sparkles,
-  Star,
-  Sun,
-  User,
-  Menu,
-  Settings,
-  LogOut,
-  X,
+  Search, Heart, Star, ShoppingCart, User, Sun, Moon, Menu, X, Package, Settings, LogOut, Sparkles, ChevronRight
 } from 'lucide-react';
 
 const Header = ({ pageType = 'home' }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
+  const { favorites } = useFavorites();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [customerProfile, setCustomerProfile] = useState(null);
-  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const profileLoadingRef = useRef(false);
+  const dropdownRef = useRef(null);
 
   const isSpecialPage = pageType === 'login' || pageType === 'register';
   const isFavoritePage = pageType === 'favorite';
@@ -62,8 +53,6 @@ const Header = ({ pageType = 'home' }) => {
     }
   };
 
-  const handleThemeChange = (newTheme) => setTheme(newTheme);
-
   const profileName = customerProfile?.name || user?.name || 'Customer';
   const avatarUrl = customerProfile?.profileImage || user?.profileImage || '';
   const profileInitials = profileName
@@ -76,49 +65,44 @@ const Header = ({ pageType = 'home' }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   useEffect(() => {
     let isMounted = true;
 
     const loadCustomerProfile = async () => {
-      if (!user) return;
+      if (!user || profileLoadingRef.current) return;
+      profileLoadingRef.current = true;
+      setProfileLoading(true);
+      
       try {
         const response = await customerAPI.getProfile();
         if (isMounted) setCustomerProfile(response.data || null);
       } catch {
         if (isMounted) setCustomerProfile(null);
-      }
-    };
-
-    const loadFavoritesCount = async () => {
-      if (!user) { setFavoritesCount(0); return; }
-      try {
-        const { default: api } = await import('../api');
-        const response = await api.get('/favorites');
-        const data = response.data?.data ?? response.data ?? [];
-        if (isMounted) setFavoritesCount(Array.isArray(data) ? data.length : 0);
-      } catch {
-        if (isMounted) setFavoritesCount(0);
+      } finally {
+        if (isMounted) {
+          profileLoadingRef.current = false;
+          setProfileLoading(false);
+        }
       }
     };
 
     loadCustomerProfile();
-    loadFavoritesCount();
-
-    // Listen for favorites updates from other components
-    const handleFavoritesUpdate = () => {
-      loadFavoritesCount();
-    };
-
-    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
-    };
   }, [user]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const headerPositionClass = (isHomePage || isCheckoutPage) ? 'fixed top-0 left-0 right-0' : 'sticky top-0';
   const isOverlay = isHomePage && !scrolled;
@@ -132,7 +116,7 @@ const Header = ({ pageType = 'home' }) => {
       return scrolled ? 'text-slate-600' : isDarkMode ? 'text-slate-300' : 'text-slate-600';
     }
 
-    return isOverlay ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400';
+    return isOverlay ? 'text-white/80' : 'text-slate-500 dark:text-slate-400';
   }, [isDarkMode, isOverlay, isFavoritePage, isSpecialPage, scrolled]);
 
   const iconButtonClass = useMemo(() => {
@@ -175,7 +159,7 @@ const Header = ({ pageType = 'home' }) => {
         : 'border-slate-200/80 bg-white/70 shadow-[0_10px_30px_rgba(15,23,42,0.05)]';
   }, [isDarkMode, isOverlay, isFavoritePage, isSpecialPage, scrolled]);
 
-  const searchBarFocusClass = isSearchFocused && (isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage) ? 'border-[#00a86b] ring-2 ring-[#00a86b]/20 bg-white' : '';
+  const searchBarFocusClass = isSearchFocused && (isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage) ? 'border-emerald-600 ring-2 ring-emerald-600/20 bg-white' : '';
   const searchIconClass = isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage
     ? scrolled ? 'text-slate-500' : isDarkMode ? 'text-slate-300' : 'text-slate-500'
     : isOverlay ? 'text-white/80' : 'text-slate-500 dark:text-slate-400';
@@ -201,13 +185,6 @@ const Header = ({ pageType = 'home' }) => {
             ? 'border-transparent shadow-none'
             : 'border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900'
         }`}
-      style={
-        isCheckoutPage
-          ? { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', backdropFilter: 'blur(16px)' }
-          : isSpecialPage || isFavoritePage || isCartPage
-            ? { backgroundColor: scrolled ? (isDarkMode ? '#0f172a' : '#ffffff') : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'blur(0px)' }
-            : undefined
-      }
     >
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
@@ -218,81 +195,142 @@ const Header = ({ pageType = 'home' }) => {
       )}
 
       {/* Mobile Drawer */}
-      <div className={`fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-4">
-          <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl overflow-hidden">
-                <img src={logo} alt="FarmConnect" className="h-full w-full object-cover" />
-              </div>
-              <span className="text-base font-black text-emerald-600">FarmConnect</span>
-            </div>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Drawer User Info (logged in) */}
-        {user && (
-          <div className="mx-4 mt-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-sm overflow-hidden flex-shrink-0">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
+      <div className={`fixed top-0 left-0 z-50 h-full w-72 bg-[var(--card)] shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col h-full">
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-sm overflow-hidden flex-shrink-0">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{profileInitials}</span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--secondary)]">
+                  <User className="h-5 w-5 text-[var(--muted-foreground)]" />
+                </div>
+              )}
+              <div>
+                {user ? (
+                  <>
+                    <p className="text-sm font-bold text-[var(--foreground)]">{user.name || user.email}</p>
+                    <p className="text-[10px] text-[var(--muted-foreground)] uppercase tracking-wider">{user.role}</p>
+                  </>
                 ) : (
-                  <span>{profileInitials}</span>
+                  <p className="text-sm font-bold text-[var(--foreground)]">Guest User</p>
                 )}
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{profileName}</p>
-                <p className="text-xs text-slate-500 truncate">{user.email}</p>
-              </div>
             </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex h-8 w-8 items-center justify-center hover:bg-[var(--secondary)] rounded-lg transition-all text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-        )}
 
-        {/* Drawer Nav Links */}
-        <nav className="mt-4 flex flex-col gap-1 px-3">
-          {user ? (
-            <>
-              <button onClick={() => { navigate('/customer/profile'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <User className="h-4 w-4 text-emerald-600" /> Profile
-              </button>
-              <button onClick={() => { navigate('/customer/orders'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <Package className="h-4 w-4 text-emerald-600" /> My Orders
-              </button>
-              <button onClick={() => { navigate('/favorites'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <Heart className="h-4 w-4 text-emerald-600" /> Favorites
-              </button>
-              <button onClick={() => { navigate('/customer/dashboard/reviews'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <Star className="h-4 w-4 text-emerald-600" /> My Reviews
-              </button>
-              <button onClick={() => { navigate('/customer/settings'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <Settings className="h-4 w-4 text-emerald-600" /> Settings
-              </button>
-              <div className="my-2 h-px bg-slate-100 dark:bg-slate-800" />
-              <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors w-full text-left">
-                <LogOut className="h-4 w-4" /> Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <User className="h-4 w-4 text-emerald-600" /> Sign In
-              </button>
-              <button onClick={() => { navigate('/register'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <User className="h-4 w-4 text-emerald-600" /> Sign Up
-              </button>
-              <button onClick={() => { navigate('/favorites'); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 transition-colors w-full text-left">
-                <Heart className="h-4 w-4 text-emerald-600" /> Favorites
-              </button>
-            </>
-          )}
-        </nav>
+          {/* Menu Items */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {user ? (
+              <>
+                <Link
+                  to="/customer/profile"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/profile' ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="h-5 w-5" />
+                  Profile
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/customer/orders"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname.startsWith('/customer/orders') ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Package className="h-5 w-5" />
+                  My Orders
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/favorites"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/favorites' ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Heart className="h-5 w-5" />
+                  Favorites
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/customer/dashboard/reviews"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname.startsWith('/customer/dashboard/reviews') ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Star className="h-5 w-5" />
+                  My Reviews
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/customer/settings"
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all ${location.pathname === '/customer/settings' ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Settings className="h-5 w-5" />
+                  Settings
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+                >
+                  <LogOut className="h-5 w-5" />
+                  Logout
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="h-5 w-5" />
+                  Sign In
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <User className="h-5 w-5" />
+                  Sign Up
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+                <Link
+                  to="/favorites"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--secondary)] transition-all"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Heart className="h-5 w-5" />
+                  Favorites
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Link>
+              </>
+            )}
+          </nav>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-[var(--border)]">
+            <p className="text-[10px] text-[var(--muted-foreground)] text-center">
+              © 2026 FarmConnect. All rights reserved.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-3.5 sm:px-6 lg:px-8">
@@ -314,99 +352,155 @@ const Header = ({ pageType = 'home' }) => {
               {/* Text hidden on mobile, visible on desktop */}
               <div className="hidden md:flex flex-col">
                 <span className={`text-lg font-black leading-none tracking-tight ${logoTextClass}`}>FarmConnect</span>
-                <span className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${logoSubtextClass}`}>Direct from soil</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${logoSubtextClass}`}>DIRECT FROM SOIL</span>
               </div>
             </Link>
           </div>
 
-          {isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (
-            <div className="hidden flex-1 max-w-xl sm:flex">
-              <form
-                onSubmit={handleSearchSubmit}
-                className={`flex w-full items-center overflow-hidden rounded-full border px-2 py-1.5 backdrop-blur-xl transition-all duration-300 ${searchBarClass} ${searchBarFocusClass}`}
-              >
-                <Search className={`ml-3 h-4 w-4 flex-shrink-0 transition-colors ${searchIconClass}`} />
-                <input
-                  type="text"
-                  placeholder="Search products, brands, categories..."
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
-                  className={`flex-1 bg-transparent px-3 py-2 text-sm font-medium outline-none transition-colors ${searchInputClass}`}
-                />
-                <button type="submit" className="mr-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-[#00a86b] text-white shadow-lg shadow-emerald-600/20 transition-all duration-300 hover:scale-105 hover:bg-[#00945e]">
-                  <Sparkles className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="hidden flex-1 max-w-md px-4 md:flex">
-              <div className={`flex w-full items-center overflow-hidden rounded-full border px-2 py-1.5 transition-all duration-300 ${searchBarClass}`}>
-                <Search className={`ml-3 h-4 w-4 flex-shrink-0 transition-colors ${searchIconClass}`} />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && searchQuery.trim()) {
-                      navigate(`/market?search=${encodeURIComponent(searchQuery.trim())}`);
-                    }
-                  }}
-                  className={`flex-1 bg-transparent px-3 py-2 text-sm font-medium outline-none transition-colors ${searchInputClass}`}
-                />
-                <button
-                  type="button"
-                  onClick={handleSearchSubmit}
-                  className="mr-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-shrink-0 items-center gap-2.5 md:gap-4">
-            <button
-              onClick={() => handleThemeChange(isDarkMode ? 'light' : 'dark')}
-              className={`flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 active:scale-95 ${iconButtonClass}`}
-              aria-label="Toggle Theme"
+          <div className="hidden flex-1 max-w-md sm:max-w-lg lg:max-w-xl sm:flex justify-center">
+            <form
+              onSubmit={handleSearchSubmit}
+              className={`flex w-full items-center overflow-hidden rounded-full transition-all duration-300 backdrop-blur-xl ${searchBarClass} ${searchBarFocusClass}`}
             >
-              {isDarkMode ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
+              <Search className={`ml-3 h-4 w-4 flex-shrink-0 transition-colors ${searchIconClass}`} />
+              <input
+                type="text"
+                placeholder="Search products, brands, categories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                className={`flex-1 bg-transparent px-3 py-2 text-sm font-medium focus:outline-none transition-colors ${searchInputClass}`}
+              />
+              <button type="submit" className="p-1.5 bg-emerald-600 hover:bg-emerald-700 transition-colors mr-1.5 my-1.5 rounded-full shadow-md">
+                <Sparkles className="w-4 h-4 text-white" />
+              </button>
+            </form>
+          </div>
+
+          <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+              className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-300 ${iconButtonClass}`}
+              aria-label="Toggle theme"
+              type="button"
+            >
+              {isDarkMode ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
             </button>
 
-            <Link to="/favorites" className={`relative hidden md:flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${iconButtonClass}`}>
-              <Heart className={`h-4.5 w-4.5 transition-colors ${isSpecialPage || isFavoritePage || isCartPage || isCheckoutPage ? (scrolled ? 'text-slate-700 hover:text-emerald-600' : isDarkMode ? 'text-white hover:text-emerald-400' : 'text-slate-700 hover:text-emerald-600') : isOverlay ? 'text-white hover:text-emerald-300' : 'text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400'}`} />
-              {favoritesCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white shadow-md ring-2 ring-white dark:ring-slate-900">
-                  {favoritesCount > 99 ? '99+' : favoritesCount}
+            {/* Favorites */}
+            <Link
+              to="/favorites"
+              className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl relative transition-all duration-300 ${iconButtonClass}`}
+            >
+              <Heart className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${isOverlay ? 'text-white hover:text-emerald-300' : 'text-slate-700 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400'}`} />
+              {favorites.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
+                  {favorites.length}
                 </span>
               )}
             </Link>
 
+            {/* User Profile */}
             {user ? (
-              <Link to="/customer/profile" className={`hidden md:inline-flex items-center gap-2 rounded-full px-2 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 ${signInButtonClass}`}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white overflow-hidden">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
-                  ) : (
-                    <User className="h-4 w-4" />
-                  )}
-                </span>
-              </Link>
+              <div className="relative hidden sm:inline-block" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className={`inline-flex items-center justify-center h-10 w-10 rounded-full transition-all duration-300 ${scrolled ? 'bg-gray-100 hover:bg-gray-200' : 'bg-white/20 hover:bg-white/30'}`}
+                  aria-label="Profile"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white font-bold text-sm overflow-hidden">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt={profileName} className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{profileInitials}</span>
+                    )}
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                    {/* User Info */}
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{profileName}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <nav className="py-1">
+                      <Link
+                        to="/customer/profile"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <User className="h-4 w-4" />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/customer/orders"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Package className="h-4 w-4" />
+                        My Orders
+                      </Link>
+                      <Link
+                        to="/customer/dashboard/reviews"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Star className="h-4 w-4" />
+                        My Reviews
+                      </Link>
+                      <Link
+                        to="/customer/settings"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </Link>
+                    </nav>
+
+                    {/* Logout */}
+                    <div className="border-t border-slate-200 dark:border-slate-700 py-1">
+                      <button
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors w-full"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              <Link to="/login" className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-all duration-300 hover:opacity-90 md:inline-flex ${signInButtonClass}`}>
-                <User className="h-4 w-4" />
-                <span>Sign In</span>
+              <Link
+                to="/login"
+                className={`hidden sm:inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 ${signInButtonClass}`}
+              >
+                <User className="w-4 h-4" /> Sign In
               </Link>
             )}
 
-            <Link to="/customer/cart" className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ${isCartPage || isCheckoutPage ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700' : 'bg-emerald-600/90 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-600'}`}>
-              <ShoppingCart className="h-4.5 w-4.5" />
+            {/* Cart */}
+            <Link
+              to="/customer/cart"
+              className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-bold transition-all relative bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200"
+            >
+              <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-emerald-500 text-[10px] font-extrabold text-white shadow-md ring-2 ring-white dark:ring-slate-900">
-                  {cartCount > 99 ? '99+' : cartCount}
+                <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-black rounded-full min-w-5 h-5 flex items-center justify-center px-1 border border-emerald-600">
+                  {cartCount}
                 </span>
               )}
             </Link>

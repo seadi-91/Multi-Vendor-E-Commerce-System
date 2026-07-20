@@ -81,11 +81,10 @@ const Login = () => {
     }
 
     if (role === ROLES.CUSTOMER) {
-      // Redirect customers to Home page, not Orders
-      return '/';
+      return ROUTES_BY_ROLE.customer;
     }
 
-    return '/';
+    return ROUTES_BY_ROLE.customer;
   };
 
   const handleSubmit = async (e) => {

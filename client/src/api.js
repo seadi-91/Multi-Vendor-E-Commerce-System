@@ -38,11 +38,12 @@ api.interceptors.response.use(
     const errorMessage = error.response?.data?.message || error.response?.data?.error;
     const isAuthRequest = error.config?.url?.includes('/auth/');
     const isPaymentRequest = error.config?.url?.includes('/payments/');
+    const isProductRequest = error.config?.url?.includes('/products/');
     const isLoginPage = window.location.pathname === '/login';
 
     // Handle 401 Unauthorized - token expired, invalid, or user deleted
-    // Skip redirect for payment requests since they use mock mode
-    if (status === 401 && !isAuthRequest && !isPaymentRequest && !isLoginPage) {
+    // Skip redirect for payment and product requests
+    if (status === 401 && !isAuthRequest && !isPaymentRequest && !isProductRequest && !isLoginPage) {
       console.log('401 Unauthorized - clearing auth state and redirecting to login');
 
       // Check if it's due to user deletion

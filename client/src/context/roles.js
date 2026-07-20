@@ -6,6 +6,6 @@ export const ROLES = {
 
 export const ROUTES_BY_ROLE = {
   admin: '/admin/dashboard',
-  customer: '/customer/dashboard',
+  customer: '/',
   farmer: '/farmer/dashboard',
 };

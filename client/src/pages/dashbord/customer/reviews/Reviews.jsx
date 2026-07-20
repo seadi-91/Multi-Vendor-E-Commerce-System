@@ -95,11 +95,11 @@ const MyReviews = () => {
 
                 <div className="mx-auto mt-4 max-w-5xl space-y-3">
                     {loading ? (
-                        <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+                        <Card className="border-none ring-0 bg-[var(--card)] shadow-sm">
                             <CardContent className="p-6 text-center text-sm text-[var(--muted-foreground)]">Loading your reviews...</CardContent>
                         </Card>
                     ) : reviews.length === 0 ? (
-                        <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+                        <Card className="border-none ring-0 bg-[var(--card)] shadow-sm">
                             <CardContent className="p-8 text-center">
                                 <MessageSquare className="mx-auto h-8 w-8 text-[var(--muted-foreground)]" />
                                 <h2 className="mt-3 text-base font-semibold">No reviews yet</h2>
@@ -108,7 +108,7 @@ const MyReviews = () => {
                         </Card>
                     ) : (
                         reviews.map((review) => (
-                            <Card key={review.id} className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+                            <Card key={review.id} className="border-none ring-0 bg-[var(--card)] shadow-sm">
                                 <CardContent className="p-4">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                         <div className="flex gap-3 min-w-0 flex-1">

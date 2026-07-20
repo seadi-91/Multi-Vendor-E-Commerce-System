@@ -3,10 +3,11 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useFavorites } from '../../context/FavoritesContext';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import api from '../../api';
-import { useCachedProduct, useLiveProductPriceStock } from '../../hooks/useProducts';
+import { useCachedProduct, useLiveProductPriceStock, useLiveProductsPriceStock } from '../../hooks/useProducts';
 import { toast } from 'react-hot-toast';
 import { Heart, Star, ShoppingCart, ChevronLeft, MapPin, Mail, Phone, BadgeCheck, Minus, Plus } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/card';
@@ -34,10 +35,17 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { isFavorite, toggleFavorite: toggleFavoriteContext } = useFavorites();
 
   // Use custom hooks for product data
   const { data: cachedProduct, isLoading: loadingCachedProduct } = useCachedProduct(id);
   const { data: livePriceStock, isLoading: loadingLiveData } = useLiveProductPriceStock(id);
+
+  // Get live prices for More from this farmer and You may also like products
+  const moreProductIds = (cachedProduct?.moreProducts || []).map(p => p.id);
+  const relatedProductIds = (cachedProduct?.relatedProducts || []).map(p => p.id);
+  const allLiveProductIds = [...new Set([...moreProductIds, ...relatedProductIds])];
+  const { data: liveProductsPriceStock } = useLiveProductsPriceStock(allLiveProductIds);
 
   // Scroll to top on page load
   useEffect(() => {
@@ -56,7 +64,12 @@ const ProductDetail = () => {
 
   const loading = loadingCachedProduct || loadingLiveData;
 
-  const [isFavorite, setIsFavorite] = useState(false);
+  // Create a map for quick lookup of live product price/stock
+  const liveProductMap = new Map();
+  (liveProductsPriceStock || []).forEach(liveProduct => {
+    liveProductMap.set(liveProduct.id, liveProduct);
+  });
+
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [imageZoom, setImageZoom] = useState(false);
@@ -171,32 +184,9 @@ const ProductDetail = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Load favorites status and reset selected image
+  // Reset selected image when product changes
   useEffect(() => {
-    const fetchFavoritesStatus = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            const favsRes = await api.get('/favorites');
-            const favs = favsRes.data?.data || [];
-            const isFav = favs.some((f) => String(f.id) === String(id));
-            setIsFavorite(isFav);
-          } catch (err) {
-            console.error('Error checking favorite status:', err);
-            const saved = JSON.parse(localStorage.getItem('favorites') || '[]');
-            setIsFavorite(saved.includes(Number(id)) || saved.includes(String(id)));
-          }
-        } else {
-          const saved = JSON.parse(localStorage.getItem('favorites') || '[]');
-          setIsFavorite(saved.includes(Number(id)) || saved.includes(String(id)));
-        }
-      } catch (error) {
-        console.error('Error checking favorite status:', error);
-      }
-    };
     if (id) {
-      fetchFavoritesStatus();
       setSelectedImage(0);
     }
   }, [id]);
@@ -360,34 +350,12 @@ const ProductDetail = () => {
   }, [farmerId]);
 
   const toggleFavorite = async () => {
-    // Keep local storage synchronized
-    const saved = JSON.parse(localStorage.getItem('favorites') || '[]');
-    let newSaved;
-    if (isFavorite) {
-      newSaved = saved.filter((f) => String(f) !== String(id));
+    const wasFavorite = isFavorite;
+    await toggleFavoriteContext(id);
+    if (wasFavorite) {
+      toast.success('Removed from wishlist');
     } else {
-      newSaved = [...saved, String(id)];
-    }
-    localStorage.setItem('favorites', JSON.stringify(newSaved));
-    setIsFavorite(!isFavorite);
-
-    // Save in DB if logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        if (isFavorite) {
-          await api.delete(`/favorites/${id}`);
-          toast.success('Removed from wishlist');
-        } else {
-          await api.post('/favorites/add', { productId: id });
-          toast.success('Added to wishlist!');
-        }
-      } catch (err) {
-        console.error('Error updating favorite in database:', err);
-        toast.error('Failed to sync wishlist with database.');
-      }
-    } else {
-      toast(isFavorite ? 'Removed from wishlist' : 'Added to wishlist!');
+      toast.success('Added to wishlist!');
     }
   };
 
@@ -564,7 +532,7 @@ const ProductDetail = () => {
     }
 
     return (
-    <div className="w-full shrink-0 border border-[var(--border)] rounded-2xl p-3 sm:p-4 bg-[var(--secondary)]/20">
+    <div className="w-full shrink-0 border-none ring-0 rounded-2xl p-3 sm:p-4 bg-[var(--secondary)]/20">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-black uppercase tracking-wider text-[var(--muted-foreground)]">Contact Seller</h3>
         <button
@@ -690,7 +658,7 @@ const ProductDetail = () => {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-10 space-y-6 sm:space-y-10">
         {/* Main Product Card */}
-        <Card className="border-0 shadow-none rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)] max-w-[1100px] mx-auto">
+        <Card className="border-0 ring-0 shadow-none rounded-2xl sm:rounded-[2rem] overflow-hidden bg-[var(--card)] max-w-[1100px] mx-auto">
           <CardContent className="p-0">
             {/* Relative wrapper for the image column's positioning context */}
             <div className="relative">
@@ -746,7 +714,7 @@ const ProductDetail = () => {
                     of blurring it during upscaling. */}
                 {imageZoom && (
                   <div
-                    className="hidden lg:block absolute top-0 left-full ml-4 rounded-2xl border border-[var(--border)] shadow-2xl z-40 pointer-events-none bg-[var(--card)] overflow-hidden"
+                    className="hidden lg:block absolute top-0 left-full ml-4 rounded-2xl border-none ring-0 shadow-2xl z-40 pointer-events-none bg-[var(--card)] overflow-hidden"
                     style={{ width: '480px', height: '480px' }}
                   >
                     <img
@@ -900,8 +868,8 @@ const ProductDetail = () => {
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 sm:gap-8 items-start">
           {/* Meet the Farmer — left-side sticky card */}
           {product.farmer && (
-            <div className="w-full order-2 lg:order-1 lg:sticky lg:top-24 bg-[var(--card)] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] p-5 sm:p-6 space-y-5">
-              <div className="border-b border-[var(--border)] pb-3">
+            <div className="w-full order-2 lg:order-1 lg:sticky lg:top-24 bg-[var(--card)] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.4)] rounded-2xl sm:rounded-[2rem] p-5 sm:p-6 space-y-5 border-none ring-0">
+              <div className="border-none pb-3">
                 <h2 className="text-sm sm:text-base font-black text-[var(--foreground)] tracking-tight">Meet the Farmer</h2>
               </div>
 
@@ -939,7 +907,7 @@ const ProductDetail = () => {
               </div>
 
               {/* Stats Panel — Sales removed */}
-              <div className="grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-4">
+              <div className="grid grid-cols-3 gap-3 border-none pt-4">
                 <div>
                   <p className="text-[9px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">Rating</p>
                   <div className="flex items-center gap-1 mt-1">
@@ -963,14 +931,14 @@ const ProductDetail = () => {
 
               {/* Bio */}
               {product.farmer.bio && (
-                <div className="bg-[var(--secondary)]/40 p-3 rounded-xl text-xs text-[var(--muted-foreground)] italic border border-[var(--border)]/20 leading-relaxed">
+                <div className="bg-[var(--secondary)]/40 p-3 rounded-xl text-xs text-[var(--muted-foreground)] italic border-none ring-0 leading-relaxed">
                   "{product.farmer.bio}"
                 </div>
               )}
 
               {/* Farmer Contact Info (conditional) */}
               {(product.farmer.email || product.farmer.phone || product.farmer.address) && (
-                <div className="pt-3 border-t border-[var(--border)] flex flex-col gap-2">
+                <div className="pt-3 border-none flex flex-col gap-2">
                   {product.farmer.email && (
                     <a
                       href={`mailto:${product.farmer.email}`}
@@ -991,15 +959,15 @@ const ProductDetail = () => {
               )}
 
               {/* Contact seller (chat) */}
-              <div className="pt-3 border-t border-[var(--border)]">
+              <div className="pt-3 border-none">
                 <ContactSellerPanel />
               </div>
             </div>
           )}
 
           {/* Reviews */}
-          <div className="w-full max-w-md order-1 lg:order-2 lg:ml-auto space-y-4">
-            <div className="border-b border-[var(--border)] pb-2">
+          <div className="w-full max-w-md order-1 lg:order-2 lg:ml-auto space-y-4 border-none ring-0">
+            <div className="border-none pb-2">
               <h2 className="text-sm sm:text-base font-black text-[var(--foreground)] tracking-tight">Reviews ({reviewCount})</h2>
             </div>
 
@@ -1027,7 +995,7 @@ const ProductDetail = () => {
 
             {/* Add Review Form (compact) — only shown to logged-in users, no login prompt otherwise */}
             {user && (
-              <div className="border-t border-[var(--border)] pt-3 space-y-2">
+              <div className="border-none pt-3 space-y-2">
                 <p className="text-xs font-bold text-[var(--foreground)]">Rate & write a review</p>
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -1048,7 +1016,7 @@ const ProductDetail = () => {
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Write your review…"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-2.5 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
+                  className="w-full rounded-lg border-none ring-0 bg-[var(--card)] px-2.5 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-shadow"
                   rows={2}
                 />
                 <div className="flex gap-2">
@@ -1081,7 +1049,7 @@ const ProductDetail = () => {
             )}
 
             {/* Reviews list — compact rows, no per-item card */}
-            <div className="border-t border-[var(--border)] pt-3 space-y-3">
+            <div className="border-none pt-3 space-y-3">
               {reviews.length > 0 ? (
                 reviews.map((review) => {
                   const isPrivateReviewer = review.user?.privateAccount === true || review.privateAccount === true;
@@ -1093,7 +1061,7 @@ const ProductDetail = () => {
                   const avatarInitials = reviewerName.charAt(0).toUpperCase();
 
                   return (
-                    <div key={review.id} className="pb-3 border-b border-[var(--border)]/60 last:border-b-0 space-y-1.5">
+                    <div key={review.id} className="pb-3 border-none last:border-b-0 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           {review.user?.profileImage ? (
@@ -1132,7 +1100,7 @@ const ProductDetail = () => {
         {/* More Products From Farmer Grid */}
         {product.moreProducts && product.moreProducts.length > 0 && (
           <div className="space-y-4 sm:space-y-6">
-            <div className="border-b border-[var(--border)] pb-3 sm:pb-4">
+            <div className="border-none pb-3 sm:pb-4">
               <h2 className="text-base sm:text-lg font-black text-[var(--foreground)] tracking-tight">More from this farmer</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
@@ -1140,7 +1108,7 @@ const ProductDetail = () => {
                 <Link
                   key={p.id}
                   to={`/product/${p.id}`}
-                  className="group flex flex-col bg-[var(--card)] rounded-xl sm:rounded-2xl overflow-hidden border border-[var(--border)] hover:border-[var(--primary)]/40 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.08)] transition-all duration-300"
+                  className="group flex flex-col bg-[var(--card)] rounded-xl sm:rounded-2xl overflow-hidden border-none ring-0 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.08)] transition-all duration-300"
                 >
                   <div className="relative aspect-[4/3] bg-[var(--secondary)] overflow-hidden">
                     <img
@@ -1160,7 +1128,9 @@ const ProductDetail = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.price)}</span>
+                      <span className="font-black text-[var(--primary)] text-xs sm:text-sm">
+                        {formatPrice(liveProductMap.get(p.id)?.price ?? p.price)}
+                      </span>
                     </div>
                   </div>
                 </Link>
@@ -1179,7 +1149,7 @@ const ProductDetail = () => {
               {product.relatedProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="group flex flex-col bg-[var(--card)] rounded-xl sm:rounded-2xl overflow-hidden border border-[var(--border)] hover:border-[var(--primary)]/40 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.08)] transition-all duration-300"
+                  className="group flex flex-col bg-[var(--card)] rounded-xl sm:rounded-2xl overflow-hidden border-none ring-0 hover:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.08)] transition-all duration-300"
                 >
                   <Link to={`/product/${p.id}`} className="relative aspect-[4/3] bg-[var(--secondary)] overflow-hidden block">
                     <img
@@ -1202,7 +1172,9 @@ const ProductDetail = () => {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-black text-[var(--primary)] text-xs sm:text-sm">{formatPrice(p.discountPrice || p.price)}</span>
+                        <span className="font-black text-[var(--primary)] text-xs sm:text-sm">
+                          {formatPrice(liveProductMap.get(p.id)?.price ?? p.price)}
+                        </span>
                         <span className="text-[10px] text-[var(--muted-foreground)] font-semibold">/ {p.unit}</span>
                       </div>
                       <Button
@@ -1228,7 +1200,7 @@ const ProductDetail = () => {
       <Footer />
 
       {/* Sticky mobile add-to-cart bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--card)] border-t border-[var(--border)] px-4 py-3 shadow-[0_-8px_24px_-8px_rgba(0,0,0,0.1)] flex items-center gap-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-[var(--card)] border-none ring-0 px-4 py-3 shadow-[0_-8px_24px_-8px_rgba(0,0,0,0.1)] flex items-center gap-3">
         <div className="inline-flex items-center gap-0.5 bg-[var(--secondary)] rounded-xl p-1 shrink-0">
           <button
             onClick={() => setQuantity(Math.max(1, Number(quantity || 1) - 1))}

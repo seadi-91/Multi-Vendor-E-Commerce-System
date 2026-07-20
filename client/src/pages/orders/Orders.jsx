@@ -193,21 +193,21 @@ const Orders = () => {
       <div className="px-3 py-3 sm:px-4 lg:px-6">
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-2.5 sm:gap-3">
         <section className="grid gap-2 sm:grid-cols-3">
-          <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+          <Card className="border-none ring-0 bg-[var(--card)] shadow-sm">
             <CardContent className="p-2.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Visible Orders</p>
               <p className="mt-1 text-lg font-semibold">{filteredOrders.length}</p>
               <p className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Matching your current view</p>
             </CardContent>
           </Card>
-          <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+          <Card className="border-none ring-0 bg-[var(--card)] shadow-sm">
             <CardContent className="p-2.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Total Spent</p>
               <p className="mt-1 text-lg font-semibold">{formatPrice(orders.reduce((sum, order) => sum + Number(order.total || 0), 0))} ETB</p>
               <p className="mt-0.5 text-[10px] text-[var(--muted-foreground)]">Across your saved orders</p>
             </CardContent>
           </Card>
-          <Card className="border-[var(--border)] bg-[var(--card)] shadow-sm">
+          <Card className="border-none ring-0 bg-[var(--card)] shadow-sm">
             <CardContent className="p-2.5">
               <p className="text-[8px] font-semibold uppercase tracking-[0.25em] text-emerald-600">Average Order</p>
               <p className="mt-1 text-lg font-semibold">{orders.length ? formatPrice(orders.reduce((sum, order) => sum + Number(order.total || 0), 0) / orders.length) : '0.00'} ETB</p>
@@ -216,8 +216,8 @@ const Orders = () => {
           </Card>
         </section>
 
-        <section className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-2.5">
-          <div className="flex flex-1 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-2">
+        <section className="flex flex-col gap-2 rounded-xl border-none bg-[var(--card)] p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-2.5">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border-none bg-[var(--secondary)] px-2.5 py-2">
             <Filter className="h-3.5 w-3.5 text-emerald-600" />
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger className="h-8 w-full border-0 bg-transparent p-0 shadow-none focus:ring-0 sm:w-[170px]">
@@ -233,7 +233,7 @@ const Orders = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-1 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-2.5 py-2">
+          <div className="flex flex-1 items-center gap-2 rounded-lg border-none bg-[var(--secondary)] px-2.5 py-2">
             <Package className="h-3.5 w-3.5 text-emerald-600" />
             <input
               value={search}
@@ -245,12 +245,12 @@ const Orders = () => {
         </section>
 
         {loading ? (
-          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-center shadow-sm">
+          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border-none bg-[var(--card)] p-6 text-center shadow-sm">
             <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
             <p className="text-sm font-medium">Loading your orders...</p>
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 text-center shadow-sm">
+          <div className="rounded-xl border-none bg-[var(--card)] p-6 text-center shadow-sm">
             <Package className="mx-auto h-8 w-8 text-slate-400" />
             <h2 className="mt-2 text-base font-semibold">No orders found</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">We could not find any orders that match your current view.</p>
@@ -262,7 +262,7 @@ const Orders = () => {
               const meta = statusMeta[orderStatus] || statusMeta.processing;
               const previewItems = order.items.slice(0, 2);
               return (
-                <Card key={order.id} className="overflow-hidden border-[var(--border)] bg-[var(--card)] shadow-sm">
+                <Card key={order.id} className="overflow-hidden border-none ring-0 bg-[var(--card)] shadow-sm">
                   <CardContent className="p-2 sm:p-2.5">
                     <div className="flex flex-col gap-1.5">
                       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
@@ -292,7 +292,7 @@ const Orders = () => {
 
                       <div className="flex flex-wrap gap-1">
                         {previewItems.map((item, index) => (
-                          <div key={`${order.id}-${index}`} className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--secondary)] px-1.5 py-0.5 text-[9px]">
+                          <div key={`${order.id}-${index}`} className="inline-flex items-center gap-1 rounded-full border-none bg-[var(--secondary)] px-1.5 py-0.5 text-[9px]">
                             <span className="text-[9px]">🛒</span>
                             <span className="max-w-[84px] truncate">{item.name || 'Product'}</span>
                             <span className="text-[var(--muted-foreground)]">x{item.quantity || 1}</span>
@@ -314,7 +314,7 @@ const Orders = () => {
                           </span>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="h-6 rounded-md border-[var(--border)] bg-[var(--secondary)] px-2 text-[9px]" onClick={() => viewReceipt(order)}>
+                          <Button variant="outline" size="sm" className="h-6 rounded-md border-none bg-[var(--secondary)] px-2 text-[9px]" onClick={() => viewReceipt(order)}>
                             <ReceiptText className="mr-1 h-2.5 w-2.5" />
                             Receipt
                           </Button>
@@ -326,7 +326,7 @@ const Orders = () => {
                       </div>
 
                       {expandedOrder === order.id && (
-                        <div className="rounded-xl border border-[var(--border)] bg-[var(--secondary)]/70 p-2.5 text-xs">
+                        <div className="rounded-xl border-none bg-[var(--secondary)]/70 p-2.5 text-xs">
                           <div className="grid gap-2 md:grid-cols-2">
                             <div className="space-y-2">
                               <div className="flex items-start gap-2">
@@ -347,7 +347,7 @@ const Orders = () => {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 text-[11px]">
+                              <div className="rounded-lg border-none bg-[var(--card)] p-2.5 text-[11px]">
                                 <div className="flex items-center justify-between">
                                   <span className="text-[var(--muted-foreground)]">Subtotal</span>
                                   <span>{formatPrice(order.subtotal || order.total || 0)} ETB</span>
@@ -366,7 +366,7 @@ const Orders = () => {
                                 </div>
                               </div>
 
-                              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 text-[11px]">
+                              <div className="rounded-lg border-none bg-[var(--card)] p-2.5 text-[11px]">
                                 <div className="mb-2 flex items-center justify-between">
                                   <span className="font-semibold">Review your purchases</span>
                                   <span className="text-[var(--muted-foreground)]">{order.status === 'delivered' ? 'Eligible' : 'Pending delivery'}</span>
@@ -376,10 +376,10 @@ const Orders = () => {
                                     const productId = item.productId || item.id || item._id || item.product?.id;
                                     const existingReview = myReviews.find((review) => Number(review.productId) === Number(productId) && Number(review.orderId) === Number(order.id));
                                     return (
-                                      <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-2 py-2">
+                                      <div key={`${order.id}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border-none bg-[var(--secondary)] px-2 py-2">
                                         <span className="max-w-[180px] truncate text-xs font-medium">{item.name || 'Product'}</span>
                                         {order.status === 'delivered' ? (
-                                          <Button size="sm" variant="outline" className="h-7 rounded-md border-[var(--border)] bg-[var(--card)] px-2 text-[10px]" onClick={() => openReviewModal(order, item)}>
+                                          <Button size="sm" variant="outline" className="h-7 rounded-md border-none bg-[var(--card)] px-2 text-[10px]" onClick={() => openReviewModal(order, item)}>
                                             {existingReview ? 'Edit Review' : 'Write Review'}
                                           </Button>
                                         ) : (

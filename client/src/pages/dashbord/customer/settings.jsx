@@ -39,7 +39,7 @@ const ToggleSwitch = ({ checked, onChange, disabled, label }) => (
 );
 
 const SectionCard = ({ icon: Icon, title, description, children, dense }) => (
-  <Card className="overflow-hidden shadow-md rounded-xl bg-[var(--card)]">
+  <Card className="overflow-hidden shadow-md rounded-xl bg-[var(--card)] border-none ring-0">
     <CardHeader className={`${dense ? 'py-3.5 px-4' : 'py-4 px-5'}`}>
       <div className="flex items-center gap-2.5">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
@@ -484,7 +484,7 @@ const Settings = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Profile summary — compact */}
-        <div className="flex items-center gap-3.5 mb-6 rounded-xl bg-white dark:bg-slate-800 px-4 py-3.5 shadow-md">
+        <div className="flex items-center gap-3.5 mb-6 rounded-xl bg-white dark:bg-slate-800 px-4 py-3.5 shadow-md border-none ring-0">
           <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 text-lg font-semibold shrink-0">
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
