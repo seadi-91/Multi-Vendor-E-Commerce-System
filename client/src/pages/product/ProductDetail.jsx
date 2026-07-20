@@ -960,7 +960,13 @@ const ProductDetail = () => {
 
               {/* Contact seller (chat) */}
               <div className="pt-3 border-none">
-                <ContactSellerPanel />
+                {user ? (
+                  <ContactSellerPanel />
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-xs text-[var(--muted-foreground)]">Please log in to write a review or contact the farmer.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -993,8 +999,8 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Add Review Form (compact) — only shown to logged-in users, no login prompt otherwise */}
-            {user && (
+            {/* Add Review Form (compact) — only shown to logged-in users */}
+            {user ? (
               <div className="border-none pt-3 space-y-2">
                 <p className="text-xs font-bold text-[var(--foreground)]">Rate & write a review</p>
                 <div className="flex items-center gap-1">
@@ -1045,6 +1051,10 @@ const ProductDetail = () => {
                     Cancel
                   </Button>
                 </div>
+              </div>
+            ) : (
+              <div className="border-none pt-3 text-center py-4">
+                <p className="text-xs text-[var(--muted-foreground)]">Please log in to write a review or contact the farmer.</p>
               </div>
             )}
 

@@ -4,7 +4,12 @@ const prisma = require('../db/prismaClient');
 exports.getMessages = async (req, res) => {
   try {
     const { withUserId } = req.query; // id of the other participant
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
     console.log(`[messages] getMessages requested by user ${userId} with withUserId=${withUserId}`);
     const messages = await prisma.message.findMany({
       where: {
@@ -26,7 +31,12 @@ exports.getMessages = async (req, res) => {
 exports.sendMessage = async (req, res) => {
   try {
     const { receiverId, content } = req.body;
-    const senderId = req.user.id;
+    const senderId = req.user?.id;
+    
+    if (!senderId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
     console.log(`[messages] sendMessage from user ${senderId} to ${receiverId} content: ${content}`);
     const parsedReceiverId = Number(receiverId);
     // Server-side validation: disallow URLs, phone numbers, and @usernames
@@ -54,7 +64,11 @@ exports.updateMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
     const { content } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
 
     const existing = await prisma.message.findUnique({ where: { id: Number(messageId) } });
     if (!existing) {
