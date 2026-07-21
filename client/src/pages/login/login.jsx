@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useFavorites } from '../../context/FavoritesContext';
 import { ROLES, ROUTES_BY_ROLE } from '../../context/roles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,23 +16,9 @@ import {
 const Login = () => {
   const { theme } = useTheme();
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.remove('light', 'dark');
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.remove('light', 'dark');
-      root.classList.add(theme);
-    }
-
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
   const navigate = useNavigate();
   const { login, loading, user } = useAuth();
+  const { syncGuestFavorites } = useFavorites();
 
   const [showPassword, setShowPassword] = useState(false);
   const [favorites, setFavorites] = useState([]);
@@ -92,6 +79,9 @@ const Login = () => {
 
     try {
       const result = await login(formData.email, formData.password);
+
+      // Sync guest favorites after login
+      await syncGuestFavorites();
 
       // Store remember me preference
       if (formData.rememberMe) {

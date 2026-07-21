@@ -212,9 +212,6 @@ const Market = () => {
   // URL params
   const categoryParam = searchParams.get('cat');
   const searchParam = searchParams.get('search');
-  useEffect(() => {
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   // Set initial search query from URL
   useEffect(() => {
@@ -236,7 +233,8 @@ const Market = () => {
 
   // Filter and sort products
   useEffect(() => {
-    let filtered = products;
+    // Create a copy first to avoid mutating the original products array
+    let filtered = [...products];
 
     // Filter by category
     if (selectedCategory && selectedCategory !== 'All') {
@@ -297,7 +295,7 @@ const Market = () => {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
-      <div className="sticky top-0 z-50 bg-white dark:bg-slate-900 shadow-sm">
+      <div className="sticky top-0 z-50 bg-[var(--card)] shadow-sm">
         <Header pageType="market" />
       </div>
 

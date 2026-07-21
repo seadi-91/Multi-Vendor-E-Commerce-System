@@ -67,7 +67,8 @@ export const FavoritesProvider = ({ children }) => {
         // Fetch product data for stored IDs
         if (storedIds.length > 0) {
           try {
-            const productsResponse = await api.get('/products');
+            // Fetch all cached products and filter
+            const productsResponse = await api.get('/products/cached/all');
             const products = Array.isArray(productsResponse?.data?.data) ? productsResponse.data.data : [];
             const matchedProducts = products.filter(product => 
               storedIds.includes(String(product.id))

@@ -39,11 +39,15 @@ api.interceptors.response.use(
     const isAuthRequest = error.config?.url?.includes('/auth/');
     const isPaymentRequest = error.config?.url?.includes('/payments/');
     const isProductRequest = error.config?.url?.includes('/products/');
+    const isFavoritesRequest = error.config?.url?.includes('/favorites');
+    const isCustomerProfileRequest = error.config?.url?.includes('/customer/profile');
+    const isMessagesRequest = error.config?.url?.includes('/messages');
+    const isReviewsRequest = error.config?.url?.includes('/reviews');
     const isLoginPage = window.location.pathname === '/login';
 
     // Handle 401 Unauthorized - token expired, invalid, or user deleted
     // Skip redirect for payment and product requests
-    if (status === 401 && !isAuthRequest && !isPaymentRequest && !isProductRequest && !isLoginPage) {
+    if (status === 401 && !isAuthRequest && !isPaymentRequest && !isProductRequest && !isFavoritesRequest && !isCustomerProfileRequest && !isMessagesRequest && !isReviewsRequest && !isLoginPage) {
       console.log('401 Unauthorized - clearing auth state and redirecting to login');
 
       // Check if it's due to user deletion

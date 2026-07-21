@@ -1,7 +1,7 @@
 import Cart from './pages/cart/Cart';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './context/ProtectedRoute';
 import GuestRoute from './context/GuestRoute';
 import AdminDashboard from './pages/dashbord/admin/AdminDashboard';
@@ -26,6 +26,16 @@ import MockChapaCheckout from './pages/payment/MockChapaCheckout';
 import { ROLES } from './context/roles';
 import { FavoritesProvider } from './context/FavoritesContext';
 
+const ScrollToTop = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+  
+  return null;
+};
+
 function App() {
   const Settings = React.lazy(() => import('./pages/dashbord/customer/settings'));
 
@@ -33,6 +43,7 @@ function App() {
     <>
       <FavoritesProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />

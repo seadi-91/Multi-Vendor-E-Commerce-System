@@ -144,135 +144,7 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite, onAddToCart, class
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 const Home = () => {
-  const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    // First remove all classes
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'dark') {
-      // Bright dark theme colors
-      root.style.setProperty('--background', 'oklch(0.25 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--card', 'oklch(0.30 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--popover', 'oklch(0.30 0 0)');
-      root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--primary', '#059669'); // Emerald green
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
-      root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--muted', 'oklch(0.35 0 0)');
-      root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
-      root.style.setProperty('--accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-      root.style.setProperty('--border', 'transparent');
-      root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
-      root.style.setProperty('--ring', '#059669'); // Emerald green
-      root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
-      root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-border', 'transparent');
-      root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
-    } else if (theme === 'light') {
-      // Light theme colors
-      root.style.setProperty('--background', '#ffffff');
-      root.style.setProperty('--foreground', '#000000');
-      root.style.setProperty('--card', '#ffffff');
-      root.style.setProperty('--card-foreground', '#000000');
-      root.style.setProperty('--popover', '#ffffff');
-      root.style.setProperty('--popover-foreground', '#000000');
-      root.style.setProperty('--primary', '#059669'); // Emerald green
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#f3f4f6');
-      root.style.setProperty('--secondary-foreground', '#000000');
-      root.style.setProperty('--muted', '#f3f4f6');
-      root.style.setProperty('--muted-foreground', '#6b7280');
-      root.style.setProperty('--accent', '#f3f4f6');
-      root.style.setProperty('--accent-foreground', '#000000');
-      root.style.setProperty('--destructive', '#dc2626');
-      root.style.setProperty('--border', '#e5e7eb');
-      root.style.setProperty('--input', '#e5e7eb');
-      root.style.setProperty('--ring', '#059669'); // Emerald green
-      root.style.setProperty('--sidebar', '#ffffff');
-      root.style.setProperty('--sidebar-foreground', '#000000');
-      root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', '#f3f4f6');
-      root.style.setProperty('--sidebar-accent-foreground', '#000000');
-      root.style.setProperty('--sidebar-border', '#e5e7eb');
-      root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
-    } else {
-      // For system mode, use original bright oklch colors
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-
-      // Apply original oklch colors based on system preference
-      if (systemTheme === 'dark') {
-        // Original dark oklch colors
-        root.style.setProperty('--background', 'oklch(0.145 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--card', 'oklch(0.205 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--popover', 'oklch(0.205 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--primary', '#059669'); // Emerald green
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.269 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.269 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.708 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.269 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-        root.style.setProperty('--border', 'transparent');
-        root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
-        root.style.setProperty('--ring', '#059669'); // Emerald green
-        root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.269 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-border', 'transparent');
-        root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
-      } else {
-        // Original light oklch colors
-        root.style.setProperty('--background', 'oklch(1 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--card', 'oklch(1 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--popover', 'oklch(1 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--primary', '#059669'); // Emerald green
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.97 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.556 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.577 0.245 27.325)');
-        root.style.setProperty('--border', 'oklch(0.922 0 0)');
-        root.style.setProperty('--input', 'oklch(0.922 0 0)');
-        root.style.setProperty('--ring', '#059669'); // Emerald green
-        root.style.setProperty('--sidebar', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669'); // Emerald green
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(0.922 0 0)');
-        root.style.setProperty('--sidebar-ring', '#059669'); // Emerald green
-      }
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  const { theme } = useTheme();
 
   // Scroll handler for header state
   const handleScroll = useCallback(() => {
@@ -444,7 +316,7 @@ const Home = () => {
           loop
           muted
           playsInline
-          webkit-playsinline
+          webkit-playsinline="true"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src={farmconnectVideo} type="video/mp4" />

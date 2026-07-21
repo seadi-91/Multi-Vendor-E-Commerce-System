@@ -361,169 +361,12 @@ const Favorites = () => {
     refreshFavorites();
   }, [refreshFavorites]);
 
-  useEffect(() => {
-    const root = window.document.documentElement;
 
-    // First remove all classes
-    root.classList.remove('light', 'dark');
-
-    if (theme === 'dark') {
-      // Bright dark theme colors
-      root.style.setProperty('--background', 'oklch(0.25 0 0)');
-      root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--card', 'oklch(0.30 0 0)');
-      root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--popover', 'oklch(0.30 0 0)');
-      root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--primary', '#059669');
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', 'oklch(0.35 0 0)');
-      root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--muted', 'oklch(0.35 0 0)');
-      root.style.setProperty('--muted-foreground', 'oklch(0.8 0 0)');
-      root.style.setProperty('--accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-      root.style.setProperty('--border', 'oklch(1 0 0 / 20%)');
-      root.style.setProperty('--input', 'oklch(1 0 0 / 25%)');
-      root.style.setProperty('--ring', '#059669');
-      root.style.setProperty('--sidebar', 'oklch(0.30 0 0)');
-      root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-primary', '#059669');
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', 'oklch(0.35 0 0)');
-      root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-      root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 20%)');
-      root.style.setProperty('--sidebar-ring', '#059669');
-    } else if (theme === 'light') {
-      // Light theme colors
-      root.style.setProperty('--background', '#ffffff');
-      root.style.setProperty('--foreground', '#000000');
-      root.style.setProperty('--card', '#ffffff');
-      root.style.setProperty('--card-foreground', '#000000');
-      root.style.setProperty('--popover', '#ffffff');
-      root.style.setProperty('--popover-foreground', '#000000');
-      root.style.setProperty('--primary', '#059669');
-      root.style.setProperty('--primary-foreground', '#ffffff');
-      root.style.setProperty('--secondary', '#f3f4f6');
-      root.style.setProperty('--secondary-foreground', '#000000');
-      root.style.setProperty('--muted', '#f3f4f6');
-      root.style.setProperty('--muted-foreground', '#6b7280');
-      root.style.setProperty('--accent', '#f3f4f6');
-      root.style.setProperty('--accent-foreground', '#000000');
-      root.style.setProperty('--destructive', '#dc2626');
-      root.style.setProperty('--border', '#e5e7eb');
-      root.style.setProperty('--input', '#e5e7eb');
-      root.style.setProperty('--ring', '#059669');
-      root.style.setProperty('--sidebar', '#ffffff');
-      root.style.setProperty('--sidebar-foreground', '#000000');
-      root.style.setProperty('--sidebar-primary', '#059669');
-      root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-      root.style.setProperty('--sidebar-accent', '#f3f4f6');
-      root.style.setProperty('--sidebar-accent-foreground', '#000000');
-      root.style.setProperty('--sidebar-border', '#e5e7eb');
-      root.style.setProperty('--sidebar-ring', '#059669');
-    } else {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-
-      if (systemTheme === 'dark') {
-        root.style.setProperty('--background', 'oklch(0.145 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--card', 'oklch(0.205 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--popover', 'oklch(0.205 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--primary', '#059669');
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.269 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.269 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.708 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.269 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.704 0.191 22.216)');
-        root.style.setProperty('--border', 'oklch(1 0 0 / 10%)');
-        root.style.setProperty('--input', 'oklch(1 0 0 / 15%)');
-        root.style.setProperty('--ring', '#059669');
-        root.style.setProperty('--sidebar', 'oklch(0.205 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669');
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.269 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(1 0 0 / 10%)');
-        root.style.setProperty('--sidebar-ring', '#059669');
-      } else {
-        root.style.setProperty('--background', 'oklch(1 0 0)');
-        root.style.setProperty('--foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--card', 'oklch(1 0 0)');
-        root.style.setProperty('--card-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--popover', 'oklch(1 0 0)');
-        root.style.setProperty('--popover-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--primary', '#059669');
-        root.style.setProperty('--primary-foreground', '#ffffff');
-        root.style.setProperty('--secondary', 'oklch(0.97 0 0)');
-        root.style.setProperty('--secondary-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--muted', 'oklch(0.97 0 0)');
-        root.style.setProperty('--muted-foreground', 'oklch(0.556 0 0)');
-        root.style.setProperty('--accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--accent-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--destructive', 'oklch(0.577 0.245 27.325)');
-        root.style.setProperty('--border', 'oklch(0.922 0 0)');
-        root.style.setProperty('--input', 'oklch(0.922 0 0)');
-        root.style.setProperty('--ring', '#059669');
-        root.style.setProperty('--sidebar', 'oklch(0.985 0 0)');
-        root.style.setProperty('--sidebar-foreground', 'oklch(0.145 0 0)');
-        root.style.setProperty('--sidebar-primary', '#059669');
-        root.style.setProperty('--sidebar-primary-foreground', '#ffffff');
-        root.style.setProperty('--sidebar-accent', 'oklch(0.97 0 0)');
-        root.style.setProperty('--sidebar-accent-foreground', 'oklch(0.205 0 0)');
-        root.style.setProperty('--sidebar-border', 'oklch(0.922 0 0)');
-        root.style.setProperty('--sidebar-ring', '#059669');
-      }
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   const handleAddToCart = async (product) => {
     addToCart({ ...product, _id: product.id });
     await removeFavorite(product.id);
   };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
-        <Header pageType="favorite" />
-        <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
-          <section className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-5 text-white shadow-xl sm:p-7">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <div className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-emerald-50 backdrop-blur-sm">
-                  Favorites
-                </div>
-                <h1 className="text-2xl font-bold sm:text-3xl">Your saved picks</h1>
-                <p className="mt-2 max-w-2xl text-sm text-emerald-50/90">
-                  Sign in to view the products you have saved from our marketplace.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-[var(--border)] bg-[var(--card)]/90 p-6 text-center shadow-sm">
-            <Heart className="mx-auto mb-4 h-12 w-12 text-[var(--muted-foreground)]/60" />
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Please sign in</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted-foreground)]">
-              Your favorites are linked to your account, so sign in to see the real products saved here.
-            </p>
-            <Link to="/login" className="mt-5 inline-flex items-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
-              Go to Sign In
-            </Link>
-          </section>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--background)] to-[var(--secondary)] text-[var(--foreground)] antialiased">
@@ -539,6 +382,7 @@ const Favorites = () => {
               <h1 className="text-xl font-bold sm:text-2xl">Your saved picks</h1>
               <p className="mt-1 max-w-2xl text-xs text-emerald-50/90">
                 Keep the products you love close at hand and revisit them whenever you are ready to buy.
+                {!user && " Sign in to sync your favorites across devices."}
               </p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 backdrop-blur-sm shadow-sm">

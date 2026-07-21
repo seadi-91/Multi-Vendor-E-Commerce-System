@@ -18,16 +18,16 @@ export const buildRegistrationPayload = (formData = {}, files = {}) => {
         payload.address = formData.address.trim();
     }
 
-    if (formData?.tinNumber?.trim?.()) {
-        payload.tinNumber = formData.tinNumber.trim();
-    }
-
     if (files?.landMap?.name) {
         payload.landMapFile = files.landMap.name;
     }
 
     if (files?.nationalId?.name) {
         payload.nationalId = files.nationalId.name;
+    }
+
+    if (files?.businessLicense?.name) {
+        payload.businessLicense = files.businessLicense.name;
     }
 
     return payload;

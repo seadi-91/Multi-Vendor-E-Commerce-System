@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useFavorites } from '../../context/FavoritesContext';
 import { ROLES, ROUTES_BY_ROLE } from '../../context/roles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,22 +23,10 @@ const Register = () => {
   const { theme } = useTheme();
   const [step, setStep] = useState(1); // 1: Account Type, 2: Registration Form
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.remove('light', 'dark');
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.remove('light', 'dark');
-      root.classList.add(theme);
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const { register: registerUser } = useAuth();
+  const { syncGuestFavorites } = useFavorites();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -52,11 +41,11 @@ const Register = () => {
     phone: '',
     city: '',
     address: '',
-    tinNumber: '',
   });
   const [files, setFiles] = useState({
     landMap: null,
     nationalId: null,
+    businessLicense: null,
   });
   const [errors, setErrors] = useState({});
 
@@ -135,12 +124,7 @@ const Register = () => {
         if (normalizedRole === 'farmer' && !trimmedValue) return 'Farm address is required';
         return '';
       }
-      case 'tinNumber': {
-        if (normalizedRole === 'farmer' && !trimmedValue && !currentFiles.landMap) {
-          return 'Either TIN Number or Land Map file is required';
-        }
-        return '';
-      }
+      // case 'tinNumber' removed
       default:
         return '';
     }
@@ -249,9 +233,9 @@ const Register = () => {
         newErrors.nationalId = 'National ID is required';
       }
 
-      // TIN Number OR Land Map validation (at least one required)
-      if (!formData.tinNumber?.trim() && !files.landMap) {
-        newErrors.tinOrLandMap = 'Either TIN Number or Land Map file is required';
+      // Business License validation (mandatory for farmers)
+      if (!files.businessLicense) {
+        newErrors.businessLicense = 'Business License is required';
       }
     }
 
@@ -295,10 +279,11 @@ const Register = () => {
     try {
       const payload = buildRegistrationPayload(formData, files);
       const result = await registerUser(payload);
+      await syncGuestFavorites();
       toast.dismiss();
       toast.success(`Welcome, ${formData.name?.trim() || 'there'}!`);
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-      setFiles({ landMap: null, nationalId: null });
+      setFiles({ landMap: null, nationalId: null, businessLicense: null });
 
       const targetRoute = getRedirectPath(result?.user, formData.role);
       navigate(targetRoute);
@@ -555,88 +540,8 @@ const Register = () => {
                       {errors.address && <p className="text-xs text-red-500 font-semibold mt-1">{errors.address}</p>}
                     </div>
 
-                    {/* TIN Number or Land Map - At least one required */}
-                    <div className="p-3 bg-amber-50/50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-900/30">
-                      <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Either TIN Number or Land Map file is required
-                      </p>
-
-                      {/* TIN Number */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="tinNumber" className="text-xs font-bold text-slate-700 dark:text-[var(--muted-foreground)] uppercase tracking-wider">
-                          TIN Number
-                        </Label>
-                        <div className="relative">
-                          <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <Input
-                            type="text"
-                            id="tinNumber"
-                            name="tinNumber"
-                            value={formData.tinNumber}
-                            onChange={(e) => {
-                              handleChange(e);
-                              if (errors.tinOrLandMap) setErrors(prev => ({ ...prev, tinOrLandMap: '' }));
-                            }}
-                            placeholder="Enter TIN number"
-                            disabled={loading}
-                            className="pl-10 h-10 rounded-xl border-slate-200 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--foreground)] text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500/10 transition-all font-semibold text-sm"
-                          />
-                        </div>
-                      </div>
-                      {errors.tinOrLandMap && <p className="text-xs text-red-500 font-semibold mt-2">{errors.tinOrLandMap}</p>}
-                    </div>
-
-                    {/* National ID - Mandatory (side by side with land map in grid) */}
+                    {/* National ID, Business License, and Land Map in grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Land Map File Upload */}
-                      <div className="space-y-1.5">
-                        <Label htmlFor="landMapDoc" className="text-xs font-bold text-slate-700 dark:text-[var(--muted-foreground)] uppercase tracking-wider">
-                          Land Map
-                        </Label>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            id="landMapDoc"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handleFileChange(e, 'landMap')}
-                            disabled={loading}
-                            className="hidden"
-                          />
-                          {!files.landMap ? (
-                            <Label
-                              htmlFor="landMapDoc"
-                              className="flex items-center gap-2 w-full h-12 border-2 border-dashed border-slate-300 dark:border-[var(--border)] rounded-xl cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all px-2.5"
-                            >
-                              <Upload className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                              <div className="text-left flex-1">
-                                <p className="text-[11px] font-semibold text-slate-600 dark:text-gray-400 leading-tight">Upload map</p>
-                                <p className="text-[9px] text-slate-400 dark:text-gray-500">PDF, JPG, PNG</p>
-                              </div>
-                            </Label>
-                          ) : (
-                            <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl h-12">
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[11px] font-semibold text-slate-800 dark:text-[var(--foreground)] truncate">{files.landMap.name}</p>
-                                  <p className="text-[9px] text-slate-500 dark:text-gray-400">{(files.landMap.size / 1024).toFixed(1)} KB</p>
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeFile('landMap')}
-                                className="h-5 w-5 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 ml-1"
-                              >
-                                <X className="w-3 h-3 text-red-500" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
                       {/* National ID */}
                       <div className="space-y-1.5">
                         <Label htmlFor="nationalId" className="text-xs font-bold text-slate-700 dark:text-[var(--muted-foreground)] uppercase tracking-wider">
@@ -684,6 +589,106 @@ const Register = () => {
                           )}
                         </div>
                         {errors.nationalId && <p className="text-xs text-red-500 font-semibold mt-1">{errors.nationalId}</p>}
+                      </div>
+
+                      {/* Business License */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="businessLicenseDoc" className="text-xs font-bold text-slate-700 dark:text-[var(--muted-foreground)] uppercase tracking-wider">
+                          Business License <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id="businessLicenseDoc"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => {
+                              handleFileChange(e, 'businessLicense');
+                              if (errors.businessLicense) setErrors(prev => ({ ...prev, businessLicense: '' }));
+                            }}
+                            disabled={loading}
+                            className="hidden"
+                          />
+                          {!files.businessLicense ? (
+                            <Label
+                              htmlFor="businessLicenseDoc"
+                              className={`flex items-center gap-2 w-full h-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all px-2.5 ${errors.businessLicense ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-[var(--border)]'}`}
+                            >
+                              <Upload className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <div className="text-left flex-1">
+                                <p className="text-[11px] font-semibold text-slate-600 dark:text-gray-400 leading-tight">Upload License</p>
+                                <p className="text-[9px] text-slate-400 dark:text-gray-500">PDF, JPG, PNG</p>
+                              </div>
+                            </Label>
+                          ) : (
+                            <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl h-12">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-semibold text-slate-800 dark:text-[var(--foreground)] truncate">{files.businessLicense.name}</p>
+                                  <p className="text-[9px] text-slate-500 dark:text-gray-400">{(files.businessLicense.size / 1024).toFixed(1)} KB</p>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile('businessLicense')}
+                                className="h-5 w-5 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 ml-1"
+                              >
+                                <X className="w-3 h-3 text-red-500" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {errors.businessLicense && <p className="text-xs text-red-500 font-semibold mt-1">{errors.businessLicense}</p>}
+                      </div>
+
+                      {/* Land Map File Upload (optional) */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="landMapDoc" className="text-xs font-bold text-slate-700 dark:text-[var(--muted-foreground)] uppercase tracking-wider">
+                          Land Map (Optional)
+                        </Label>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id="landMapDoc"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileChange(e, 'landMap')}
+                            disabled={loading}
+                            className="hidden"
+                          />
+                          {!files.landMap ? (
+                            <Label
+                              htmlFor="landMapDoc"
+                              className="flex items-center gap-2 w-full h-12 border-2 border-dashed border-slate-300 dark:border-[var(--border)] rounded-xl cursor-pointer hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/10 transition-all px-2.5"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                              <div className="text-left flex-1">
+                                <p className="text-[11px] font-semibold text-slate-600 dark:text-gray-400 leading-tight">Upload map</p>
+                                <p className="text-[9px] text-slate-400 dark:text-gray-500">PDF, JPG, PNG</p>
+                              </div>
+                            </Label>
+                          ) : (
+                            <div className="flex items-center justify-between p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl h-12">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-semibold text-slate-800 dark:text-[var(--foreground)] truncate">{files.landMap.name}</p>
+                                  <p className="text-[9px] text-slate-500 dark:text-gray-400">{(files.landMap.size / 1024).toFixed(1)} KB</p>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile('landMap')}
+                                className="h-5 w-5 p-0 hover:bg-red-100 dark:hover:bg-red-900/30 ml-1"
+                              >
+                                <X className="w-3 h-3 text-red-500" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
